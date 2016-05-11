@@ -13,22 +13,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
 """
 Driver for EMC CoprHD ScaleIO volumes.
 
 """
 
+import requests
+
 try:
     from oslo_log import log as logging
 except ImportError:
     from cinder.openstack.common import log as logging
-
-from cinder.volume import driver
 from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
-from cinder import utils
+from cinder.volume import driver
 from cinder.openstack.common import processutils
+from cinder import utils
 
-import requests
 
 LOG = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         self.common = self._get_common_driver()
 
     def _get_common_driver(self):
-        return CoprHD_common.EMCViPRDriverCommon(
+        return CoprHD_common.EMCCoprHDDriverCommon(
             protocol='scaleio',
             default_backend_name=self.__class__.__name__,
             configuration=self.configuration)
@@ -115,9 +116,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         """Creates a consistencygroup."""
         return self.common.create_consistencygroup(context, group)
 
-    def update_consistencygroup(self, context, group, add_volumes, remove_volumes):
+    def update_consistencygroup(self, context, group,
+                                add_volumes, remove_volumes):
         """Updates volumes in consistency group."""
-        return self.common.update_consistencygroup(self, context, group, add_volumes, remove_volumes)
+        return self.common.update_consistencygroup(self, context, group,
+                                                   add_volumes, remove_volumes)
 
     def delete_consistencygroup(self, context, group):
         """Deletes a consistency group."""
@@ -141,9 +144,9 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         the scaleio driver returns a driver_volume_type of 'scaleio'.
         the format of the driver data is defined as:
             :scaleIO_volname:    name of the volume
-            :hostIP:    The IP address of the openstack host to which we 
+            :hostIP:    The IP address of the openstack host to which we
                 want to export the scaleio volume.
-            :serverIP:     The IP address of the REST gateway of the ScaleIO. 
+            :serverIP:     The IP address of the REST gateway of the ScaleIO.
             :serverPort:   The port of the REST gateway of the ScaleIO.
             :serverUsername: The username to access REST gateway of ScaleIO.
             :serverPassword:    The password to access REST gateway of ScaleIO.
@@ -178,9 +181,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         properties[
             'serverPort'] = self.configuration.coprhd_scaleio_rest_gateway_port
         properties[
-            'serverUsername'] = self.configuration.coprhd_scaleio_rest_server_username
+            'serverUsername'] = \
+            self.configuration.coprhd_scaleio_rest_server_username
         properties[
-            'serverPassword'] = self.configuration.coprhd_scaleio_rest_server_password
+            'serverPassword'] = \
+            self.configuration.coprhd_scaleio_rest_server_password
         properties['iopsLimit'] = None
         properties['bandwidthLimit'] = None
         properties['serverToken'] = self.server_token
@@ -226,9 +231,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         properties[
             'serverPort'] = self.configuration.coprhd_scaleio_rest_gateway_port
         properties[
-            'serverUsername'] = self.configuration.coprhd_scaleio_rest_server_username
+            'serverUsername'] = \
+            self.configuration.coprhd_scaleio_rest_server_username
         properties[
-            'serverPassword'] = self.configuration.coprhd_scaleio_rest_server_password
+            'serverPassword'] = \
+            self.configuration.coprhd_scaleio_rest_server_password
         properties['serverToken'] = self.server_token
 
         initiatorPort = self._get_client_id(properties['serverIP'],
@@ -304,9 +311,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
         if 'R1_31' in version:
             r = requests.get(
-                request, auth=(server_username, self.server_token), verify=verify_cert)
+                request, auth=(server_username, self.server_token),
+                verify=verify_cert)
             r = self._check_response(
-                r, request, server_ip, server_port, server_username, server_password)
+                r, request, server_ip, server_port,
+                server_username, server_password)
         else:
             r = requests.get(
                 request, auth=(server_username, server_password), verify=False)
@@ -324,7 +333,9 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         LOG.info("ScaleIO sdc id is %s" % sdc_id)
         return sdc_id
 
-    def _check_response(self, response, request, server_ip, server_port, server_username, server_password):
+    def _check_response(self, response, request,
+                        server_ip, server_port,
+                        server_username, server_password):
         if (response.status_code == 401 or response.status_code == 403):
             LOG.info("Token is invalid, going to re-login and get a new one")
             login_request = "https://" + server_ip + \
@@ -335,16 +346,19 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                 verify_cert = False
 
             r = requests.get(
-                login_request, auth=(server_username, server_password), verify=verify_cert)
+                login_request, auth=(server_username, server_password),
+                verify=verify_cert)
 
             token = r.json()
             self.server_token = token
             # repeat request with valid token
 
             LOG.info(
-                "going to perform request again {0} with valid token".format(request))
+                "going to perform request again {0} with valid token".
+                format(request))
             res = requests.get(
-                request, auth=(server_username, self.server_token), verify=verify_cert)
+                request, auth=(server_username, self.server_token),
+                verify=verify_cert)
             return res
         return response
 

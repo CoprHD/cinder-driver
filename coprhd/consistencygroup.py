@@ -1,21 +1,25 @@
 #!/usr/bin/python
 
 # Copyright (c) 2016 EMC Corporation
-# All Rights Reserved
+# All Rights Reserved.
 #
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
 
-
-# import python system modules
+import json
 
 from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import SOSError
+from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
 from cinder.volume.drivers.emc.coprhd.project import Project
-import json
 
 
 class ConsistencyGroup(object):
@@ -26,16 +30,6 @@ class ConsistencyGroup(object):
     URI_CONSISTENCY_GROUPS_INSTANCE = URI_CONSISTENCY_GROUP + "/{0}"
     URI_CONSISTENCY_GROUPS_DEACTIVATE = URI_CONSISTENCY_GROUPS_INSTANCE + \
         "/deactivate"
-    URI_CONSISTENCY_GROUPS_SNAPSHOT = URI_CONSISTENCY_GROUP + \
-        "/{0}/protection/snapshots"
-    URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE = URI_CONSISTENCY_GROUP + \
-        "/{0}/protection/snapshots/{1}"
-    URI_CONSISTENCY_GROUPS_SNAPSHOT_ACTIVATE = \
-        URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/activate"
-    URI_CONSISTENCY_GROUPS_SNAPSHOT_DEACTIVATE = \
-        URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/deactivate"
-    URI_CONSISTENCY_GROUPS_SNAPSHOT_RESTORE = \
-        URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/restore"
     URI_CONSISTENCY_GROUPS_SEARCH = \
         '/block/consistency-groups/search?project={0}'
     URI_SEARCH_CONSISTENCY_GROUPS_BY_TAG = \
@@ -43,19 +37,10 @@ class ConsistencyGroup(object):
     URI_CONSISTENCY_GROUP_TAGS = \
         '/block/consistency-groups/{0}/tags'
 
-    URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE = \
-        URI_CONSISTENCY_GROUPS_INSTANCE + "/protection/continuous-copies"
-    URI_BLOCK_CONSISTENCY_GROUP_SWAP = \
-        URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
-    URI_BLOCK_CONSISTENCY_GROUP_FAILOVER = \
-        URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
-    URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL = \
-        URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover-cancel"
-
     def __init__(self, ipAddr, port):
         '''
-        Constructor: takes IP address and port of the ViPR instance. These are
-        needed to make http requests for REST API
+        Constructor: takes IP address and port of the CoprHD instance. These
+        are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
@@ -136,8 +121,8 @@ class ConsistencyGroup(object):
             if(congroup):
                 if (congroup['name'] == name):
                     return congroup['id']
-        raise SOSError(SOSError.NOT_FOUND_ERR,
-                       "Consistency Group " + name + ": not found")
+        raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                          "Consistency Group " + name + ": not found")
 
     # Blocks the opertaion until the task is complete/error out/timeout
     def check_for_sync(self, result, sync, synctimeout=0):
@@ -149,8 +134,8 @@ class ConsistencyGroup(object):
                                             self.__port, synctimeout)
             )
         else:
-            raise SOSError(
-                SOSError.SOS_FAILURE_ERR,
+            raise CoprHdError(
+                CoprHdError.SOS_FAILURE_ERR,
                 "error: task list is empty, no task response found")
 
     def create(self, name, project, tenant):
@@ -167,8 +152,8 @@ class ConsistencyGroup(object):
         # check for existence of consistency group.
         try:
             status = self.show(name, project, tenant)
-        except SOSError as e:
-            if(e.err_code == SOSError.NOT_FOUND_ERR):
+        except CoprHdError as e:
+            if(e.err_code == CoprHdError.NOT_FOUND_ERR):
                 if(tenant is None):
                     tenant = ""
                 fullproj = tenant + "/" + project
@@ -190,9 +175,9 @@ class ConsistencyGroup(object):
             common.format_err_msg_and_raise(
                 "create", "consistency group",
                 "consistency group with name: " + name + " already exists",
-                SOSError.ENTRY_ALREADY_EXISTS_ERR)
+                CoprHdError.ENTRY_ALREADY_EXISTS_ERR)
 
-    def delete(self, name, project, tenant, vipronly=False):
+    def delete(self, name, project, tenant, coprhdonly=False):
         '''
         This function will take consistency group name and project name
         as input and marks the particular consistency group as delete.
@@ -204,8 +189,8 @@ class ConsistencyGroup(object):
             false incase it fails to do delete.
         '''
         params = ''
-        if (vipronly == True):
-            params += "?type=" + 'VIPR_ONLY'
+        if (coprhdonly is True):
+            params += "?type=" + 'CoprHD_ONLY'
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -214,7 +199,8 @@ class ConsistencyGroup(object):
             None, None)
         return
 
-    def update(self, name, project, tenant, add_volumes, remove_volumes, sync, synctimeout=0):
+    def update(self, uri, project, tenant, add_volumes, remove_volumes,
+               sync, synctimeout=0):
         '''
         This function is used to add or remove volumes from consistency group
         It will update the consistency  group with given volumes.
@@ -229,9 +215,6 @@ class ConsistencyGroup(object):
         '''
         if(tenant is None):
             tenant = ""
-        fullproj = tenant + "/" + project
-        projobj = Project(self.__ipAddr, self.__port)
-        projuri = projobj.project_query(fullproj)
 
         parms = []
         add_voluris = []
@@ -253,7 +236,6 @@ class ConsistencyGroup(object):
             parms = {'remove_volumes': volumes}
 
         body = json.dumps(parms)
-        uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "PUT",
             self.URI_CONSISTENCY_GROUPS_INSTANCE.format(uri),

@@ -13,22 +13,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import platform
+import os
 import random
 import string
 import sys
 import time
 import traceback
-import os
 
 try:
     from oslo.config import cfg
 except ImportError:
     from oslo_config import cfg
-
-
-from cinder import context
-from cinder import exception
 try:
     from oslo.utils import excutils
 except ImportError:
@@ -36,52 +31,52 @@ except ImportError:
         from cinder.openstack.common import excutils
     except ImportError:
         from oslo_utils import excutils
-
 try:
     from oslo_log import log as logging
 except ImportError:
     from cinder.openstack.common import log as logging
 
 from cinder.openstack.common.gettextutils import _
-from cinder.volume import volume_types
-
+from cinder import context
 from cinder.volume.drivers.emc.coprhd import authentication as CoprHD_auth
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as CoprHD_utils
-from cinder.volume.drivers.emc.coprhd import snapshot as CoprHD_snap
 from cinder.volume.drivers.emc.coprhd import consistencygroup as CoprHD_cg
 from cinder.volume.drivers.emc.coprhd import exportgroup as CoprHD_eg
 from cinder.volume.drivers.emc.coprhd import host as CoprHD_host
-from cinder.volume.drivers.emc.coprhd import hostinitiators as CoprHD_host_initiator
-
+from cinder.volume.drivers.emc.coprhd \
+    import hostinitiators as CoprHD_host_initiator
+from cinder.volume.drivers.emc.coprhd import snapshot as CoprHD_snap
+from cinder.volume.drivers.emc.coprhd import tag as CoprHD_tag
+from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as CoprHD_utils
 from cinder.volume.drivers.emc.coprhd import virtualarray as CoprHD_varray
 from cinder.volume.drivers.emc.coprhd import volume as CoprHD_vol
+from cinder import exception
+from cinder.volume import volume_types
 
-from cinder.volume.drivers.emc.coprhd import tag as CoprHD_tag
 
 LOG = logging.getLogger(__name__)
 
 volume_opts = [
-    cfg.StrOpt('coprhd_hostname',
+    cfg.StrOpt('hostname',
                default=None,
-               help='Hostname for the EMC ViPR Instance'),
+               help='Hostname for the EMC CoprHD Instance'),
     cfg.IntOpt('coprhd_port',
                default=4443,
-               help='Port for the EMC ViPR Instance'),
+               help='Port for the EMC CoprHD Instance'),
     cfg.StrOpt('coprhd_username',
                default=None,
-               help='Username for accessing the EMC ViPR Instance'),
+               help='Username for accessing the EMC CoprHD Instance'),
     cfg.StrOpt('coprhd_password',
                default=None,
-               help='Password for accessing the EMC ViPR Instance'),
+               help='Password for accessing the EMC CoprHD Instance'),
     cfg.StrOpt('coprhd_tenant',
                default=None,
-               help='Tenant to utilize within the EMC ViPR Instance'),
+               help='Tenant to utilize within the EMC CoprHD Instance'),
     cfg.StrOpt('coprhd_project',
                default=None,
-               help='Project to utilize within the EMC ViPR Instance'),
+               help='Project to utilize within the EMC CoprHD Instance'),
     cfg.StrOpt('coprhd_varray',
                default=None,
-               help='Virtual Array to utilize within the EMC ViPR Instance'),
+               help='Virtual Array to utilize within the EMC CoprHD Instance'),
     cfg.StrOpt('coprhd_cookiedir',
                default='/tmp',
                help='directory to store temporary cookies, defaults to /tmp'),
@@ -105,7 +100,8 @@ volume_opts = [
                help='Server certificate path'),
     cfg.StrOpt('coprhd_emulate_snapshot',
                default='False',
-               help='True | False to indicate if the storage array in ViPR is VMAX or VPLEX'),
+               help='True | False to indicate if the storage array' +
+               'in CoprHD is VMAX or VPLEX'),
     cfg.StrOpt('coprhd_security_file',
                default=None,
                help='Path of security file')
@@ -125,16 +121,16 @@ def retry_wrapper(func):
 
         try:
             return func(*args, **kwargs)
-        except CoprHD_utils.SOSError as e:
+        except CoprHD_utils.CoprHdError as e:
             # if we got an http error and
             # the string contains 401 or if the string contains the word cookie
-            if (e.err_code == CoprHD_utils.SOSError.HTTP_ERR and
+            if (e.err_code == CoprHD_utils.CoprHdError.HTTP_ERR and
                 (e.err_text.find('401') != -1 or
                  e.err_text.lower().find('cookie') != -1)):
                 retry = True
-                EMCViPRDriverCommon.AUTHENTICATED = False
+                EMCCoprHDDriverCommon.AUTHENTICATED = False
             else:
-                exception_message = "\nViPR Exception: %s\nStack Trace:\n%s" \
+                exception_message = "\nCoprHD Exception: %s\nStack Trace:\n%s" \
                     % (e.err_text, traceback.format_exc())
                 raise exception.VolumeBackendAPIException(
                     data=exception_message)
@@ -150,7 +146,7 @@ def retry_wrapper(func):
     return try_and_retry
 
 
-class EMCViPRDriverCommon(object):
+class EMCCoprHDDriverCommon(object):
 
     OPENSTACK_TAG = 'OpenStack'
     AUTHENTICATED = False
@@ -160,7 +156,7 @@ class EMCViPRDriverCommon(object):
         self.configuration = configuration
         self.configuration.append_config_values(volume_opts)
 
-        self.init_vipr_cli_components()
+        self.init_coprhd_api_components()
 
         self.stats = {'driver_version': '1.0',
                       'free_capacity_gb': 'unknown',
@@ -169,46 +165,46 @@ class EMCViPRDriverCommon(object):
                       'total_capacity_gb': 'unknown',
                       'vendor_name': 'EMC',
                       'volume_backend_name':
-                      self.configuration.volume_backend_name
-                      or default_backend_name}
+                      self.configuration.volume_backend_name or
+                      default_backend_name}
 
-    def init_vipr_cli_components(self):
+    def init_coprhd_api_components(self):
 
         CoprHD_utils.COOKIE = None
 
-        # instantiate a few coprhd cli objects for later use
+        # instantiate a few coprhd api objects for later use
         self.volume_obj = CoprHD_vol.Volume(
-            self.configuration.coprhd_hostname,
+            self.configuration.hostname,
             self.configuration.coprhd_port)
 
         self.exportgroup_obj = CoprHD_eg.ExportGroup(
-            self.configuration.coprhd_hostname,
+            self.configuration.hostname,
             self.configuration.coprhd_port)
 
         self.host_obj = CoprHD_host.Host(
-            self.configuration.coprhd_hostname,
+            self.configuration.hostname,
             self.configuration.coprhd_port)
 
         self.hostinitiator_obj = CoprHD_host_initiator.HostInitiator(
-            self.configuration.coprhd_hostname,
+            self.configuration.hostname,
             self.configuration.coprhd_port)
 
         self.varray_obj = CoprHD_varray.VirtualArray(
-            self.configuration.coprhd_hostname,
+            self.configuration.hostname,
             self.configuration.coprhd_port)
 
         self.snapshot_obj = CoprHD_snap.Snapshot(
-            self.configuration.coprhd_hostname,
+            self.configuration.hostname,
             self.configuration.coprhd_port)
 
         self.consistencygroup_obj = CoprHD_cg.ConsistencyGroup(
-            self.configuration.coprhd_hostname,
+            self.configuration.hostname,
             self.configuration.coprhd_port)
 
     def check_for_setup_error(self):
         # validate all of the coprhd_* configuration values
-        if self.configuration.coprhd_hostname is None:
-            message = "coprhd_hostname is not set in cinder configuration"
+        if self.configuration.hostname is None:
+            message = "hostname is not set in cinder configuration"
             raise exception.VolumeBackendAPIException(data=message)
 
         if self.configuration.coprhd_port is None:
@@ -238,9 +234,9 @@ class EMCViPRDriverCommon(object):
     def authenticate_user(self):
         # we should check to see if we are already authenticated before blindly
         # doing it again
-        if EMCViPRDriverCommon.AUTHENTICATED is False:
+        if EMCCoprHDDriverCommon.AUTHENTICATED is False:
             obj = CoprHD_auth.Authentication(
-                self.configuration.coprhd_hostname,
+                self.configuration.hostname,
                 self.configuration.coprhd_port)
 
             cookiedir = self.configuration.coprhd_cookiedir
@@ -251,8 +247,8 @@ class EMCViPRDriverCommon(object):
             username = None
             password = None
 
-            if((self.configuration.coprhd_security_file is not '')
-                    and (self.configuration.coprhd_security_file is not None)):
+            if((self.configuration.coprhd_security_file is not '') and
+                    (self.configuration.coprhd_security_file is not None)):
                 from Crypto.Cipher import ARC4
                 import getpass
                 obj1 = ARC4.new(getpass.getuser())
@@ -273,7 +269,7 @@ class EMCViPRDriverCommon(object):
                                   cookie_path)
 
             CoprHD_utils.COOKIE = cookiedir + "/" + cookie_path
-            EMCViPRDriverCommon.AUTHENTICATED = True
+            EMCCoprHDDriverCommon.AUTHENTICATED = True
 
     @retry_wrapper
     def create_volume(self, vol, driver):
@@ -282,36 +278,31 @@ class EMCViPRDriverCommon(object):
         size = int(vol['size']) * 1073741824
 
         vpool = self._get_vpool(vol)
-        self.vpool = vpool['ViPR:VPOOL']
+        self.vpool = vpool['CoprHD:VPOOL']
 
         try:
             cgid = None
-            cgname = None
             try:
                 cgid = vol['consistencygroup_id']
                 ctx = context.get_admin_context()
                 if(cgid):
-                    cgname = self._get_consistencygroup_name(driver, ctx, cgid)
-
+                    CoprHD_cgid = self._get_coprhd_cgid(driver, ctx, cgid)
             except AttributeError as e:
-                cgid = None
-                cgname = None
+                CoprHD_cgid = None
 
             self.volume_obj.create(
                 self.configuration.coprhd_tenant + "/" +
                 self.configuration.coprhd_project,
                 name, size, self.configuration.coprhd_varray,
-                self.vpool, protocol=None,
+                self.vpool,
                 # no longer specified in volume creation
                 sync=True,
-                number_of_volumes=1,
-                thin_provisioned=None,
                 # no longer specified in volume creation
-                consistencygroup=cgname)
-        except CoprHD_utils.SOSError as e:
-            if(e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+                consistencygroup=CoprHD_cgid)
+        except CoprHD_utils.CoprHdError as e:
+            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Volume " + name + ": create failed\n" + e.err_text)
             else:
                 with excutils.save_and_reraise_exception():
@@ -328,82 +319,87 @@ class EMCViPRDriverCommon(object):
                 self.configuration.coprhd_project,
                 self.configuration.coprhd_tenant)
 
-            cgUri = self.consistencygroup_obj.consistencygroup_query(name,
-                                                                     self.configuration.coprhd_project,
-                                                                     self.configuration.coprhd_tenant)
+            cgUri = self.consistencygroup_obj.consistencygroup_query(
+                name,
+                self.configuration.coprhd_project,
+                self.configuration.coprhd_tenant)
 
             self.set_tags_for_resource(
                 CoprHD_cg.ConsistencyGroup.URI_CONSISTENCY_GROUP_TAGS,
                 cgUri, group)
 
-        except CoprHD_utils.SOSError as e:
-            if(e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
-                    "Consistency Group " + name + ": create failed\n" + e.err_text)
+        except CoprHD_utils.CoprHdError as e:
+            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
+                    "Consistency Group " + name + ": create failed\n" +
+                    e.err_text)
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(
                         _("Consistency Group : %s creation failed") % name)
 
     @retry_wrapper
-    def update_consistencygroup(self, driver, context, group, add_volumes, remove_volumes):
+    def update_consistencygroup(self, driver, context, group, add_volumes,
+                                remove_volumes):
         self.authenticate_user()
         model_update = {'status': 'available'}
-        cg_name = self._get_vipr_consistency_group_name(group)
-        parms = {}
+        cg_uri = self._get_coprhd_consistency_group_id(group)
         add_volnames = []
         remove_volnames = []
 
         try:
             if(add_volumes):
                 for vol in add_volumes:
-                    vol_name = self._get_vipr_volume_name(vol)
+                    vol_name = self._get_coprhd_volume_name(vol)
                     add_volnames.append(vol_name)
 
             if(remove_volumes):
                 for vol in remove_volumes:
-                    vol_name = self._get_vipr_volume_name(vol)
+                    vol_name = self._get_coprhd_volume_name(vol)
                     remove_volnames.append(vol_name)
 
             self.consistencygroup_obj.update(
-                cg_name,
-                self.configuration.vipr_project,
-                self.configuration.vipr_tenant,
+                cg_uri,
+                self.configuration.coprhd_project,
+                self.configuration.coprhd_tenant,
                 add_volnames, remove_volnames, True)
 
             return model_update, None, None
 
-        except CoprHD_utils.SOSError as e:
-            if(e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
-                    "Consistency Group " + cg_name + ": update failed\n" + e.err_text)
+        except CoprHD_utils.CoprHdError as e:
+            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
+                    "Consistency Group " + cg_uri + ": update failed\n" +
+                    e.err_text)
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(
-                        _("Consistency Group : %s update failed") % cg_name)
+                        _("Consistency Group : %s update failed") % cg_uri)
 
-    def _get_vipr_consistency_group_name(self, cg, verbose=False):
+    def _get_coprhd_consistency_group_id(self, cg, verbose=False):
         tagname = "OpenStack:id:" + cg['id']
         rslt = CoprHD_utils.search_by_tag(
-            CoprHD_cg.ConsistencyGroup.URI_SEARCH_CONSISTENCY_GROUPS_BY_TAG.format(
-                tagname),
-            self.configuration.vipr_hostname,
-            self.configuration.vipr_port)
+            CoprHD_cg.ConsistencyGroup.URI_SEARCH_CONSISTENCY_GROUPS_BY_TAG.
+            format(tagname),
+            self.configuration.hostname,
+            self.configuration.coprhd_port)
 
         if(len(rslt) > 0):
-            rsltCg = self.consistencygroup_obj.show(rslt[0],
-                                                    self.configuration.vipr_project, self.configuration.vipr_tenant)
+            rsltCg = self.consistencygroup_obj.show(
+                rslt[0],
+                self.configuration.coprhd_project,
+                self.configuration.coprhd_tenant)
 
-            if(verbose == True):
-                return rsltCg['name'], rslt[0]
+            if(verbose is True):
+                return rsltCg['id'], rslt[0]
             else:
-                return rsltCg['name']
+                return rsltCg['id']
         else:
-            raise CoprHD_utils.SOSError(
-                CoprHD_utils.SOSError.NOT_FOUND_ERR,
-                "Consistency Group " + cg['name'] + " not found")
+            raise CoprHD_utils.CoprHdError(
+                CoprHD_utils.CoprHdError.NOT_FOUND_ERR,
+                "Consistency Group " + cg['id'] + " not found")
 
     @retry_wrapper
     def delete_consistencygroup(self, driver, context, group):
@@ -415,12 +411,12 @@ class EMCViPRDriverCommon(object):
                 context, group['id'])
 
             for vol in volumes:
-                vol_name = self._get_vipr_volume_name(vol)
+                vol_name = self._get_coprhd_volume_name(vol)
 
                 self.volume_obj.delete(
-                    self.configuration.vipr_tenant +
+                    self.configuration.coprhd_tenant +
                     "/" +
-                    self.configuration.vipr_project +
+                    self.configuration.coprhd_project +
                     "/" +
                     vol_name,
                     volume_name_list=None,
@@ -431,19 +427,20 @@ class EMCViPRDriverCommon(object):
 
             self.consistencygroup_obj.delete(
                 name,
-                self.configuration.vipr_project,
-                self.configuration.vipr_tenant)
+                self.configuration.coprhd_project,
+                self.configuration.coprhd_tenant)
 
             model_update = {}
             model_update['status'] = group['status']
 
             return model_update, volumes
 
-        except CoprHD_utils.SOSError as e:
-            if(e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
-                    "Consistency Group " + name + ": delete failed\n" + e.err_text)
+        except CoprHD_utils.CoprHdError as e:
+            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
+                    "Consistency Group " + name + ": delete failed\n" +
+                    e.err_text)
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(
@@ -459,6 +456,7 @@ class EMCViPRDriverCommon(object):
         cg_name = None
 
         if(cg_id):
+            CoprHD_cgid = self._get_coprhd_cgid(driver, context, cg_id)
             cg_name = self._get_consistencygroup_name(driver, context, cg_id)
 
         snapshots = driver.db.snapshot_get_all_for_cgsnapshot(
@@ -470,30 +468,24 @@ class EMCViPRDriverCommon(object):
                  {'group_name': cg_name})
 
         try:
-            resUri = self.consistencygroup_obj.consistencygroup_query(
-                cg_name,
-                self.configuration.vipr_project,
-                self.configuration.vipr_tenant)
-
             self.snapshot_obj.snapshot_create(
                 'block',
                 'consistency-groups',
-                resUri,
+                CoprHD_cgid,
                 cgsnapshot_name,
                 False,
-                None,
                 True)
 
             for snapshot in snapshots:
                 vol_id_of_snap = snapshot['volume_id']
 
-                '''Finding the volume in VIPR for this volume id'''
+                '''Finding the volume in CoprHD for this volume id'''
                 tagname = "OpenStack:id:" + vol_id_of_snap
                 rslt = CoprHD_utils.search_by_tag(
                     CoprHD_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(
                         tagname),
-                    self.configuration.vipr_hostname,
-                    self.configuration.vipr_port)
+                    self.configuration.hostname,
+                    self.configuration.coprhd_port)
 
                 if((rslt is None) or (len(rslt) == 0)):
                     continue
@@ -511,17 +503,21 @@ class EMCViPRDriverCommon(object):
                         volUri,
                         snapUri['id'])
 
-                    if(False == (CoprHD_utils.get_node_value(snapshot_obj, 'inactive'))):
-                        '''When we create a consistency group snapshot on coprhd
-                          then each snapshot of volume in the consistencygroup will be 
-                          given a subscript. Ex if the snapshot name is cgsnap1
-                          and lets say there are three vols(a,b,c) in CG. Then the names
-                          of snapshots of the volumes in cg on coprhd end will be like
-                          cgsnap1-1 cgsnap1-2 cgsnap1-3. So, we list the snapshots of the
-                          volume under consideration and then split the name  using - 
-                          from the ending as prefix and postfix. We compare the prefix 
-                          to the cgsnapshot name and filter our the snapshots that correspond 
-                          to the cgsnapshot
+                    if(False == (CoprHD_utils.get_node_value(snapshot_obj,
+                                                             'inactive'))):
+
+                        '''When we create a consistency group snapshot on
+                           coprhd then each snapshot of volume in the
+                           consistencygroup will be given a subscript. Ex if
+                           the snapshot name is cgsnap1 and lets say there are
+                           three vols(a,b,c) in CG. Then the names of snapshots
+                           of the volumes in cg on coprhd end will be like
+                           cgsnap1-1 cgsnap1-2 cgsnap1-3. So, we list the
+                           snapshots of the volume under consideration and then
+                           split the name  using - from the ending as prefix
+                           and postfix. We compare the prefix to the cgsnapshot
+                           name and filter our the snapshots that correspond to
+                           the cgsnapshot
                         '''
                         if('-' in snapshot_obj['name']):
                             (prefix, postfix) = snapshot_obj[
@@ -529,7 +525,8 @@ class EMCViPRDriverCommon(object):
 
                             if(cgsnapshot_name == prefix):
                                 self.set_tags_for_resource(
-                                    CoprHD_snap.Snapshot.URI_BLOCK_SNAPSHOTS_TAG,
+                                    CoprHD_snap.Snapshot.
+                                    URI_BLOCK_SNAPSHOTS_TAG,
                                     snapUri['id'],
                                     snapshot)
 
@@ -545,15 +542,18 @@ class EMCViPRDriverCommon(object):
 
             return model_update, snapshots
 
-        except CoprHD_utils.SOSError as e:
-            if(e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
-                    "Snapshot for Consistency Group " + cg_name + ": create failed\n" + e.err_text)
+        except CoprHD_utils.CoprHdError as e:
+            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
+                    "Snapshot for Consistency Group " + cg_name +
+                    ": create failed\n" + e.err_text)
             else:
                 with excutils.save_and_reraise_exception():
-                    LOG.exception(_("Snapshot %(name)s for Consistency Group : %(cg_name)s creation failed")
-                                  % {'cg_name': cg_name, 'name': cgsnapshot_name})
+                    LOG.exception(_("Snapshot %(name)s for Consistency Group" +
+                                    " : %(cg_name)s creation failed")
+                                  % {'cg_name': cg_name,
+                                     'name': cgsnapshot_name})
 
     @retry_wrapper
     def delete_cgsnapshot(self, driver, context, cgsnapshot):
@@ -563,8 +563,8 @@ class EMCViPRDriverCommon(object):
 
         cg_id = cgsnapshot['consistencygroup_id']
 
+        CoprHD_cgid = self._get_coprhd_cgid(driver, context, cg_id)
         cg_name = self._get_consistencygroup_name(driver, context, cg_id)
-
         snapshots = driver.db.snapshot_get_all_for_cgsnapshot(
             context, cgsnapshot_id)
 
@@ -575,27 +575,22 @@ class EMCViPRDriverCommon(object):
                                         'group_name': cg_name})
 
         try:
-            resUri = self.consistencygroup_obj.consistencygroup_query(
-                cg_name,
-                self.configuration.vipr_project,
-                self.configuration.vipr_tenant)
-
             uri = None
             try:
                 uri = self.snapshot_obj.snapshot_query('block',
                                                        'consistency-groups',
-                                                       resUri,
+                                                       CoprHD_cgid,
                                                        cgsnapshot_name + '-1')
-            except CoprHD_utils.SOSError as e:
-                if e.err_code == CoprHD_utils.SOSError.NOT_FOUND_ERR:
-                    uri = self.snapshot_obj.snapshot_query('block',
-                                                           'consistency-groups',
-                                                           resUri,
-                                                           cgsnapshot_name)
-
+            except CoprHD_utils.CoprHdError as e:
+                if e.err_code == CoprHD_utils.CoprHdError.NOT_FOUND_ERR:
+                    uri = self.snapshot_obj.snapshot_query(
+                        'block',
+                        'consistency-groups',
+                        CoprHD_cgid,
+                        cgsnapshot_name)
             self.snapshot_obj.snapshot_delete_uri(
                 'block',
-                resUri,
+                CoprHD_cgid,
                 uri,
                 True)
 
@@ -604,26 +599,30 @@ class EMCViPRDriverCommon(object):
 
             return model_update, snapshots
 
-        except CoprHD_utils.SOSError as e:
-            if(e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
-                    "Snapshot " + cgsnapshot_id + " for Consistency Group " + cg_name +
+        except CoprHD_utils.CoprHdError as e:
+            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
+                    "Snapshot " + cgsnapshot_id + " for Consistency Group " +
+                    cg_name +
                     ": delete failed\n" + e.err_text)
             else:
                 with excutils.save_and_reraise_exception():
-                    LOG.exception(_("Snapshot %(name)s for Consistency Group : %(cg_name)s deletion failed")
-                                  % {'cg_name': cg_name, 'name': cgsnapshot_name})
+                    LOG.exception(_("Snapshot %(name)s for Consistency Group" +
+                                    ": %(cg_name)s deletion failed")
+                                  % {'cg_name': cg_name,
+                                      'name': cgsnapshot_name})
 
     @retry_wrapper
     def set_volume_tags(self, vol, exemptTags=[]):
         self.authenticate_user()
         name = self._get_volume_name(vol)
 
-        vol_uri = self.volume_obj.volume_query(self.configuration.vipr_tenant +
-                                               "/" +
-                                               self.configuration.vipr_project
-                                               + "/" + name)
+        vol_uri = self.volume_obj.volume_query(
+            self.configuration.coprhd_tenant +
+            "/" +
+            self.configuration.coprhd_project +
+            "/" + name)
 
         self.set_tags_for_resource(
             CoprHD_vol.Volume.URI_TAG_VOLUME, vol_uri, vol, exemptTags)
@@ -637,8 +636,8 @@ class EMCViPRDriverCommon(object):
         # eyecatcher
         formattedUri = uri.format(resourceId)
         remove_tags = []
-        currentTags = CoprHD_tag.list_tags(self.configuration.vipr_hostname,
-                                           self.configuration.vipr_port,
+        currentTags = CoprHD_tag.list_tags(self.configuration.hostname,
+                                           self.configuration.coprhd_port,
                                            formattedUri)
         for cTag in currentTags:
             if cTag.startswith(self.OPENSTACK_TAG):
@@ -647,19 +646,19 @@ class EMCViPRDriverCommon(object):
         try:
             if len(remove_tags) > 0:
                 CoprHD_tag.tag_resource(
-                    self.configuration.vipr_hostname,
-                    self.configuration.vipr_port,
+                    self.configuration.hostname,
+                    self.configuration.coprhd_port,
                     uri,
                     resourceId,
                     None,
                     remove_tags)
-        except CoprHD_utils.SOSError as e:
-            if e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR:
-                LOG.debug("SOSError adding the tag: " + e.err_text)
+        except CoprHD_utils.CoprHdError as e:
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
+                LOG.debug("CoprHdError adding the tag: " + e.err_text)
 
         # now add the tags for the resource
         add_tags = []
-        # put all the openstack resource properties into the ViPR resource
+        # put all the openstack resource properties into the CoprHD resource
 
         try:
             for prop, value in vars(resource).iteritems():
@@ -672,9 +671,9 @@ class EMCViPRDriverCommon(object):
 
                     # don't put the status in, it's always the status before
                     # the current transaction
-                    if ((not prop.startswith("status")
-                         and not prop.startswith("obj_status")
-                         and prop != "obj_volume") and (value)):
+                    if ((not prop.startswith("status") and not
+                         prop.startswith("obj_status") and
+                         prop != "obj_volume") and (value)):
                         add_tags.append(
                             self.OPENSTACK_TAG +
                             ":" +
@@ -688,18 +687,18 @@ class EMCViPRDriverCommon(object):
 
         try:
             CoprHD_tag.tag_resource(
-                self.configuration.vipr_hostname,
-                self.configuration.vipr_port,
+                self.configuration.hostname,
+                self.configuration.coprhd_port,
                 uri,
                 resourceId,
                 add_tags,
                 None)
-        except CoprHD_utils.SOSError as e:
-            if e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR:
-                LOG.debug("SOSError adding the tag: " + e.err_text)
+        except CoprHD_utils.CoprHdError as e:
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
+                LOG.debug("CoprHdError adding the tag: " + e.err_text)
 
-        return CoprHD_tag.list_tags(self.configuration.vipr_hostname,
-                                    self.configuration.vipr_port,
+        return CoprHD_tag.list_tags(self.configuration.hostname,
+                                    self.configuration.coprhd_port,
                                     formattedUri)
 
     @retry_wrapper
@@ -707,28 +706,30 @@ class EMCViPRDriverCommon(object):
         """Creates a clone of the specified volume."""
         self.authenticate_user()
         name = self._get_volume_name(vol)
-        srcname = self._get_vipr_volume_name(src_vref)
+        srcname = self._get_coprhd_volume_name(src_vref)
         number_of_volumes = 1
 
         try:
             if(src_vref['consistencygroup_id']):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Clone can't be taken individually on a volume" +
                     " that is part of a Consistency Group")
         except AttributeError as e:
             LOG.info("No Consistency Group associated with the volume")
 
         try:
-            (storageresType, storageresTypename) = self.volume_obj.get_storageAttributes(
+            (storageresType, storageresTypename) = \
+                self.volume_obj.get_storageAttributes(
                 srcname, None, None)
 
-            resource_id = self.volume_obj.storageResource_query(storageresType,
-                                                                srcname,
-                                                                None,
-                                                                None,
-                                                                self.configuration.vipr_project,
-                                                                self.configuration.vipr_tenant)
+            resource_id = self.volume_obj.storageResource_query(
+                storageresType,
+                srcname,
+                None,
+                None,
+                self.configuration.coprhd_project,
+                self.configuration.coprhd_tenant)
 
             self.volume_obj.clone(
                 name,
@@ -736,8 +737,8 @@ class EMCViPRDriverCommon(object):
                 resource_id,
                 sync=True)
 
-            clone_vol_path = self.configuration.vipr_tenant + \
-                "/" + self.configuration.vipr_project + "/" + name
+            clone_vol_path = self.configuration.coprhd_tenant + \
+                "/" + self.configuration.coprhd_project + "/" + name
             detachable = self.volume_obj.is_volume_detachable(clone_vol_path)
             LOG.info("Is volume detachable : " + str(detachable))
 
@@ -748,10 +749,10 @@ class EMCViPRDriverCommon(object):
         except IndexError as e:
             LOG.exception("Volume clone detach returned empty task list")
 
-        except CoprHD_utils.SOSError as e:
-            if(e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+        except CoprHD_utils.CoprHdError as e:
+            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Volume " + name + ": clone failed\n" + e.err_text)
             else:
                 with excutils.save_and_reraise_exception():
@@ -761,22 +762,22 @@ class EMCViPRDriverCommon(object):
     def expand_volume(self, vol, new_size):
         """expands the volume to new_size specified."""
         self.authenticate_user()
-        volume_name = self._get_vipr_volume_name(vol)
+        volume_name = self._get_coprhd_volume_name(vol)
         size_in_bytes = CoprHD_utils.to_bytes(str(new_size) + "G")
 
         try:
             self.volume_obj.expand(
-                self.configuration.vipr_tenant +
+                self.configuration.coprhd_tenant +
                 "/" +
-                self.configuration.vipr_project +
+                self.configuration.coprhd_project +
                 "/" +
                 volume_name,
                 size_in_bytes,
                 True)
-        except CoprHD_utils.SOSError as e:
-            if e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR:
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+        except CoprHD_utils.CoprHdError as e:
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Volume " + volume_name + ": expand failed\n" + e.err_text)
             else:
                 with excutils.save_and_reraise_exception():
@@ -787,7 +788,7 @@ class EMCViPRDriverCommon(object):
         """Creates volume from given snapshot ( snapshot clone to volume )."""
         self.authenticate_user()
 
-        if self.configuration.vipr_emulate_snapshot == 'True':
+        if self.configuration.coprhd_emulate_snapshot == 'True':
             self.create_cloned_volume(volume, snapshot)
             return
 
@@ -795,26 +796,28 @@ class EMCViPRDriverCommon(object):
 
         src_snapshot_name = None
 
-        #src_snapshot_name = snapshot['display_name']
+        # src_snapshot_name = snapshot['display_name']
         src_vol_ref = volume_db.volume_get(ctxt, snapshot['volume_id'])
         new_volume_name = self._get_volume_name(volume)
         number_of_volumes = 1
 
         try:
-            src_vol_name, src_vol_uri = self._get_vipr_volume_name(
+            src_vol_name, src_vol_uri = self._get_coprhd_volume_name(
                 src_vol_ref, True)
             src_snapshot_name = self._get_CoprHD_snapshot_name(
                 snapshot, src_vol_uri)
 
-            (storageresType, storageresTypename) = self.volume_obj.get_storageAttributes(
+            (storageresType, storageresTypename) = \
+                self.volume_obj.get_storageAttributes(
                 src_vol_name, None, src_snapshot_name)
 
-            resource_id = self.volume_obj.storageResource_query(storageresType,
-                                                                src_vol_name,
-                                                                None,
-                                                                src_snapshot_name,
-                                                                self.configuration.vipr_project,
-                                                                self.configuration.vipr_tenant)
+            resource_id = self.volume_obj.storageResource_query(
+                storageresType,
+                src_vol_name,
+                None,
+                src_snapshot_name,
+                self.configuration.coprhd_project,
+                self.configuration.coprhd_tenant)
 
             self.volume_obj.clone(
                 new_volume_name,
@@ -822,10 +825,10 @@ class EMCViPRDriverCommon(object):
                 resource_id,
                 sync=True)
 
-        except CoprHD_utils.SOSError as e:
-            if(e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+        except CoprHD_utils.CoprHdError as e:
+            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot " +
                     src_snapshot_name +
                     ": clone failed\n" +
@@ -838,25 +841,25 @@ class EMCViPRDriverCommon(object):
     @retry_wrapper
     def delete_volume(self, vol):
         self.authenticate_user()
-        name = self._get_vipr_volume_name(vol)
+        name = self._get_coprhd_volume_name(vol)
         try:
             self.volume_obj.delete(
-                self.configuration.vipr_tenant +
+                self.configuration.coprhd_tenant +
                 "/" +
-                self.configuration.vipr_project +
+                self.configuration.coprhd_project +
                 "/" +
                 name,
                 volume_name_list=None,
                 sync=True)
-        except CoprHD_utils.SOSError as e:
-            if e.err_code == CoprHD_utils.SOSError.NOT_FOUND_ERR:
+        except CoprHD_utils.CoprHdError as e:
+            if e.err_code == CoprHD_utils.CoprHdError.NOT_FOUND_ERR:
                 LOG.info(_(
                     "Volume %s"
                     " no longer exists; volume deletion is"
                     " considered success.") % name)
-            elif e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR:
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+            elif e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Volume " + name + ": Delete failed\n" + e.err_text)
             else:
                 with excutils.save_and_reraise_exception():
@@ -866,9 +869,9 @@ class EMCViPRDriverCommon(object):
     def list_volume(self):
         try:
             uris = self.volume_obj.list_volumes(
-                self.configuration.vipr_tenant +
+                self.configuration.coprhd_tenant +
                 "/" +
-                self.configuration.vipr_project)
+                self.configuration.coprhd_project)
             if len(uris) > 0:
                 output = []
                 for uri in uris:
@@ -877,7 +880,7 @@ class EMCViPRDriverCommon(object):
                 return CoprHD_utils.format_json_object(output)
             else:
                 return
-        except CoprHD_utils.SOSError:
+        except CoprHD_utils.CoprHdError:
             with excutils.save_and_reraise_exception():
                 LOG.exception(_("List volumes failed"))
 
@@ -891,14 +894,14 @@ class EMCViPRDriverCommon(object):
 
         try:
             if(volume['consistencygroup_id']):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot can't be taken individually on a volume" +
                     " that is part of a Consistency Group")
         except AttributeError as e:
             LOG.info("No Consistency Group associated with the volume")
 
-        if self.configuration.vipr_emulate_snapshot == 'True':
+        if self.configuration.coprhd_emulate_snapshot == 'True':
             self.create_cloned_volume(snapshot, volume)
             self.set_volume_tags(snapshot, ['_volume'])
             return
@@ -907,9 +910,9 @@ class EMCViPRDriverCommon(object):
             snapshotname = snapshot['display_name']
             vol = snapshot['volume']
 
-            volumename = self._get_vipr_volume_name(vol)
-            projectname = self.configuration.vipr_project
-            tenantname = self.configuration.vipr_tenant
+            volumename = self._get_coprhd_volume_name(vol)
+            projectname = self.configuration.coprhd_project
+            tenantname = self.configuration.coprhd_tenant
             storageresType = 'block'
             storageresTypename = 'volumes'
             resourceUri = self.snapshot_obj.storageResource_query(
@@ -919,7 +922,6 @@ class EMCViPRDriverCommon(object):
                 project=projectname,
                 tenant=tenantname)
             inactive = False
-            rptype = None
             sync = True
             self.snapshot_obj.snapshot_create(
                 storageresType,
@@ -927,7 +929,6 @@ class EMCViPRDriverCommon(object):
                 resourceUri,
                 snapshotname,
                 inactive,
-                rptype,
                 sync)
 
             snapshotUri = self.snapshot_obj.snapshot_query(
@@ -940,10 +941,10 @@ class EMCViPRDriverCommon(object):
                 CoprHD_snap.Snapshot.URI_BLOCK_SNAPSHOTS_TAG,
                 snapshotUri, snapshot, ['_volume'])
 
-        except CoprHD_utils.SOSError as e:
-            if e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR:
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+        except CoprHD_utils.CoprHdError as e:
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot: " +
                     snapshotname +
                     ", Create Failed\n" +
@@ -961,22 +962,22 @@ class EMCViPRDriverCommon(object):
 
         try:
             if(vol['consistencygroup_id']):
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot delete cant be done individually on a volume" +
                     " that is part of a Consistency Group")
         except AttributeError as e:
             LOG.info("No Consistency Group associated with the volume")
 
-        if self.configuration.vipr_emulate_snapshot == 'True':
+        if self.configuration.coprhd_emulate_snapshot == 'True':
             self.delete_volume(snapshot)
             return
 
         snapshotname = None
         try:
-            volumename = self._get_vipr_volume_name(vol)
-            projectname = self.configuration.vipr_project
-            tenantname = self.configuration.vipr_tenant
+            volumename = self._get_coprhd_volume_name(vol)
+            projectname = self.configuration.coprhd_project
+            tenantname = self.configuration.coprhd_tenant
             storageresType = 'block'
             storageresTypename = 'volumes'
             resourceUri = self.snapshot_obj.storageResource_query(
@@ -1000,10 +1001,10 @@ class EMCViPRDriverCommon(object):
                     resourceUri,
                     snapshotname,
                     sync=True)
-        except CoprHD_utils.SOSError as e:
-            if e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR:
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+        except CoprHD_utils.CoprHdError as e:
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot " +
                     snapshotname +
                     ": Delete Failed\n")
@@ -1022,48 +1023,18 @@ class EMCViPRDriverCommon(object):
 
         try:
             self.authenticate_user()
-            volumename = self._get_vipr_volume_name(volume)
+            volumename = self._get_coprhd_volume_name(volume)
             foundgroupname = self._find_exportgroup(initiatorPorts)
             foundhostname = None
             if foundgroupname is None:
                 for i in xrange(len(initiatorPorts)):
-                    # check if this initiator is contained in any ViPR Host
+                    # check if this initiator is contained in any CoprHD Host
                     # object
                     LOG.debug(
                         "checking for initiator port:" + initiatorPorts[i])
                     foundhostname = self._find_host(initiatorPorts[i])
-                    if ((foundhostname is None) and (i + 1 == len(initiatorPorts))):
-                        # if foundhostname is None:
-                        hostfound = self._host_exists(hostname)
-                        if hostfound is None:
-                            # create a host so it can be added to the export
-                            # group
-                            '''hostfound = hostname
-                            self.host_obj.create(
-                                hostname,
-                                platform.system(),
-                                hostname,
-                                self.configuration.vipr_tenant,
-                                port=None,
-                                username=None,
-                                passwd=None,
-                                usessl=None,
-                                osversion=None,
-                                cluster=None,
-                                datacenter=None,
-                                vcenter=None,
-                                autodiscovery=True)
-                        # add the initiator to the host
-                        self.hostinitiator_obj.create(
-                            hostfound,
-                            protocol,
-                            initiatorNodes[i],
-                            initiatorPorts[i])
-                        LOG.info(_(
-                            "Initiator  v1=%(v1)s"
-                            " added to host  v2=%(v2)s") %
-                            {'v1': initiatorPorts[i], 'v2': hostfound})
-                        foundhostname = hostfound'''
+                    if ((foundhostname is None) and
+                            (i + 1 == len(initiatorPorts))):
                         LOG.error("Auto host creation not supported")
                     else:
                         LOG.info(_("Found host %s") % foundhostname)
@@ -1071,49 +1042,50 @@ class EMCViPRDriverCommon(object):
                 foundgroupname = foundhostname + 'SG'
                 # create a unique name
                 foundgroupname = foundgroupname + '-' + \
-                    ''.join(random.choice(string.ascii_uppercase
-                                          + string.digits)
+                    ''.join(random.choice(string.ascii_uppercase +
+                                          string.digits)
                             for x in range(6))
                 self.exportgroup_obj.exportgroup_create(
                     foundgroupname,
-                    self.configuration.vipr_project,
-                    self.configuration.vipr_tenant,
-                    self.configuration.vipr_varray,
+                    self.configuration.coprhd_project,
+                    self.configuration.coprhd_tenant,
+                    self.configuration.coprhd_varray,
                     'Host',
                     foundhostname)
 
             next_lun_id = 1
             for try_id in range(1, EXPORT_RETRY_COUNT + 1):
                 try:
-                    vipr_exportgroup = self.exportgroup_obj.exportgroup_show(
+                    coprhd_exportgroup = self.exportgroup_obj.exportgroup_show(
                         foundgroupname,
-                        self.configuration.vipr_project,
-                        self.configuration.vipr_tenant,
+                        self.configuration.coprhd_project,
+                        self.configuration.coprhd_tenant,
                         None, False)
 
-                except CoprHD_utils.SOSError as e:
-                    if e.err_code == CoprHD_utils.SOSError.NOT_FOUND_ERR:
+                except CoprHD_utils.CoprHdError as e:
+                    if e.err_code == CoprHD_utils.CoprHdError.NOT_FOUND_ERR:
                         self.exportgroup_obj.exportgroup_create(
                             foundgroupname,
-                            self.configuration.vipr_project,
-                            self.configuration.vipr_tenant,
-                            self.configuration.vipr_varray,
+                            self.configuration.coprhd_project,
+                            self.configuration.coprhd_tenant,
+                            self.configuration.coprhd_varray,
                             'Host',
                             foundhostname)
 
                 # We explicitly give lun id an unused value greater then 0.
-                # This is to get around the problem, which crops up while creating
-                # volume from image when cinder node is different from nova node.
+                # This is to get around the problem, which crops up while
+                # creating volume from image when cinder node is different
+                # from nova node.
                 # When using lun id of 0, export of volume is having problems.
                 volumes_list = [vol['lun']
-                                for vol in vipr_exportgroup['volumes']]
+                                for vol in coprhd_exportgroup['volumes']]
                 volumes_list.sort()
-                for iter in volumes_list:
-                    if(iter > next_lun_id):
+                for iter_var in volumes_list:
+                    if(iter_var > next_lun_id):
                         break
-                    elif(iter < next_lun_id):
+                    elif(iter_var < next_lun_id):
                         continue
-                    elif(iter == next_lun_id):
+                    elif(iter_var == next_lun_id):
                         next_lun_id = next_lun_id + 1
 
                 LOG.debug(
@@ -1122,21 +1094,21 @@ class EMCViPRDriverCommon(object):
                     self.exportgroup_obj.exportgroup_add_volumes(
                         True,
                         foundgroupname,
-                        self.configuration.vipr_tenant,
+                        self.configuration.coprhd_tenant,
                         None,
                         None,
                         None,
-                        self.configuration.vipr_project,
+                        self.configuration.coprhd_project,
                         [volumename + ":" + str(next_lun_id)],
                         None,
                         None)
                     break
-                except CoprHD_utils.SOSError as ex:
+                except CoprHD_utils.CoprHdError as ex:
                     if (try_id >= EXPORT_RETRY_COUNT):
-                        raise CoprHD_utils.SOSError(
-                            CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+                        raise CoprHD_utils.CoprHdError(
+                            CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                             "Attach volume (" +
-                            self._get_vipr_volume_name(volume) +
+                            self._get_coprhd_volume_name(volume) +
                             ") to host (" +
                             hostname +
                             ") initiator (" +
@@ -1151,11 +1123,11 @@ class EMCViPRDriverCommon(object):
 
             return self._find_device_info(volume, initiatorPorts)
 
-        except CoprHD_utils.SOSError as e:
-            raise CoprHD_utils.SOSError(
-                CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+        except CoprHD_utils.CoprHdError as e:
+            raise CoprHD_utils.CoprHdError(
+                CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                 "Attach volume (" +
-                self._get_vipr_volume_name(
+                self._get_coprhd_volume_name(
                     volume) +
                 ") to host (" +
                 hostname +
@@ -1174,9 +1146,9 @@ class EMCViPRDriverCommon(object):
                              hostname):
         try:
             self.authenticate_user()
-            volumename = self._get_vipr_volume_name(volume)
-            tenantproject = self.configuration.vipr_tenant + \
-                '/' + self.configuration.vipr_project
+            volumename = self._get_coprhd_volume_name(volume)
+            tenantproject = self.configuration.coprhd_tenant + \
+                '/' + self.configuration.coprhd_project
             voldetails = self.volume_obj.show(tenantproject + '/' + volumename)
             volid = voldetails['id']
 
@@ -1205,9 +1177,9 @@ class EMCViPRDriverCommon(object):
 
             return itls
 
-        except CoprHD_utils.SOSError as e:
-            raise CoprHD_utils.SOSError(
-                CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+        except CoprHD_utils.CoprHdError as e:
+            raise CoprHD_utils.CoprHdError(
+                CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                 "Detaching volume " +
                 volumename +
                 " from host " +
@@ -1239,8 +1211,8 @@ class EMCViPRDriverCommon(object):
                  }
                 ]
         '''
-        volumename = self._get_vipr_volume_name(volume)
-        fullname = self.configuration.vipr_project + '/' + volumename
+        volumename = self._get_coprhd_volume_name(volume)
+        fullname = self.configuration.coprhd_project + '/' + volumename
         vol_uri = self.volume_obj.volume_query(fullname)
 
         '''
@@ -1262,8 +1234,8 @@ class EMCViPRDriverCommon(object):
                             found_device_number != '-1'):
                         # 0 is a valid number for found_device_number.
                         # Only loop if it is None or -1
-                        LOG.debug("Found Device Number: "
-                                  + str(found_device_number))
+                        LOG.debug("Found Device Number: " +
+                                  str(found_device_number))
                         itls.append(itl)
 
             if itls:
@@ -1285,6 +1257,11 @@ class EMCViPRDriverCommon(object):
 
         return itls
 
+    def _get_coprhd_cgid(self, driver, context, cgid):
+        consisgrp = driver.db.consistencygroup_get(context, cgid)
+        cgid = consisgrp['id']
+        return cgid
+
     def _get_consistencygroup_name(self, driver, context, cgid):
         consisgrp = driver.db.consistencygroup_get(context, cgid)
         cgname = consisgrp['name']
@@ -1294,18 +1271,19 @@ class EMCViPRDriverCommon(object):
         tagname = "OpenStack:id:" + snapshot['id']
         rslt = CoprHD_utils.search_by_tag(
             CoprHD_snap.Snapshot.URI_SEARCH_SNAPSHOT_BY_TAG.format(tagname),
-            self.configuration.vipr_hostname,
-            self.configuration.vipr_port)
+            self.configuration.hostname,
+            self.configuration.coprhd_port)
 
-        # if the result is empty, then search with the tagname as "OpenStack:obj_id"
+        # if the result is empty, then search with the tagname
+        # as "OpenStack:obj_id"
         # as snapshots will be having the obj_id instead of just id.
         if((rslt is None) or (len(rslt) == 0)):
             tagname = "OpenStack:obj_id:" + snapshot['id']
             rslt = CoprHD_utils.search_by_tag(
                 CoprHD_snap.Snapshot.URI_SEARCH_SNAPSHOT_BY_TAG.format(
                     tagname),
-                self.configuration.vipr_hostname,
-                self.configuration.vipr_port)
+                self.configuration.hostname,
+                self.configuration.coprhd_port)
 
         if((rslt is None) or (len(rslt) == 0)):
             return snapshot['name']
@@ -1316,32 +1294,33 @@ class EMCViPRDriverCommon(object):
                 rslt[0])
             return rsltSnap['name']
 
-    def _get_vipr_volume_name(self, vol, verbose=False):
+    def _get_coprhd_volume_name(self, vol, verbose=False):
         tagname = "OpenStack:id:" + vol['id']
         rslt = CoprHD_utils.search_by_tag(
             CoprHD_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
-            self.configuration.vipr_hostname,
-            self.configuration.vipr_port)
+            self.configuration.hostname,
+            self.configuration.coprhd_port)
 
-        # if the result is empty, then search with the tagname as "OpenStack:obj_id"
+        # if the result is empty, then search with the tagname
+        # as "OpenStack:obj_id"
         # as snapshots will be having the obj_id instead of just id.
         if(len(rslt) == 0):
             tagname = "OpenStack:obj_id:" + vol['id']
             rslt = CoprHD_utils.search_by_tag(
                 CoprHD_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
-                self.configuration.vipr_hostname,
-                self.configuration.vipr_port)
+                self.configuration.hostname,
+                self.configuration.coprhd_port)
 
         if(len(rslt) > 0):
             rsltVol = self.volume_obj.show_by_uri(rslt[0])
 
-            if(verbose == True):
+            if(verbose is True):
                 return rsltVol['name'], rslt[0]
             else:
                 return rsltVol['name']
         else:
-            raise CoprHD_utils.SOSError(
-                CoprHD_utils.SOSError.NOT_FOUND_ERR,
+            raise CoprHD_utils.CoprHdError(
+                CoprHD_utils.CoprHdError.NOT_FOUND_ERR,
                 "Volume " + vol['display_name'] + " not found")
 
     def _get_volume_name(self, vol):
@@ -1372,13 +1351,13 @@ class EMCViPRDriverCommon(object):
         """
         foundgroupname = None
         grouplist = self.exportgroup_obj.exportgroup_list(
-            self.configuration.vipr_project,
-            self.configuration.vipr_tenant)
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant)
         for groupid in grouplist:
             groupdetails = self.exportgroup_obj.exportgroup_show(
                 groupid,
-                self.configuration.vipr_project,
-                self.configuration.vipr_tenant)
+                self.configuration.coprhd_project,
+                self.configuration.coprhd_tenant)
             if groupdetails is not None:
                 if groupdetails['inactive']:
                     continue
@@ -1397,7 +1376,7 @@ class EMCViPRDriverCommon(object):
                             varray_details = self.varray_obj.varray_show(
                                 varray_uri)
                             if varray_details['name'] == \
-                                    self.configuration.vipr_varray:
+                                    self.configuration.coprhd_varray:
                                 LOG.debug(
                                     "Found exportgroup " +
                                     foundgroupname)
@@ -1412,7 +1391,7 @@ class EMCViPRDriverCommon(object):
     def _find_host(self, initiator_port):
         '''Find the host, if exists, to which the given initiator belong.'''
         foundhostname = None
-        hosts = self.host_obj.list_all(self.configuration.vipr_tenant)
+        hosts = self.host_obj.list_all(self.configuration.coprhd_tenant)
         for host in hosts:
             initiators = self.host_obj.list_initiators(host['id'])
             for initiator in initiators:
@@ -1428,7 +1407,7 @@ class EMCViPRDriverCommon(object):
     @retry_wrapper
     def _host_exists(self, host_name):
         """Check if a Host object with the given
-        hostname already exists in ViPR
+        hostname already exists in CoprHD
         """
         hosts = self.host_obj.search_by_name(host_name)
 
@@ -1447,8 +1426,8 @@ class EMCViPRDriverCommon(object):
         """
         comma_delimited_initiator_list = ",".join(initiator_ports)
         (s, h) = CoprHD_utils.service_json_request(
-            self.configuration.vipr_hostname,
-            self.configuration.vipr_port, "GET",
+            self.configuration.hostname,
+            self.configuration.coprhd_port, "GET",
             URI_BLOCK_EXPORTS_FOR_INITIATORS.format(
                 comma_delimited_initiator_list),
             None)
@@ -1470,9 +1449,9 @@ class EMCViPRDriverCommon(object):
         try:
             self.stats['consistencygroup_support'] = 'True'
             vols = self.volume_obj.list_volumes(
-                self.configuration.vipr_tenant +
+                self.configuration.coprhd_tenant +
                 "/" +
-                self.configuration.vipr_project)
+                self.configuration.coprhd_project)
 
             vpairs = set()
             if len(vols) > 0:
@@ -1489,8 +1468,8 @@ class EMCViPRDriverCommon(object):
                 for vpair in vpairs:
                     if vpair:
                         (s, h) = CoprHD_utils.service_json_request(
-                            self.configuration.vipr_hostname,
-                            self.configuration.vipr_port,
+                            self.configuration.hostname,
+                            self.configuration.coprhd_port,
                             "GET",
                             URI_VPOOL_VARRAY_CAPACITY.format(vpair[0],
                                                              vpair[1]),
@@ -1508,7 +1487,7 @@ class EMCViPRDriverCommon(object):
 
             return self.stats
 
-        except CoprHD_utils.SOSError:
+        except CoprHD_utils.CoprHdError:
             LOG.error(_("Failed to update volume stats"))
             with excutils.save_and_reraise_exception():
                 LOG.exception(_("Update volume stats failed"))
@@ -1517,23 +1496,23 @@ class EMCViPRDriverCommon(object):
     def retype(self, ctxt, volume, new_type, diff, host):
         """changes the vpool type"""
         self.authenticate_user()
-        volume_name = self._get_vipr_volume_name(volume)
-        vpool_name = new_type['extra_specs']['ViPR:VPOOL']
+        volume_name = self._get_coprhd_volume_name(volume)
+        vpool_name = new_type['extra_specs']['CoprHD:VPOOL']
 
         try:
             task = self.volume_obj.update(
-                self.configuration.vipr_tenant +
+                self.configuration.coprhd_tenant +
                 "/" +
-                self.configuration.vipr_project,
+                self.configuration.coprhd_project,
                 volume_name,
                 vpool_name)
 
             self.volume_obj.check_for_sync(task['task'][0], True)
             return True
-        except CoprHD_utils.SOSError as e:
-            if e.err_code == CoprHD_utils.SOSError.SOS_FAILURE_ERR:
-                raise CoprHD_utils.SOSError(
-                    CoprHD_utils.SOSError.SOS_FAILURE_ERR,
+        except CoprHD_utils.CoprHdError as e:
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
+                raise CoprHD_utils.CoprHdError(
+                    CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Volume " + volume_name + ": update failed\n" + e.err_text)
             else:
                 with excutils.save_and_reraise_exception():

@@ -1,36 +1,34 @@
 #!/usr/bin/python
 
-'''
- * Copyright 2016 EMC Corporation
- * Copyright 2016 Intel Corporation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
-'''
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 
 import os
-import sys
-import requests
-import cookielib
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-import getpass
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import SOSError
-from requests.exceptions import SSLError
-from requests.exceptions import ConnectionError
-from requests.exceptions import TooManyRedirects
-from requests.exceptions import Timeout
 import socket
-import json
-import ConfigParser
+import sys
+
+import cookielib
+import requests
+from requests.exceptions import ConnectionError
+from requests.exceptions import SSLError
+from requests.exceptions import Timeout
+from requests.exceptions import TooManyRedirects
+
+from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
 
 
 class Authentication(object):
@@ -42,29 +40,13 @@ class Authentication(object):
     # Commonly used URIs for the 'Authentication' module
     URI_SERVICES_BASE = ''
     URI_AUTHENTICATION = '/login'
-    URI_VDC_AUTHN_PROFILE = URI_SERVICES_BASE + '/vdc/admin/authnproviders'
-    URI_VDC_AUTHN_PROFILES = (URI_SERVICES_BASE +
-                              '/vdc/admin/authnproviders/{0}')
-    URI_VDC_AUTHN_PROFILES_FORCE_UPDATE = (URI_SERVICES_BASE +
-                                           '/vdc/admin/authnproviders/{0}{1}')
-    URI_VDC_ROLES = URI_SERVICES_BASE + '/vdc/role-assignments'
-
-    URI_LOGOUT = URI_SERVICES_BASE + '/logout'
-
-    URI_USER_GROUP = URI_SERVICES_BASE + '/vdc/admin/user-groups'
-    URI_USER_GROUP_ID = URI_USER_GROUP + '/{0}'
 
     HEADERS = {'Content-Type': 'application/json',
                'ACCEPT': 'application/json', 'X-EMC-REST-CLIENT': 'TRUE'}
-    SEARCH_SCOPE = ['ONELEVEL', 'SUBTREE']
-    BOOL_VALS = ['true', 'false']
-    ZONE_ROLES = ['SYSTEM_ADMIN', 'SECURITY_ADMIN', 'SYSTEM_MONITOR',
-                  'SYSTEM_AUDITOR']
-    MODES = ['ad', 'ldap', 'keystone']
 
     def __init__(self, ipAddr, port):
         '''
-        Constructor: takes IP address and port of the ViPR instance.
+        Constructor: takes IP address and port of the CoprHD instance.
         These are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
@@ -81,7 +63,7 @@ class Authentication(object):
         SEC_AUTHTOKEN_HEADER = 'X-SDS-AUTH-TOKEN'
         LB_API_PORT = 4443
         # Port on which load-balancer/reverse-proxy listens to all incoming
-        # requests for ViPR REST APIs
+        # requests for CoprHD REST APIs
         APISVC_PORT = 8443  # Port on which apisvc listens to incoming requests
 
         cookiejar = cookielib.LWPCookieJar()
@@ -98,8 +80,8 @@ class Authentication(object):
                 if(login_response.status_code == SEC_REDIRECT):
                     location = login_response.headers['Location']
                     if(not location):
-                        raise SOSError(
-                            SOSError.HTTP_ERR, "The redirect location of " +
+                        raise CoprHdError(
+                            CoprHdError.HTTP_ERR, "The redirect location of " +
                             "the authentication service is not provided")
                     # Make the second request
                     login_response = requests.get(
@@ -108,9 +90,9 @@ class Authentication(object):
                         timeout=common.TIMEOUT_SEC)
                     if(not (login_response.status_code ==
                             requests.codes['unauthorized'])):
-                        raise SOSError(
-                            SOSError.HTTP_ERR, "The authentication service" +
-                            " failed to reply with 401")
+                        raise CoprHdError(
+                            CoprHdError.HTTP_ERR, "The authentication " +
+                            " service failed to reply with 401")
 
                     # Now provide the credentials
                     login_response = requests.get(
@@ -119,21 +101,22 @@ class Authentication(object):
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
                     if(not login_response.status_code == SEC_REDIRECT):
-                        raise SOSError(
-                            SOSError.HTTP_ERR,
+                        raise CoprHdError(
+                            CoprHdError.HTTP_ERR,
                             "Access forbidden: Authentication required")
                     location = login_response.headers['Location']
                     if(not location):
-                        raise SOSError(
-                            SOSError.HTTP_ERR, "The authentication service" +
-                            " failed to provide the location of the service" +
-                            " URI when redirecting back")
+                        raise CoprHdError(
+                            CoprHdError.HTTP_ERR, "The authentication" +
+                            " service failed to provide the location of" +
+                            " the service URI when redirecting back")
                     authToken = login_response.headers[SEC_AUTHTOKEN_HEADER]
                     if (not authToken):
                         details_str = self.extract_error_detail(login_response)
-                        raise SOSError(SOSError.HTTP_ERR,
-                                       "The token is not generated" +
-                                       " by authentication service." + details_str)
+                        raise CoprHdError(CoprHdError.HTTP_ERR,
+                                          "The token is not generated" +
+                                          " by authentication service." +
+                                          details_str)
                     # Make the final call to get the page with the token
                     newHeaders = self.HEADERS
                     newHeaders[SEC_AUTHTOKEN_HEADER] = authToken
@@ -142,8 +125,8 @@ class Authentication(object):
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
                     if(login_response.status_code != requests.codes['ok']):
-                        raise SOSError(
-                            SOSError.HTTP_ERR, "Login failure code: " +
+                        raise CoprHdError(
+                            CoprHdError.HTTP_ERR, "Login failure code: " +
                             str(login_response.status_code) + " Error: " +
                             login_response.text)
             elif(self.__port == LB_API_PORT):
@@ -161,18 +144,18 @@ class Authentication(object):
                 if(SEC_AUTHTOKEN_HEADER in login_response.headers):
                     authToken = login_response.headers[SEC_AUTHTOKEN_HEADER]
             else:
-                raise SOSError(
-                    SOSError.HTTP_ERR,
+                raise CoprHdError(
+                    CoprHdError.HTTP_ERR,
                     "Incorrect port number.  Load balanced port is: " +
                     str(LB_API_PORT) + ", api service port is: " +
                     str(APISVC_PORT) + ".")
 
             if (not authToken):
                 details_str = self.extract_error_detail(login_response)
-                raise SOSError(
-                    SOSError.HTTP_ERR,
-                    "The token is not generated by authentication service."
-                    + details_str)
+                raise CoprHdError(
+                    CoprHdError.HTTP_ERR,
+                    "The token is not generated by authentication service." +
+                    details_str)
 
             if (login_response.status_code != requests.codes['ok']):
                 error_msg = None
@@ -197,13 +180,13 @@ class Authentication(object):
                     error_msg = login_response.text
                     if isinstance(error_msg, unicode):
                         error_msg = error_msg.encode('utf-8')
-                raise SOSError(SOSError.HTTP_ERR, "HTTP code: " +
-                               str(login_response.status_code) +
-                               ", response: " + str(login_response.reason) +
-                               " [" + str(error_msg) + "]")
+                raise CoprHdError(CoprHdError.HTTP_ERR, "HTTP code: " +
+                                  str(login_response.status_code) +
+                                  ", response: " + str(login_response.reason) +
+                                  " [" + str(error_msg) + "]")
 
         except (SSLError, socket.error, ConnectionError, Timeout) as e:
-            raise SOSError(SOSError.HTTP_ERR, str(e))
+            raise CoprHdError(CoprHdError.HTTP_ERR, str(e))
 
         form_cookiefile = None
         parentshellpid = None
@@ -237,26 +220,26 @@ class Authentication(object):
                     tokenFile.write(authToken)
                     tokenFile.close()
                 else:
-                    raise SOSError(SOSError.NOT_FOUND_ERR,
-                                   " Failed to save the cookie file path "
-                                   + form_cookiefile)
+                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                                      " Failed to save the cookie file path " +
+                                      form_cookiefile)
 
         except (OSError) as e:
-            raise SOSError(e.errno, cookiedir + " " + e.strerror)
+            raise CoprHdError(e.errno, cookiedir + " " + e.strerror)
         except IOError as e:
-            raise SOSError(e.errno, e.strerror)
+            raise CoprHdError(e.errno, e.strerror)
 
         if (common.create_file(form_cookiefile)):
 
             # cookiejar.save(form_cookiefile, ignore_discard=True,
             #               ignore_expires=True);
-            #sos_cli_install_dir = common.getenv('VIPR_CLI_INSTALL_DIR')
             sos_cli_install_dir = "."
 
             if (sos_cli_install_dir):
                 if (not os.path.isdir(sos_cli_install_dir)):
-                    raise SOSError(SOSError.NOT_FOUND_ERR,
-                                   sos_cli_install_dir + " : Not a directory")
+                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                                      sos_cli_install_dir +
+                                      " : Not a directory")
                 config_file = sos_cli_install_dir + installdir_cookie
                 if (common.create_file(config_file)):
                     fd = open(config_file, 'w+')
@@ -268,18 +251,18 @@ class Authentication(object):
                             ' : Authenticated Successfully\n' +\
                             form_cookiefile + ' : Cookie saved successfully'
                     else:
-                        raise SOSError(
-                            SOSError.NOT_FOUND_ERR, config_file +
+                        raise CoprHdError(
+                            CoprHdError.NOT_FOUND_ERR, config_file +
                             " : Failed to save the cookie file path " +
                             form_cookiefile)
                 else:
-                    raise SOSError(SOSError.NOT_FOUND_ERR,
-                                   config_file + " : Failed to create file")
+                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                                      config_file + " : Failed to create file")
 
             else:
-                raise SOSError(
-                    SOSError.NOT_FOUND_ERR,
-                    "VIPR_CLI_INSTALL_DIR is not set.")
+                raise CoprHdError(
+                    CoprHdError.NOT_FOUND_ERR,
+                    "CoprHD_CLI_INSTALL_DIR is not set.")
         return ret_val
 
     def extract_error_detail(self, login_response):
@@ -291,5 +274,5 @@ class Authentication(object):
                     details_str = json_object['details']
 
             return details_str
-        except SOSError as e:
+        except CoprHdError as e:
             return details_str

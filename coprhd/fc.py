@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
 """
 Driver for EMC CoprHD FC volumes.
 
@@ -25,9 +26,8 @@ try:
 except ImportError:
     from cinder.openstack.common import log as logging
 
-from cinder.volume import driver
 from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
-
+from cinder.volume import driver
 try:
     # new utilities introduced in Juno
     from cinder.zonemanager.utils import AddFCZone
@@ -52,7 +52,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         self.common = self._get_common_driver()
 
     def _get_common_driver(self):
-        return CoprHD_common.EMCViPRDriverCommon(
+        return CoprHD_common.EMCCoprHDDriverCommon(
             protocol='FC',
             default_backend_name=self.__class__.__name__,
             configuration=self.configuration)
@@ -107,9 +107,17 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Creates a consistencygroup."""
         return self.common.create_consistencygroup(context, group)
 
-    def update_consistencygroup(self, context, group, add_volumes, remove_volumes):
+    def update_consistencygroup(self,
+                                context,
+                                group,
+                                add_volumes,
+                                remove_volumes):
         """Updates volumes in consistency group."""
-        return self.common.update_consistencygroup(self, context, group, add_volumes, remove_volumes)
+        return self.common.update_consistencygroup(self,
+                                                   context,
+                                                   group,
+                                                   add_volumes,
+                                                   remove_volumes)
 
     def delete_consistencygroup(self, context, group):
         """Deletes a consistency group."""

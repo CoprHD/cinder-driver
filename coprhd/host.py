@@ -1,132 +1,45 @@
 #!/usr/bin/python
 
-#
 # Copyright (c) 2016 EMC Corporation
-# All Rights Reserved
+# All Rights Reserved.
 #
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
 #
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
 
 from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-import json
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import SOSError
+from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
 from cinder.volume.drivers.emc.coprhd.tenant import Tenant
-from cinder.volume.drivers.emc.coprhd.volume import Volume
 
 '''
-The class definition for the operation on the ViPR Host
+The class definition for the operation on the CoprHD Host
 '''
 
 
 class Host(object):
-    # Indentation START for the class
 
     # All URIs for the Host operations
     URI_HOST_DETAILS = "/compute/hosts/{0}"
-    URI_HOST_DEACTIVATE = "/compute/hosts/{0}/deactivate"
-    URI_HOST_DETACH_STORAGE = "/compute/hosts/{0}/detach-storage"
     URI_HOST_LIST_INITIATORS = "/compute/hosts/{0}/initiators"
-    URI_HOST_LIST_IPINTERFACES = "/compute/hosts/{0}/ip-interfaces"
-    URI_HOST_DISCOVER = URI_HOST_DETAILS + "/discover"
     URI_COMPUTE_HOST = "/compute/hosts"
-    URI_COMPUTE_HOST_PROV_BARE_METEL = \
-        URI_COMPUTE_HOST + "/provision-bare-metal"
-    URI_COMPUTE_HOST_OS_INSTALL = URI_COMPUTE_HOST + "/{0}/os-install"
     URI_HOSTS_SEARCH_BY_NAME = "/compute/hosts/search?name={0}"
-    URI_HOST_LIST_UM_EXPORT_MASKS = "/compute/hosts/{0}/unmanaged-export-masks"
-    URI_HOST_LIST_UM_VOLUMES = "/compute/hosts/{0}/unmanaged-volumes"
-
-    HOST_TYPE_LIST = ['Windows', 'HPUX', 'Linux',
-                      'Esx', 'Other', 'AIXVIO', 'AIX', 'No_OS', 'SUNVCS']
 
     def __init__(self, ipAddr, port):
         '''
-        Constructor: takes IP address and port of the ViPR instance. These are
-        needed to make http requests for REST API
+        Constructor: takes IP address and port of the CoprHD instance. These
+        are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
-
-    '''
-    Host creation operation
-    '''
-
-    def create(self, hostname, hosttype, label, tenant, port,
-               username, passwd, usessl, osversion, cluster,
-               datacenter, vcenter, autodiscovery,
-               bootvolume, project, testconnection):
-        '''
-        Takes care of creating a host system.
-        Parameters:
-            hostname: The short or fully qualified host name or IP address
-                of the host management interface.
-            hosttype : The host type.
-            label : The user label for this host.
-            osversion : The operating system version of the host.
-            port: The integer port number of the host management interface.
-            username: The user credential used to login to the host.
-            passwd: The password credential used to login to the host.
-            tenant: The tenant name to which the host needs to be assigned
-            cluster: The id of the cluster if the host is in a cluster.
-            use_ssl: One of {True, False}
-            datacenter: The id of a vcenter data center if the host is an
-                ESX host in a data center.
-            autodiscovery : Boolean value to indicate autodiscovery
-                true or false
-        Returns:
-            Response payload
-        '''
-
-        request = {'type': hosttype,
-                   'name': label,
-                   'host_name': hostname,
-                   'port_number': port,
-                   'user_name': username,
-                   'password': passwd,
-                   'discoverable': autodiscovery,
-                   'use_ssl': usessl
-                   }
-
-        '''
-        check if the host is already present in this tenant
-        '''
-        tenantId = self.get_tenant_id(tenant)
-        if(tenantId):
-            request['tenant'] = tenantId
-
-        if(osversion):
-            request['os_version'] = osversion
-
-        if(cluster):
-            request['cluster'] = self.get_cluster_id(cluster, tenant)
-
-        if(datacenter):
-            request['vcenter_data_center'] = self.get_vcenterdatacenter_id(
-                datacenter, vcenter, tenant)
-
-        if(bootvolume and project):
-            path = tenant + "/" + project + "/" + bootvolume
-            volume_id = Volume(self.__ipAddr, self.__port).volume_query(path)
-            request['boot_volume'] = volume_id
-
-        restapi = Host.URI_COMPUTE_HOST
-        if(testconnection):
-            restapi = restapi + "?validate_connection=true"
-
-        body = json.dumps(request)
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
-            "POST",
-            restapi,
-            body)
-        o = common.json_decode(s)
-
-        return o
-
 
     '''
     Search the host matching the hostName and
@@ -142,8 +55,8 @@ class Host(object):
                 if(hostDetails['name'] == hostName):
                     return hostUri
 
-        raise SOSError(SOSError.NOT_FOUND_ERR,
-                       "Host with name '" + hostName + "' not found")
+        raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                          "Host with name '" + hostName + "' not found")
 
     '''
     Gets the list of Initiators belonging to a given Host

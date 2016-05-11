@@ -1,26 +1,29 @@
 #!/usr/bin/python
 
 # Copyright (c) 2016 EMC Corporation
-# All Rights Reserved
+# All Rights Reserved.
 #
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
 
-
-# import python system modules
+import json
 
 from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.volume import Volume
-from cinder.volume.drivers.emc.coprhd.snapshot import Snapshot
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import SOSError
-from cinder.volume.drivers.emc.coprhd.project import Project
-from cinder.volume.drivers.emc.coprhd.cluster import Cluster
+from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
 from cinder.volume.drivers.emc.coprhd.host import Host
+from cinder.volume.drivers.emc.coprhd.project import Project
+from cinder.volume.drivers.emc.coprhd.snapshot import Snapshot
 from cinder.volume.drivers.emc.coprhd.virtualarray import VirtualArray
-import json
+from cinder.volume.drivers.emc.coprhd.volume import Volume
 
 
 class ExportGroup(object):
@@ -30,20 +33,13 @@ class ExportGroup(object):
     '''
     URI_EXPORT_GROUP = "/block/exports"
     URI_EXPORT_GROUPS_SHOW = URI_EXPORT_GROUP + "/{0}"
-    URI_EXPORT_GROUP_LIST = '/projects/{0}/resources'
     URI_EXPORT_GROUP_SEARCH = '/block/exports/search'
-    URI_EXPORT_GROUP_DEACTIVATE = URI_EXPORT_GROUPS_SHOW + '/deactivate'
     URI_EXPORT_GROUP_UPDATE = '/block/exports/{0}'
-    URI_EXPORT_GROUP_TASKS_LIST = '/block/exports/{0}/tasks'
-    URI_EXPORT_GROUP_TASK = URI_EXPORT_GROUP_TASKS_LIST + '/{1}'
-    # 'Exclusive' is for backward compatibility only
-    EXPORTGROUP_TYPE = ['Initiator', 'Host', 'Cluster', 'Exclusive']
-    URI_EXPORT_GROUP_TAG = URI_EXPORT_GROUPS_SHOW + '/tags'
 
     def __init__(self, ipAddr, port):
         '''
-        Constructor: takes IP address and port of the ViPR instance. These are
-        needed to make http requests for REST API
+        Constructor: takes IP address and port of the CoprHD instance. These
+        are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
@@ -62,7 +58,8 @@ class ExportGroup(object):
             resuri = None
             if(cg):
                 blockTypeName = 'consistency-groups'
-                from cinder.volume.drivers.emc.coprhd.consistencygroup import ConsistencyGroup
+                from cinder.volume.drivers.emc.coprhd.consistencygroup \
+                    import ConsistencyGroup
                 cgObject = ConsistencyGroup(self.__ipAddr, self.__port)
                 resuri = cgObject.consistencygroup_query(cg, projectname,
                                                          tenantname)
@@ -82,19 +79,6 @@ class ExportGroup(object):
         parms['volume_changes'] = self._remove_list(volume_snapshots)
         o = self.send_json_request(exportgroup_uri, parms)
         return self.check_for_sync(o, sync, synctimeout)
-
-    # initiator
-        '''
-        add initiator to export group
-        parameters:
-           exportgroupname     : Name/id of the export group.
-           tenantname          : tenant name
-           projectname         : name of project
-           initator            : name of initiator
-           hostlabel           : name of host or host label
-        return
-            return action result
-         '''
 
     def _remove_list(self, uris):
         resChanges = {}
@@ -121,8 +105,8 @@ class ExportGroup(object):
                                                 self.__port, synctimeout)
                 )
             else:
-                raise SOSError(
-                    SOSError.SOS_FAILURE_ERR,
+                raise CoprHdError(
+                    CoprHdError.SOS_FAILURE_ERR,
                     "error: task list is empty, no task response found")
         else:
             return result
@@ -213,8 +197,8 @@ class ExportGroup(object):
         # check for existence of export group.
         try:
             status = self.exportgroup_show(name, project, tenant)
-        except SOSError as e:
-            if(e.err_code == SOSError.NOT_FOUND_ERR):
+        except CoprHdError as e:
+            if(e.err_code == CoprHdError.NOT_FOUND_ERR):
                 if(tenant is None):
                     tenant = ""
 
@@ -233,23 +217,13 @@ class ExportGroup(object):
                 }
 
                 if(exportgrouptype and export_destination):
-                    if (exportgrouptype == 'Cluster'):
-                        cluster_obj = Cluster(self.__ipAddr, self.__port)
-                        try:
-                            cluster_uri = cluster_obj.cluster_query(
-                                export_destination,
-                                fullproj)
-                        except SOSError as e:
-                            raise e
-                        parms['clusters'] = [cluster_uri]
-                    elif (exportgrouptype == 'Host'):
-                        host_obj = Host(self.__ipAddr, self.__port)
-                        try:
-                            host_uri = host_obj.query_by_name(
-                                export_destination)
-                        except SOSError as e:
-                            raise e
-                        parms['hosts'] = [host_uri]
+                    host_obj = Host(self.__ipAddr, self.__port)
+                    try:
+                        host_uri = host_obj.query_by_name(
+                            export_destination)
+                    except CoprHdError as e:
+                        raise e
+                    parms['hosts'] = [host_uri]
 
                 body = json.dumps(parms)
                 (s, h) = common.service_json_request(self.__ipAddr,
@@ -263,8 +237,8 @@ class ExportGroup(object):
                 raise e
 
         if(status):
-            raise SOSError(
-                SOSError.ENTRY_ALREADY_EXISTS_ERR,
+            raise CoprHdError(
+                CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
                 "Export group with name " + name +
                 " already exists")
 
@@ -293,14 +267,14 @@ class ExportGroup(object):
                             continue
                     else:
                         return exportgroup['id']
-        raise SOSError(
-            SOSError.NOT_FOUND_ERR,
+        raise CoprHdError(
+            CoprHdError.NOT_FOUND_ERR,
             "Export Group " + name + ": not found")
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
                                 projectname, volumenames, snapshots=None,
-                                cg=None, blockmirror=None, synctimeout=0, varray=None):
+                                cg=None, synctimeout=0, varray=None):
         '''
         add volume to export group
         parameters:
@@ -319,7 +293,9 @@ class ExportGroup(object):
             varrayuri = varrayObject.varray_query(varray)
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
-                                                 projectname, tenantname, varrayuri)
+                                                 projectname,
+                                                 tenantname,
+                                                 varrayuri)
 
         # get volume uri
         if(tenantname is None):
@@ -334,24 +310,13 @@ class ExportGroup(object):
                 volumenames, "volumes", None, tenantname,
                 projectname, None)
 
-        # Block mirror function
-        if(blockmirror and len(blockmirror) > 0):
-            resuri = None
-
-            blockTypeName = 'volumes'
-            if(len(volume_snapshots) > 0):
-                resuri = volume_snapshots[0]['id']
-
-            volume_snapshots = self._get_resource_lun_tuple(
-                blockmirror, "blockmirror", resuri, tenantname,
-                projectname, blockTypeName)
-
         # if snapshot given then snapshot added to exportgroup
         if(snapshots and len(snapshots) > 0):
             resuri = None
             if(cg):
                 blockTypeName = 'consistency-groups'
-                from cinder.volume.drivers.emc.coprhd.consistencygroup import ConsistencyGroup
+                from cinder.volume.drivers.emc.coprhd.consistencygroup \
+                    import ConsistencyGroup
                 cgObject = ConsistencyGroup(self.__ipAddr, self.__port)
                 resuri = cgObject.consistencygroup_query(cg, projectname,
                                                          tenantname)
@@ -401,14 +366,14 @@ class ExportGroup(object):
             try:
                 copyParam = copy.split(":")
             except Exception as e:
-                raise SOSError(
-                    SOSError.CMD_LINE_ERR,
+                raise CoprHdError(
+                    CoprHdError.CMD_LINE_ERR,
                     "Please provide valid format volume: lun for parameter " +
                     resType)
             copy = dict()
             if(not len(copyParam)):
-                raise SOSError(
-                    SOSError.CMD_LINE_ERR,
+                raise CoprHdError(
+                    CoprHdError.CMD_LINE_ERR,
                     "Please provide atleast volume for parameter " + resType)
             if(resType == "volumes"):
                 fullvolname = tenantname + "/" + projectname + "/"
@@ -417,9 +382,6 @@ class ExportGroup(object):
             if(resType == "snapshots"):
                 copy['id'] = snapshotObject.snapshot_query(
                     'block', blockTypeName, baseResUri, copyParam[0])
-            if(resType == "blockmirror"):
-                copy['id'] = volumeObject.mirror_volume_query(
-                    baseResUri, copyParam[0])
             if(len(copyParam) > 1):
                 copy['lun'] = copyParam[1]
             copyEntries.append(copy)

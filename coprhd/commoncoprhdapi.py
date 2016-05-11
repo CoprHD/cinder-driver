@@ -1,45 +1,44 @@
 #!/usr/bin/python
 
 # Copyright (c) 2016 EMC Corporation
-# All Rights Reserved
+# All Rights Reserved.
 #
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+
 '''
 Contains some commonly used utility methods
 '''
-import os
-import stat
 import json
+import os
 import re
-import datetime
-import sys
 import socket
-import base64
-import requests
-from requests.exceptions import SSLError
-from requests.exceptions import ConnectionError
-from requests.exceptions import TooManyRedirects
-from requests.exceptions import Timeout
-import cookielib
-import xml.dom.minidom
-import getpass
-from xml.etree import ElementTree
+import stat
+import sys
 from threading import Timer
 
+import requests
+from requests.exceptions import ConnectionError
+import cookielib
+from requests.exceptions import SSLError
+from requests.exceptions import Timeout
+from requests.exceptions import TooManyRedirects
 from urihelper import singletonURIHelperInstance
 
-PROD_NAME = 'storageos'
-TENANT_PROVIDER = 'urn:vipr:TenantOrg:provider:'
 
-SWIFT_AUTH_TOKEN = 'X-Auth-Token'
+PROD_NAME = 'storageos'
 
 TIMEOUT_SEC = 20  # 20 SECONDS
-OBJCTRL_INSECURE_PORT = '9010'
-OBJCTRL_PORT = '4443'
 IS_TASK_TIMEOUT = False
 
 
@@ -79,8 +78,8 @@ def json_decode(rsp):
     try:
         o = json.loads(rsp, object_hook=_decode_dict)
     except ValueError:
-        raise SOSError(SOSError.VALUE_ERR,
-                       "Failed to recognize JSON payload:\n[" + rsp + "]")
+        raise CoprHdError(CoprHdError.VALUE_ERR,
+                          "Failed to recognize JSON payload:\n[" + rsp + "]")
     return o
 
 
@@ -108,7 +107,7 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
         body: the request payload
     Returns:
         a tuple of two elements: (response body, response headers)
-    Throws: SOSError in case of HTTP errors with err_code 3
+    Throws: CoprHdError in case of HTTP errors with err_code 3
     '''
     global COOKIE
 
@@ -137,11 +136,10 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
         cookiefile = COOKIE
         form_cookiefile = None
         if (cookiefile is None):
-            #install_dir = getenv('VIPR_CLI_INSTALL_DIR')
             install_dir = "."
             if (install_dir is None):
-                raise SOSError(SOSError.NOT_FOUND_ERR,
-                               "VIPR_CLI_INSTALL_DIR is not set.\n")
+                raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                                  "CoprHD_CLI_INSTALL_DIR is not set.\n")
             if sys.platform.startswith('linux'):
                 parentshellpid = os.getppid()
                 if (parentshellpid is not None):
@@ -156,21 +154,21 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
         if (form_cookiefile):
             cookiefile = form_cookiefile
             if (not os.path.exists(cookiefile)):
-                raise SOSError(SOSError.NOT_FOUND_ERR,
-                               cookiefile + " : Cookie not found :" +
-                               " Please authenticate again")
+                raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                                  cookiefile + " : Cookie not found :" +
+                                  " Please authenticate again")
             fd = open(cookiefile, 'r')
             if (fd):
                 fd_content = fd.readline().rstrip()
                 if(fd_content):
                     cookiefile = fd_content
                 else:
-                    raise SOSError(SOSError.NOT_FOUND_ERR,
-                                   cookiefile + " : Failed to retrive" +
-                                   " the cookie file")
+                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                                      cookiefile + " : Failed to retrive" +
+                                      " the cookie file")
             else:
-                raise SOSError(SOSError.NOT_FOUND_ERR,
-                               cookiefile + " : read failure\n")
+                raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                                  cookiefile + " : read failure\n")
         # cli support for api version
         protocol = "https://"
         if(str(port) == '8080'):
@@ -180,19 +178,21 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
         cookiejar = cookielib.LWPCookieJar()
         if (cookiefile):
             if (not os.path.exists(cookiefile)):
-                raise SOSError(SOSError.NOT_FOUND_ERR, cookiefile + " : " +
-                               "Cookie not found : Please authenticate again")
+                raise CoprHdError(CoprHdError.NOT_FOUND_ERR, cookiefile +
+                                  " : " +
+                                  "Cookie not found :" +
+                                  " Please authenticate again")
             if (not os.path.isfile(cookiefile)):
-                raise SOSError(SOSError.NOT_FOUND_ERR,
-                               cookiefile + " : Not a cookie file")
+                raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                                  cookiefile + " : Not a cookie file")
             # cookiejar.load(cookiefile, ignore_discard=True,
             # ignore_expires=True)
             tokenfile = open(cookiefile)
             token = tokenfile.read()
             tokenfile.close()
         else:
-            raise SOSError(SOSError.NOT_FOUND_ERR,
-                           cookiefile + " : Cookie file not found")
+            raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                              cookiefile + " : Cookie file not found")
 
         headers[SEC_AUTHTOKEN_HEADER] = token
 
@@ -221,7 +221,7 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                                 break
                             fp.write(chunk)
                 except IOError as e:
-                    raise SOSError(e.errno, e.strerror)
+                    raise CoprHdError(e.errno, e.strerror)
 
         elif (http_method == 'POST'):
             if(filename):
@@ -239,8 +239,9 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
             response = requests.delete(url, headers=headers, verify=False,
                                        cookies=cookiejar)
         else:
-            raise SOSError(SOSError.HTTP_ERR,
-                           "Unknown/Unsupported HTTP method: " + http_method)
+            raise CoprHdError(CoprHdError.HTTP_ERR,
+                              "Unknown/Unsupported HTTP method: " +
+                              http_method)
 
         if((response.status_code == requests.codes['ok']) or
            (response.status_code == 202)):
@@ -252,7 +253,7 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                 errorDetails = ""
                 if('details' in responseText):
                     errorDetails = responseText['details']
-                error_msg = "ViPR internal server error. Error details: " + \
+                error_msg = "CoprHD internal server error. Error details: " + \
                     errorDetails
             elif(response.status_code == 401):
                 error_msg = "Access forbidden: Authentication required"
@@ -296,23 +297,24 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                     errorDescription = responseText['description']
                     error_msg = error_msg + ": " + errorDescription
                 else:
-                    error_msg = "Service temporarily unavailable: The server" + \
-                                " is temporarily unable to service your request"
+                    error_msg = "Service temporarily unavailable:" + \
+                                " The server is temporarily unable to " + \
+                                " service your request"
             else:
                 error_msg = response.text
                 if isinstance(error_msg, unicode):
                     error_msg = error_msg.encode('utf-8')
-            raise SOSError(SOSError.HTTP_ERR, "HTTP code: " +
-                           str(response.status_code) +
-                           ", " + response.reason + " [" + error_msg + "]")
+            raise CoprHdError(CoprHdError.HTTP_ERR, "HTTP code: " +
+                              str(response.status_code) +
+                              ", " + response.reason + " [" + error_msg + "]")
 
-    except (SOSError, socket.error, SSLError,
+    except (CoprHdError, socket.error, SSLError,
             ConnectionError, TooManyRedirects, Timeout) as e:
-        raise SOSError(SOSError.HTTP_ERR, str(e))
+        raise CoprHdError(CoprHdError.HTTP_ERR, str(e))
     # TODO : Either following exception should have proper message or IOError
     # should just be combined with the above statement
     except IOError as e:
-        raise SOSError(SOSError.HTTP_ERR, str(e))
+        raise CoprHdError(CoprHdError.HTTP_ERR, str(e))
 
 
 def is_uri(name):
@@ -326,18 +328,6 @@ def is_uri(name):
         return (urn == 'urn' and prod == PROD_NAME)
     except:
         return False
-
-
-def get_viprcli_version():
-    try:
-        filename = os.path.abspath(os.path.dirname(__file__))
-        filename = os.path.join(filename, "ver.txt")
-        verfile = open(filename, 'r')
-        line = verfile.readline().strip("\r\n")
-        verfile.close()
-        return line
-    except IOError as e:
-        raise SOSError(SOSError.NOT_FOUND_ERR, str(e))
 
 
 def format_json_object(obj):
@@ -491,12 +481,12 @@ def create_file(file_path):
                 if (os.path.isfile(file_path)):
                     return True
                 else:
-                    raise SOSError(SOSError.NOT_FOUND_ERR,
-                                   file_path + ": Not a regular file")
+                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                                      file_path + ": Not a regular file")
             else:
-                dir = os.path.dirname(file_path)
-                if (dir and not os.path.exists(dir)):
-                    os.makedirs(dir)
+                directory = os.path.dirname(file_path)
+                if (directory and not os.path.exists(directory)):
+                    os.makedirs(directory)
             fd = os.open(file_path, os.O_RDWR | os.O_CREAT,
                          stat.S_IREAD | stat.S_IWRITE |
                          stat.S_IRGRP | stat.S_IROTH)
@@ -509,20 +499,6 @@ def create_file(file_path):
         if(fd):
             os.close(fd)
     return True
-
-'''
-Prompt the user to get the confirmation
-action could be "restart service", "reboot node", "poweroff cluster" etc
-'''
-
-def ask_continue(action):
-    print("Do you really want to " + action + "(y/n)?:")
-    response = sys.stdin.readline().rstrip()
-
-    while(str(response) != "y" and str(response) != "n"):
-        response = ask_continue(action)
-
-    return response
 
 
 # This method defines the standard and consistent error message format
@@ -545,7 +521,7 @@ def format_err_msg_and_raise(operationType, component,
         errorMessage = errorMessage[2:len(errorMessage) - 2]
 
     formatedErrMsg = formatedErrMsg + "\nReason:" + errorMessage
-    raise SOSError(errorCode, formatedErrMsg)
+    raise CoprHdError(errorCode, formatedErrMsg)
 
 '''
 Terminate the script execution with status code.
@@ -587,9 +563,9 @@ def search_by_tag(resourceSearchUri, ipAddr, port):
             resource_uris.append(resource["id"])
         return resource_uris
     else:
-        raise SOSError(SOSError.VALUE_ERR, "Search URI " + strUri +
-                       " is not in the expected format, it should end" +
-                       " with ?tag={0}")
+        raise CoprHdError(CoprHdError.VALUE_ERR, "Search URI " + strUri +
+                          " is not in the expected format, it should end" +
+                          " with ?tag={0}")
 
 
 # Timeout handler for synchronous operations
@@ -599,7 +575,12 @@ def timeout_handler():
 
 
 # Blocks the operation until the task is complete/error out/timeout
-def block_until_complete(componentType, resource_uri, task_id, ipAddr, port, synctimeout=0):
+def block_until_complete(componentType,
+                         resource_uri,
+                         task_id,
+                         ipAddr,
+                         port,
+                         synctimeout=0):
     global IS_TASK_TIMEOUT
     IS_TASK_TIMEOUT = False
     if synctimeout:
@@ -628,11 +609,13 @@ def block_until_complete(componentType, resource_uri, task_id, ipAddr, port, syn
                 if("service_error" in out and
                    "details" in out["service_error"]):
                     error_message = out["service_error"]["details"]
-                raise SOSError(SOSError.VALUE_ERR, "Task: " + task_id +
-                               " is failed with error: " + error_message)
+                raise CoprHdError(CoprHdError.VALUE_ERR, "Task: " + task_id +
+                                  " is failed with error: " + error_message)
 
         if(IS_TASK_TIMEOUT):
-            print "Task did not complete in %d secs. Task still in progress. Please check the logs for task status" % synctimeout
+            print "Task did not complete in %d secs. Task still in" + \
+                  " progress. Please check the logs for task status" \
+                % synctimeout
             IS_TASK_TIMEOUT = False
             break
     return
@@ -658,7 +641,7 @@ def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
     return o
 
 
-class SOSError(Exception):
+class CoprHdError(Exception):
 
     '''
     Custom exception class used to report CLI logical errors

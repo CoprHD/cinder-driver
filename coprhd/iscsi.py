@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
 """
 Driver for EMC CoprHD iSCSI volumes.
 
@@ -22,9 +23,9 @@ try:
     from oslo_log import log as logging
 except ImportError:
     from cinder.openstack.common import log as logging
-
-from cinder.volume import driver
 from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
+from cinder.volume import driver
+
 
 LOG = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         self.common = self._get_common_driver()
 
     def _get_common_driver(self):
-        return CoprHD_common.EMCViPRDriverCommon(
+        return CoprHD_common.EMCCoprHDDriverCommon(
             protocol='iSCSI',
             default_backend_name=self.__class__.__name__,
             configuration=self.configuration)
@@ -104,9 +105,11 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         """Deletes a consistency group."""
         return self.common.delete_consistencygroup(self, context, group)
 
-    def update_consistencygroup(self, context, group, add_volumes, remove_volumes):
+    def update_consistencygroup(self, context, group,
+                                add_volumes, remove_volumes):
         """Updates volumes in consistency group."""
-        return self.common.update_consistencygroup(self, context, group, add_volumes, remove_volumes)
+        return self.common.update_consistencygroup(self, context, group,
+                                                   add_volumes, remove_volumes)
 
     def create_cgsnapshot(self, context, cgsnapshot):
         """Creates a cgsnapshot."""

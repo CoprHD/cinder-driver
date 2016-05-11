@@ -1,50 +1,42 @@
 #!/usr/bin/python
 
-#
 # Copyright (c) 2016 EMC Corporation
-# All Rights Reserved
+# All Rights Reserved.
 #
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
 #
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+import json
 
 from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-import json
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import SOSError
+from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
 from cinder.volume.drivers.emc.coprhd.host import Host
-import sys
 
 '''
-The class definition for the operation on the ViPR HostInitiator
+The class definition for the operation on the CoprHD HostInitiator
 '''
 
 
 class HostInitiator(object):
-    # Indentation START for the class
 
-    '''
-    /compute/initiators/search
-    /compute/initiators/{id}
-    /compute/initiators/{id}/deactivate
-    /compute/initiators/{id}/exports
-    '''
     # All URIs for the Host Initiator operations
-    URI_INITIATOR_DETAILS = "/compute/initiators/{0}"
-    URI_INITIATOR_DETAILS_BULK = "/compute/initiators/bulk"
     URI_HOST_LIST_INITIATORS = "/compute/hosts/{0}/initiators"
-    URI_INITIATOR_DEACTIVATE = "/compute/initiators/{0}/deactivate"
-
-    INITIATOR_PROTOCOL_LIST = ['FC', 'iSCSI']
 
     __hostObject = None
 
     def __init__(self, ipAddr, port):
         '''
-        Constructor: takes IP address and port of the ViPR instance. These are
-        needed to make http requests for REST API
+        Constructor: takes IP address and port of the CoprHD instance. These
+        are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
@@ -54,7 +46,15 @@ class HostInitiator(object):
     Initiator create operation
     """
 
-    def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn, initname, synctime, tenant):
+    def create(self,
+               sync,
+               hostlabel,
+               protocol,
+               initiatorwwn,
+               portwwn,
+               initname,
+               synctime,
+               tenant):
         hostUri = self.get_host_uri(hostlabel, tenant)
         request = {'protocol': protocol,
                    'initiator_port': portwwn,
@@ -90,13 +90,11 @@ class HostInitiator(object):
                     common.block_until_complete("initiator", resource["id"],
                                                 result["id"], self.__ipAddr,
                                                 self.__port, synctime)
-
-
                 )
             else:
 
-                raise SOSError(
-                    SOSError.SOS_FAILURE_ERR,
+                raise CoprHdError(
+                    CoprHdError.SOS_FAILURE_ERR,
                     "error: task list is empty, no task response found")
         else:
             return result

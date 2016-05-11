@@ -1,88 +1,62 @@
-# Copyright (c)2016 EMC Corporation
-# All Rights Reserved
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved.
 #
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+
+from threading import Timer
+
+import json
 
 from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-import json
-from cinder.volume.drivers.emc.coprhd import volume
 from cinder.volume.drivers.emc.coprhd import consistencygroup
-from threading import Timer
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import SOSError
+from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
+from cinder.volume.drivers.emc.coprhd import volume
 
 
 class Snapshot(object):
 
-    # The class definition for operations on 'Snapshot'.
-
     # Commonly used URIs for the 'Snapshot' module
     URI_SNAPSHOTS = '/{0}/snapshots/{1}'
     URI_BLOCK_SNAPSHOTS = '/block/snapshots/{0}'
-    URI_BLOCK_SNAPSHOTS_SEARCH = '/block/snapshots/search'
     URI_SEARCH_SNAPSHOT_BY_TAG = '/block/snapshots/search?tag={0}'
-    URI_BLOCK_SNAPSHOTS_SEARCH_BY_PROJECT_AND_NAME \
-        = URI_BLOCK_SNAPSHOTS_SEARCH + "?project={0}&name={1}"
     URI_SNAPSHOT_LIST = '/{0}/{1}/{2}/protection/snapshots'
-    URI_SNAPSHOT_EXPORTS = '/{0}/snapshots/{1}/exports'
-    URI_SNAPSHOT_VOLUME_EXPORT = '/{0}/snapshots/{1}/exports'
-    URI_SNAPSHOT_UNEXPORTS_VOL = URI_SNAPSHOT_EXPORTS + '/{2},{3},{4}'
-    URI_SNAPSHOT_RESTORE = '/{0}/snapshots/{1}/restore'
-    URI_BLOCK_SNAPSHOTS_ACTIVATE = '/{0}/snapshots/{1}/activate'
-
-    URI_FILE_SNAPSHOT_TASKS = '/{0}/snapshots/{1}/tasks'
     URI_SNAPSHOT_TASKS_BY_OPID = '/vdc/tasks/{0}'
-
     URI_RESOURCE_DEACTIVATE = '{0}/deactivate'
-
     URI_CONSISTENCY_GROUP = "/block/consistency-groups"
-    URI_CONSISTENCY_GROUPS_SNAPSHOT = URI_CONSISTENCY_GROUP + \
-        "/{0}/protection/snapshots"
     URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE \
         = URI_CONSISTENCY_GROUP + "/{0}/protection/snapshots/{1}"
-    URI_CONSISTENCY_GROUPS_SNAPSHOT_ACTIVATE \
-        = URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/activate"
     URI_CONSISTENCY_GROUPS_SNAPSHOT_DEACTIVATE \
         = URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/deactivate"
-    URI_CONSISTENCY_GROUPS_SNAPSHOT_RESTORE \
-        = URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/restore"
-    URI_CONSISTENCY_GROUPS_SNAPSHOT_RESYNC \
-        = URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE + "/resynchronize"
-
     URI_BLOCK_SNAPSHOTS_TAG = URI_BLOCK_SNAPSHOTS + '/tags'
-    URI_CONSISTENCY_GROUP_TAG = URI_CONSISTENCY_GROUP + '/{0}/tags'
-    URI_SNAPSHOT_RESYNC = '/{0}/snapshots/{1}/resynchronize'
 
-    URI_VPLEX_SNAPSHOT_IMPORT = '/block/snapshots/{0}/expose'
-
-    SHARES = 'filesystems'
     VOLUMES = 'volumes'
-    OBJECTS = 'objects'
     CG = 'consistency-groups'
-
     BLOCK = 'block'
-    OBJECT = 'object'
-
-    TYPE_REPLIC_LIST = ["NATIVE", "RP", "SRDF"]
-    BOOLEAN_TYPE = ["true", "false"]
 
     isTimeout = False
     timeout = 300
 
     def __init__(self, ipAddr, port):
         '''
-        Constructor: takes IP address and port of the ViPR instance. These are
-        needed to make http requests for REST API
+        Constructor: takes IP address and port of the CoprHD instance.
+        These are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
 
     def snapshot_list_uri(self, otype, otypename, ouri):
         '''
-        Makes REST API call to list snapshot under a shares or volumes
+        Makes REST API call to list snapshots under a volume
          parameters:
             otype     : block
             otypename : either volumes or consistency-groups should be provided
@@ -145,8 +119,8 @@ class Snapshot(object):
                     if (snapshot['name'] == snapshotName):
                         return snapshot['id']
 
-        raise SOSError(
-            SOSError.SOS_FAILURE_ERR,
+        raise CoprHdError(
+            CoprHdError.SOS_FAILURE_ERR,
             "snapshot with the name:" +
             snapshotName +
             " Not Found")
@@ -163,14 +137,15 @@ class Snapshot(object):
         return o
 
     # Blocks the operation until the task is complete/error out/timeout
-    def block_until_complete(self, storageresType, resuri, task_id, synctimeout=0):
+    def block_until_complete(self, storageresType, resuri,
+                             task_id, synctimeout=0):
         if synctimeout:
             t = Timer(synctimeout, self.timeout_handler)
         else:
             t = Timer(self.timeout, self.timeout_handler)
         t.start()
         while(True):
-            #out = self.show_by_uri(id)
+            # out = self.show_by_uri(id)
             out = self.snapshot_show_task_opid(storageresType, resuri, task_id)
 
             if(out):
@@ -187,8 +162,8 @@ class Snapshot(object):
                     if("service_error" in out and
                        "details" in out["service_error"]):
                         error_message = out["service_error"]["details"]
-                    raise SOSError(
-                        SOSError.VALUE_ERR,
+                    raise CoprHdError(
+                        CoprHdError.VALUE_ERR,
                         "Task: " +
                         task_id +
                         " is failed with error: " +
@@ -229,12 +204,14 @@ class Snapshot(object):
         return resUri
 
     def snapshot_create(self, otype, typename, ouri,
-                        snaplabel, inactive, rptype, sync, readonly=False, synctimeout=0):
-        '''new snapshot is created, for a given shares or volumes
+                        snaplabel, inactive, sync,
+                        readonly=False, synctimeout=0):
+        '''new snapshot is created, for a given volume
             parameters:
                 otype      : block
                 type should be provided
-                typename   : either volume or consistency-groups should be provided
+                typename   : either volume or consistency-groups should
+                be provided
                 ouri       : uri of volume
                 snaplabel  : name of the snapshot
                 activate   : activate snapshot in vnx and vmax
@@ -245,42 +222,31 @@ class Snapshot(object):
         is_snapshot_exist = True
         try:
             self.snapshot_query(otype, typename, ouri, snaplabel)
-        except SOSError as e:
-            if(e.err_code == SOSError.NOT_FOUND_ERR):
+        except CoprHdError as e:
+            if(e.err_code == CoprHdError.NOT_FOUND_ERR):
                 is_snapshot_exist = False
             else:
                 raise e
 
         if(is_snapshot_exist):
-            raise SOSError(
-                SOSError.ENTRY_ALREADY_EXISTS_ERR,
+            raise CoprHdError(
+                CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
                 "Snapshot with name " +
                 snaplabel +
                 " already exists under " +
                 typename)
 
-        body = None
-
-        if(otype == Snapshot.BLOCK):
-            parms = {
-                'name': snaplabel,
-                # if true, the snapshot will not activate the synchronization
-                # between source and target volumes
-                'create_inactive': inactive
-            }
-            if(rptype):
-                parms['type'] = rptype
-            if(readonly == "true"):
-                parms['read_only'] = readonly
-            body = json.dumps(parms)
-
-        else:
-            parms = {
-                'name': snaplabel
-            }
-            if(readonly == "true"):
-                parms['read_only'] = readonly
-            body = json.dumps(parms)
+        parms = {
+            'name': snaplabel,
+            # if true, the snapshot will not activate the synchronization
+            # between source and target volumes
+            'create_inactive': inactive
+        }
+        if(rptype):
+            parms['type'] = rptype
+        if(readonly == "true"):
+            parms['read_only'] = readonly
+        body = json.dumps(parms)
 
         # REST api call
         (s, h) = common.service_json_request(
@@ -289,11 +255,7 @@ class Snapshot(object):
             Snapshot.URI_SNAPSHOT_LIST.format(otype, typename, ouri), body)
         o = common.json_decode(s)
 
-        task = None
-        if(otype == Snapshot.BLOCK):
-            task = o["task"][0]
-        else:
-            task = o
+        task = o["task"][0]
 
         if(sync):
             return (
@@ -330,11 +292,7 @@ class Snapshot(object):
                     suri),
                 None)
         o = common.json_decode(s)
-        task = None
-        if(otype == Snapshot.BLOCK):
-            task = o["task"][0]
-        else:
-            task = o
+        task = o["task"][0]
 
         if(sync):
             return (
@@ -347,7 +305,8 @@ class Snapshot(object):
             return o
 
     def snapshot_delete(self, storageresType,
-                        storageresTypename, resourceUri, name, sync, synctimeout=0):
+                        storageresTypename, resourceUri,
+                        name, sync, synctimeout=0):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,

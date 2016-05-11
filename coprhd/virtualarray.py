@@ -1,16 +1,23 @@
 #!/usr/bin/python
-# Copyright (c)2016 EMC Corporation
-# All Rights Reserved
 
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
 
-import json
+
 from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import SOSError
+from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
 
 
 class VirtualArray(object):
@@ -23,15 +30,10 @@ class VirtualArray(object):
     URI_VIRTUALARRAY = '/vdc/varrays'
     URI_VIRTUALARRAY_BY_VDC_ID = '/vdc/varrays?vdc-id={0}'
     URI_VIRTUALARRAY_URI = '/vdc/varrays/{0}'
-    URI_VIRTUALARRAY_ACLS = URI_VIRTUALARRAY_URI + '/acl'
-    URI_RESOURCE_DEACTIVATE = '{0}/deactivate'
-    URI_AUTO_TIER_POLICY = "/vdc/varrays/{0}/auto-tier-policies"
-    URI_LIST_STORAGE_PORTS = "/vdc/varrays/{0}/storage-ports"
-    URI_STORAGE_PORT_DETAILS = "/vdc/storage-ports/{0}"
 
     def __init__(self, ipAddr, port):
         '''
-        Constructor: takes IP address and port of the ViPR instance.
+        Constructor: takes IP address and port of the CoprHD instance.
         These are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
@@ -52,8 +54,8 @@ class VirtualArray(object):
                 if(varray['name'] == name):
                     return varray['id']
 
-        raise SOSError(SOSError.NOT_FOUND_ERR,
-                       "varray " + name + ": not found")
+        raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                          "varray " + name + ": not found")
 
     def varray_list(self, vdcname=None):
         '''
@@ -62,9 +64,8 @@ class VirtualArray(object):
         Returns:
                 JSON payload of varray list
         '''
-        vdcuri = None
         vdcrestapi = None
-        if(vdcname != None):
+        if(vdcname is not None):
             vdcrestapi = VirtualArray.URI_VIRTUALARRAY_BY_VDC_ID.format(
                 vdcname)
         else:

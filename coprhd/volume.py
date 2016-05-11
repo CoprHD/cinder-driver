@@ -1,22 +1,26 @@
 #!/usr/bin/python
 
 # Copyright (c) 2016 EMC Corporation
-# All Rights Reserved
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
 
-# This software contains the intellectual property of EMC Corporation
-# or is licensed to EMC Corporation from third parties.  Use of this
-# software and the intellectual property contained therein is expressly
-# limited to the terms and conditions of the License Agreement under which
-# it is provided by or on behalf of EMC.
-
-
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
 import json
 
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import SOSError
-from threading import Timer
-from cinder.volume.drivers.emc.coprhd.virtualarray import VirtualArray
+from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd import consistencygroup
+from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
+from cinder.volume.drivers.emc.coprhd.virtualarray import VirtualArray
 
 
 class Volume(object):
@@ -26,83 +30,15 @@ class Volume(object):
     '''
     # Commonly used URIs for the 'Volume' module
     URI_SEARCH_VOLUMES = '/block/volumes/search?project={0}'
-    URI_SEARCH_VOLUMES_BY_PROJECT_AND_NAME = \
-        '/block/volumes/search?project={0}&name={1}'
     URI_SEARCH_VOLUMES_BY_TAG = '/block/volumes/search?tag={0}'
     URI_VOLUMES = '/block/volumes'
     URI_VOLUME = URI_VOLUMES + '/{0}'
-    URI_VOLUME_CREATE = URI_VOLUMES + '?project={0}'
-    URI_VOLUME_SNAPSHOTS = URI_VOLUME + '/snapshots'
-    URI_VOLUME_RESTORE = URI_VOLUME + '/restore'
     URI_VOLUME_EXPORTS = URI_VOLUME + '/exports'
-    URI_VOLUME_UNEXPORTS = URI_VOLUME_EXPORTS + '/{1},{2},{3}'
-    URI_VOLUME_CONSISTENCYGROUP = URI_VOLUME + '/consistency-group'
-    URI_PROJECT_RESOURCES = '/projects/{0}/resources'
-    URI_VOLUME_TAGS = URI_VOLUME + '/tags'
     URI_BULK_DELETE = URI_VOLUMES + '/deactivate'
     URI_DEACTIVATE = URI_VOLUME + '/deactivate'
     URI_EXPAND = URI_VOLUME + '/expand'
-    URI_TASK_LIST = URI_VOLUME + '/tasks'
-    URI_TASK = URI_TASK_LIST + '/{1}'
     URI_TAG_VOLUME = URI_VOLUME + "/tags"
     URI_VOLUME_CHANGE_VPOOL = URI_VOLUMES + "/vpool-change"
-
-    # Protection REST APIs
-    URI_VOLUME_PROTECTION_CREATE = \
-        '/block/volumes/{0}/protection/continuous'
-    URI_VOLUME_PROTECTION_START = \
-        '/block/volumes/{0}/protection/continuous/start'
-    URI_VOLUME_PROTECTION_STOP = \
-        '/block/volumes/{0}/protection/continuous/stop'
-    URI_VOLUME_PROTECTION_PAUSE = \
-        '/block/volumes/{0}/protection/continuous/pause'
-    URI_VOLUME_PROTECTION_RESUME = \
-        '/block/volumes/{0}/protection/continuous/resume'
-    URI_VOLUME_PROTECTION_FAILOVER = \
-        '/block/volumes/{0}/protection/continuous/failover'
-    URI_VOLUME_PROTECTION_DELETE = \
-        '/block/volumes/{0}/protection/continuous/deactivate'
-
-    '''continuous copy or Mirror protection REST APIs '''
-    URI_VOLUME_PROTECTION_MIRROR_LIST = \
-        "/block/volumes/{0}/protection/continuous-copies"
-    URI_VOLUME_PROTECTION_MIRROR_INSTANCE_START = \
-        "/block/volumes/{0}/protection/continuous-copies/start"
-    URI_VOLUME_PROTECTION_MIRROR_INSTANCE_STOP = \
-        "/block/volumes/{0}/protection/continuous-copies/stop"
-    URI_VOLUME_PROTECTION_MIRROR_INSTANCE_PAUSE = \
-        "/block/volumes/{0}/protection/continuous-copies/pause"
-    URI_VOLUME_PROTECTION_MIRROR_RESUME = \
-        "/block/volumes/{0}/protection/continuous-copies/resume"
-    URI_VOLUME_PROTECTION_MIRROR_FAILOVER = \
-        "/block/volumes/{0}/protection/continuous-copies/failover"
-    URI_VOLUME_PROTECTION_MIRROR_FAILOVER_TEST = \
-        "/block/volumes/{0}/protection/continuous-copies/failover-test"
-    URI_VOLUME_PROTECTION_MIRROR_FAILOVER_CANCEL = \
-        "/block/volumes/{0}/protection/continuous-copies/failover-test-cancel"
-    URI_VOLUME_PROTECTION_MIRROR_FAILOVER_SWAP = \
-        "/block/volumes/{0}/protection/continuous-copies/swap"
-    URI_VOLUME_PROTECTION_MIRROR_INSTANCE_DEACTIVATE = \
-        "/block/volumes/{0}/protection/continuous-copies/deactivate"
-    URI_VOLUME_PROTECTION_MIRROR_INSTANCE_SYNC = \
-        "/block/volumes/{0}/protection/continuous-copies/sync"
-    URI_VOLUME_PROTECTION_MIRROR_INSTANCE_STOP_PID = \
-        "/block/volumes/{0}/protection/native/continuous-copies/{1}/stop/"
-
-    URI_VOLUME_PROTECTION_MIRROR_MID_SHOW = \
-        "/block/volumes/{0}/protection/continuous-copies/{1}"
-    URI_VOLUME_PROTECTION_MIRROR_FULLCOPY = \
-        "/block/volumes/{0}/protection/full-copies"
-
-    # Protection set REST APIs
-    URI_VOLUME_PROTECTIONSET_INSTANCE = \
-        "/block/volumes/{0}/protection/protection-sets/{1}"
-    URI_VOLUME_PROTECTIONSET_RESOURCES = '/block/protection-sets/{0}/resources'
-    URI_VOLUME_PROTECTIONSET_DISCOVER = '/block/protection-sets/{0}/discover'
-
-    URI_UNMANAGED_VOLUMES_SHOW = '/vdc/unmanaged/volumes/{0}'
-    URI_UNMANAGED_VOLUMES_INGEST = '/vdc/unmanaged/volumes/ingest'
-    URI_UNMANAGED_EXPORTED_VOLUMES_INGEST = '/vdc/unmanaged/volumes/ingest-exported'
 
     # Protection REST APIs - clone
     URI_VOLUME_PROTECTION_FULLCOPIES = \
@@ -110,43 +46,12 @@ class Volume(object):
     URI_SNAPSHOT_PROTECTION_FULLCOPIES = \
         '/block/snapshots/{0}/protection/full-copies'
 
-    # New URIs Supported
-
-    URI_VOLUME_CLONE_RESTORE = "/block/full-copies/{0}/restore"
-    URI_VOLUME_CLONE_RESYNCRONIZE = "/block/full-copies/{0}/resynchronize"
-    URI_VOLUME_CLONE_ACTIVATE = "/block/full-copies/{0}/activate"
     URI_VOLUME_CLONE_DETACH = "/block/full-copies/{0}/detach"
-    URI_VOLUME_CLONE_CHECKPROGRESS = "/block/full-copies/{0}/check-progress"
-    URI_VOLUME_CLONE_LIST = "/block/full-copies"
 
     # New CG URIs
     URI_CG_CLONE = "/block/consistency-groups/{0}/protection/full-copies"
-    URI_CG_CLONE_RESTORE = "/block/consistency-groups/{0}/protection/full-copies/{1}/restore"
-    URI_CG_CLONE_RESYNCRONIZE = "/block/consistency-groups/{0}/protection/full-copies/{1}/resynchronize"
-    URI_CG_CLONE_ACTIVATE = "/block/consistency-groups/{0}/protection/full-copies/{1}/activate"
-    URI_CG_CLONE_DETACH = "/block/consistency-groups/{0}/protection/full-copies/{1}/detach"
-    URI_CG_CLONE_DEACTIVATE = "/block/consistency-groups/{0}/protection/full-copies/{1}/deactivate"
-    URI_CG_CLONE_LIST = "/block/consistency-groups/{0}/protection/full-copies"
-    URI_CG_CLONE_GET = "/block/consistency-groups/{0}/protection/full-copies/{1}"
-
-    # New Migration URIs
-    URI_MIGRATION_LIST = "/block/migrations"
-    URI_MIGRATION_SHOW = "/block/migrations/{0}"
-    URI_MIGRATION_CANCEL = "/block/migrations/{0}/cancel"
-    URI_MIGRATION_PAUSE = "/block/migrations/{0}/pause"
-    URI_MIGRATION_RESUME = "/block/migrations/{0}/resume"
-    URI_MIGRATION_DEACTIVATE = "/block/migrations/{0}/deactivate"
-
-    # New API for adding volumes to RP Journal CG
-    URI_RP_JOURNAL_CAPACITY = "/block/volumes/protection/addJournalCapacity"
-
-    VOLUME_PROTECTIONS = ['rp', 'native', 'srdf']
-    VOLUME_PROTECTION_HELP = \
-        'type of protection(rp or native or srdf) - default:native'
-
-    VOLUME_PROTECTIONS_EX_SRDF = ['rp', 'native']
-    VOLUME_PROTECTION_HELP_EX_SRDF = \
-        'type of protection(rp or native) - default:native'
+    URI_CG_CLONE_DETACH = \
+        "/block/consistency-groups/{0}/protection/full-copies/{1}/detach"
 
     VOLUMES = 'volumes'
     CG = 'consistency-groups'
@@ -158,8 +63,8 @@ class Volume(object):
 
     def __init__(self, ipAddr, port):
         '''
-        Constructor: takes IP address and port of the ViPR instance. These are
-        needed to make http requests for REST API
+        Constructor: takes IP address and port of the CoprHD instance. These
+        are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
@@ -234,8 +139,7 @@ class Volume(object):
 
     # Creates a volume given label, project, vpool and size
     def create(self, project, label, size, varray, vpool,
-               protocol, sync, number_of_volumes, thin_provisioned,
-               consistencygroup, synctimeout=0):
+               sync, consistencygroup, synctimeout=0):
         '''
         Makes REST API call to create volume under a project
         Parameters:
@@ -244,7 +148,6 @@ class Volume(object):
             size: size of volume
             varray: name of varray
             vpool: name of vpool
-            protocol: protocol used for the volume (FC or iSCSI)
         Returns:
             Created task details in JSON response payload
         '''
@@ -267,22 +170,9 @@ class Volume(object):
             'project': project_uri,
             'vpool': vpool_uri
         }
-        if(protocol):
-            request["protocols"] = protocol
-        if(number_of_volumes and number_of_volumes > 1):
-            request["count"] = number_of_volumes
-        if(thin_provisioned):
-            request["thinly_provisioned"] = thin_provisioned
-        from cinder.volume.drivers.emc.coprhd.consistencygroup import ConsistencyGroup
+        request["count"] = 1
         if(consistencygroup):
-
-            cgobj = ConsistencyGroup(self.__ipAddr, self.__port)
-            (tenant, project) = common.get_parent_child_from_xpath(project)
-            consuri = cgobj.consistencygroup_query(
-                consistencygroup,
-                project,
-                tenant)
-            request['consistency_group'] = consuri
+            request['consistency_group'] = consistencygroup
 
         body = json.dumps(request)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -292,19 +182,18 @@ class Volume(object):
         o = common.json_decode(s)
 
         if(sync):
-            if(number_of_volumes < 2):
-                # check task empty
-                if (len(o["task"]) > 0):
-                    task = o["task"][0]
-                    return self.check_for_sync(task, sync, synctimeout)
-                else:
-                    raise SOSError(
-                        SOSError.SOS_FAILURE_ERR,
-                        "error: task list is empty, no task response found")
+            # check task empty
+            if (len(o["task"]) > 0):
+                task = o["task"][0]
+                return self.check_for_sync(task, sync, synctimeout)
+            else:
+                raise CoprHdError(
+                    CoprHdError.SOS_FAILURE_ERR,
+                    "error: task list is empty, no task response found")
         else:
             return o
 
-    # Blocks the opertaion until the task is complete/error out/timeout
+    # Blocks the operation until the task is complete/error out/timeout
     def check_for_sync(self, result, sync, synctimeout=0):
         if(sync):
             if(len(result["resource"]) > 0):
@@ -315,8 +204,8 @@ class Volume(object):
                                                 self.__port, synctimeout)
                 )
             else:
-                raise SOSError(
-                    SOSError.SOS_FAILURE_ERR,
+                raise CoprHdError(
+                    CoprHdError.SOS_FAILURE_ERR,
                     "error: task list is empty, no task response found")
         else:
             return result
@@ -337,8 +226,8 @@ class Volume(object):
 
         (pname, label) = common.get_parent_child_from_xpath(name)
         if(not pname):
-            raise SOSError(SOSError.NOT_FOUND_ERR,
-                           "Project name  not specified")
+            raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
+                              "Project name  not specified")
         proj = Project(self.__ipAddr, self.__port)
         puri = proj.project_query(pname)
         puri = puri.strip()
@@ -347,8 +236,8 @@ class Volume(object):
             volume = self.show_by_uri(uri)
             if (volume and 'name' in volume and volume['name'] == label):
                 return volume['id']
-        raise SOSError(SOSError.NOT_FOUND_ERR, "Volume " +
-                       label + ": not found")
+        raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
+                          label + ": not found")
 
     def get_storageAttributes(self, volumeName, cgName, snapshotName=None):
         storageresType = None
@@ -389,7 +278,8 @@ class Volume(object):
                 from cinder.volume.drivers.emc.coprhd.snapshot import Snapshot
                 snapobj = Snapshot(self.__ipAddr, self.__port)
                 resUri = snapobj.snapshot_query(storageresType,
-                                                Volume.VOLUMES, resUri, snapshotName)
+                                                Volume.VOLUMES, resUri,
+                                                snapshotName)
 
         elif(Volume.BLOCK == storageresType and cgName is not None):
             resourceObj = consistencygroup.ConsistencyGroup(
@@ -403,8 +293,9 @@ class Volume(object):
 
         return resUri
 
-     # Creates volume(s) from given source volume
-    def clone(self, new_vol_name, number_of_volumes, resourceUri, sync, synctimeout=0):
+    # Creates volume(s) from given source volume
+    def clone(self, new_vol_name, number_of_volumes, resourceUri,
+              sync, synctimeout=0):
         '''
         Makes REST API call to clone volume
         Parameters:
@@ -476,7 +367,8 @@ class Volume(object):
         if(vol and 'protection' in vol and
                 'full_copies' in vol['protection'] and
                 'replicaState' in vol['protection']['full_copies']):
-            if(vol['protection']['full_copies']['replicaState'] == 'SYNCHRONIZED'):
+            if(vol['protection']['full_copies']['replicaState'] ==
+               'SYNCHRONIZED'):
                 return True
             else:
                 return False
@@ -526,8 +418,8 @@ class Volume(object):
             return name
         (pname, label) = common.get_parent_child_from_xpath(name)
         if (pname is None):
-            raise SOSError(SOSError.NOT_FOUND_ERR, "Volume " +
-                           str(name) + ": not found")
+            raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
+                              str(name) + ": not found")
 
         proj = Project(self.__ipAddr, self.__port)
         puri = proj.project_query(pname)
@@ -543,19 +435,19 @@ class Volume(object):
                 else:
                     return self.show_by_uri(volume['id'],
                                             show_inactive, xml)
-        raise SOSError(SOSError.NOT_FOUND_ERR, "Volume " +
-                       str(label) + ": not found")
+        raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
+                          str(label) + ": not found")
 
     def expand(self, name, new_size, sync=False, synctimeout=0):
 
-        #volume_uri = self.volume_query(name)
+        # volume_uri = self.volume_query(name)
         volume_detail = self.show(name)
         from decimal import Decimal
         new_size_in_gb = Decimal(Decimal(new_size) / (1024 * 1024 * 1024))
         current_size = Decimal(volume_detail["provisioned_capacity_gb"])
         if(new_size_in_gb <= current_size):
-            raise SOSError(
-                SOSError.VALUE_ERR,
+            raise CoprHdError(
+                CoprHdError.VALUE_ERR,
                 "error: Incorrect value of new size: " + str(new_size_in_gb) +
                 " GB\nNew size must be greater than current size: " +
                 str(current_size) + " GB")
@@ -579,7 +471,7 @@ class Volume(object):
 
     # Deletes a volume given a volume name
     def delete(self, name, volume_name_list=None, sync=False,
-               forceDelete=False, vipronly=False, synctimeout=0):
+               forceDelete=False, coprhdonly=False, synctimeout=0):
         '''
         Deletes a volume based on volume name
         Parameters:
@@ -588,7 +480,8 @@ class Volume(object):
         '''
         if(volume_name_list is None):
             volume_uri = self.volume_query(name)
-            return self.delete_by_uri(volume_uri, sync, forceDelete, vipronly, synctimeout)
+            return self.delete_by_uri(volume_uri, sync, forceDelete,
+                                      coprhdonly, synctimeout)
         else:
             vol_uris = []
             invalid_vol_names = ""
@@ -596,23 +489,23 @@ class Volume(object):
                 try:
                     volume_uri = self.volume_query(name + '/' + vol_name)
                     vol_uris.append(volume_uri)
-                except SOSError as e:
-                    if(e.err_code == SOSError.NOT_FOUND_ERR):
+                except CoprHdError as e:
+                    if(e.err_code == CoprHdError.NOT_FOUND_ERR):
                         invalid_vol_names += vol_name + " "
                         continue
                     else:
                         raise e
 
             if(len(vol_uris) > 0):
-                self.delete_bulk_uris(vol_uris, forceDelete, vipronly)
+                self.delete_bulk_uris(vol_uris, forceDelete, coprhdonly)
 
             if(len(invalid_vol_names) > 0):
-                raise SOSError(SOSError.NOT_FOUND_ERR, "Volumes: " +
-                               str(invalid_vol_names) + " not found")
+                raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volumes: " +
+                                  str(invalid_vol_names) + " not found")
 
     # Deletes a volume given a volume uri
     def delete_by_uri(self, uri, sync=False,
-                      forceDelete=False, vipronly=False, synctimeout=0):
+                      forceDelete=False, coprhdonly=False, synctimeout=0):
         '''
         Deletes a volume based on volume uri
         Parameters:
@@ -622,9 +515,9 @@ class Volume(object):
         if (forceDelete):
             params += '&' if ('?' in params) else '?'
             params += "force=" + "true"
-        if (vipronly == True):
+        if (coprhdonly is True):
             params += '&' if ('?' in params) else '?'
-            params += "type=" + 'VIPR_ONLY'
+            params += "type=" + 'CoprHD_ONLY'
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
@@ -638,7 +531,7 @@ class Volume(object):
             return self.check_for_sync(o, sync, synctimeout)
         return o
 
-    def delete_bulk_uris(self, uris, forceDelete, vipronly):
+    def delete_bulk_uris(self, uris, forceDelete, coprhdonly):
         '''
         Deletes all the volumes given in the uris
         Parameters:
@@ -648,9 +541,9 @@ class Volume(object):
         if (forceDelete):
             params += '&' if ('?' in params) else '?'
             params += "force=" + "true"
-        if (vipronly == True):
+        if (coprhdonly is True):
             params += '&' if ('?' in params) else '?'
-            params += "type=" + 'VIPR_ONLY'
+            params += "type=" + 'CoprHD_ONLY'
 
         body = json.dumps({'id': uris})
 
@@ -720,60 +613,3 @@ class Volume(object):
 
         o = common.json_decode(s)
         return o
-
-    def mirror_protection_list(self, volume):
-        '''
-        block mirror list for a given volume name
-        Parameters:
-            volume: Name of the volume
-        Returns:
-            result of the action.
-        '''
-        vol_uri = self.volume_query(volume)
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
-            "GET",
-            Volume.URI_VOLUME_PROTECTION_MIRROR_LIST.format(vol_uri),
-            None)
-        o = common.json_decode(s)
-
-        mirrorlist = []
-        for uri in common.get_node_value(o, 'mirror'):
-            mirrorlist.append(uri['id'])
-        return mirrorlist
-
-    def get_uri_mirror_protection_vol(self, vol_uri, mirror_uri):
-        '''
-        get block mirror volume details by mirror volume uri
-        Parameters:
-            volume uri   : Name of the volume
-            mirrorvol uri: Name of the mirror volume
-
-        Returns:
-            result of the action.
-        '''
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
-            "GET",
-            Volume.URI_VOLUME_PROTECTION_MIRROR_MID_SHOW.format(
-                vol_uri, mirror_uri),
-            None)
-        o = common.json_decode(s)
-        if(o['inactive']):
-            return None
-        return o
-
-    def mirror_volume_query(self, volume, mirrorvolname):
-        if (common.is_uri(mirrorvolname)):
-            return mirrorvolname
-
-        vol_uri = self.volume_query(volume)
-        uris = self.mirror_protection_list(volume)
-        for uri in uris:
-            mirvol = self.get_uri_mirror_protection_vol(vol_uri, uri)
-            if(mirvol is not None and mirvol['name'] == mirrorvolname):
-                return mirvol['id']
-        raise SOSError(SOSError.NOT_FOUND_ERR, "MirrorVolumeName " +
-                       mirrorvolname + ": not found")
