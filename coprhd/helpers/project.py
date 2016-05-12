@@ -16,8 +16,9 @@
 #    under the License.
 
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
 
 
 class Project(object):
@@ -46,7 +47,7 @@ class Project(object):
             return name
         (tenant_name, project_name) = common.get_parent_child_from_xpath(name)
 
-        from cinder.volume.drivers.emc.coprhd.tenant import Tenant
+        from cinder.volume.drivers.emc.coprhd.helpers.tenant import Tenant
         tenant_obj = Tenant(self.__ipAddr, self.__port)
 
         try:
@@ -71,7 +72,7 @@ class Project(object):
         Returns:
             List of project UUIDs in JSON response payload
         '''
-        from cinder.volume.drivers.emc.coprhd.tenant import Tenant
+        from cinder.volume.drivers.emc.coprhd.helpers.tenant import Tenant
         tenant_obj = Tenant(self.__ipAddr, self.__port)
         try:
             tenant_uri = tenant_obj.tenant_query(tenant_name)
@@ -87,23 +88,13 @@ class Project(object):
             return common.get_list(o, 'project')
         return []
 
-    def project_show_by_uri(self, uri, xml=False):
+    def project_show_by_uri(self, uri):
         '''Makes REST API call and retrieves project derails based on UUID
         Parameters:
             uri: UUID of project
         Returns:
             Project details in JSON response payload
         '''
-        if(xml):
-            (s, h) = common.service_json_request(self.__ipAddr,
-                                                 self.__port,
-                                                 "GET",
-                                                 Project.URI_PROJECT.format(
-                                                     uri),
-                                                 None,
-                                                 None,
-                                                 xml)
-            return s
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET",

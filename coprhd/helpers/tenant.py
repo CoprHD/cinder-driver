@@ -15,8 +15,9 @@
 #    under the License.
 
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
 
 
 class Tenant(object):
@@ -64,7 +65,7 @@ class Tenant(object):
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
                           "Tenant " + label + ": not found")
 
-    def tenant_show(self, label, xml=False):
+    def tenant_show(self, label):
         '''
         Returns the details of the tenant based on its name
         '''
@@ -73,7 +74,7 @@ class Tenant(object):
         else:
             tenant_id = self.tenant_getid()
 
-        return self.tenant_show_by_uri(tenant_id, xml)
+        return self.tenant_show_by_uri(tenant_id)
 
     def tenant_getid(self):
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -108,21 +109,18 @@ class Tenant(object):
         else:
             return []
 
-    def tenant_show_by_uri(self, uri, xml=False):
+    def tenant_show_by_uri(self, uri):
         '''
         Makes a REST API call to retrieve details of a tenant based on its UUID
         '''
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
                                              Tenant.URI_TENANTS.format(uri),
-                                             None, None, xml)
+                                             None, None)
 
-        if(not xml):
-            o = common.json_decode(s)
-            if('inactive' in o):
-                if(o['inactive']):
-                    return None
-        else:
-            return s
+        o = common.json_decode(s)
+        if('inactive' in o):
+            if(o['inactive']):
+                return None
 
         return o
 

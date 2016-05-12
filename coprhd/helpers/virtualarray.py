@@ -16,8 +16,9 @@
 #    under the License.
 
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
 
 
 class VirtualArray(object):
@@ -82,7 +83,7 @@ class VirtualArray(object):
 
         return returnlst
 
-    def varray_show(self, label, xml=False):
+    def varray_show(self, label):
         '''
         Makes a REST API call to retrieve details of a varray
         based on its UUID
@@ -92,14 +93,11 @@ class VirtualArray(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
             VirtualArray.URI_VIRTUALARRAY_URI.format(uri),
-            None, None, xml)
+            None, None)
 
-        if(xml is False):
-            o = common.json_decode(s)
-            if('inactive' in o):
-                if(o['inactive'] is True):
-                    return None
-                else:
-                    return o
-        else:
-            return s
+        o = common.json_decode(s)
+        if('inactive' in o):
+            if(o['inactive'] is True):
+                return None
+            else:
+                return o

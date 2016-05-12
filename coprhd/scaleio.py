@@ -20,6 +20,8 @@ Driver for EMC CoprHD ScaleIO volumes.
 """
 
 import requests
+import six
+from six.moves import urllib
 
 try:
     from oslo_log import log as logging
@@ -27,7 +29,10 @@ except ImportError:
     from cinder.openstack.common import log as logging
 from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 from cinder.volume import driver
-from cinder.openstack.common import processutils
+try:
+    from cinder.openstack.common import processutils
+except ImportError:
+    from oslo_concurrency import processutils
 from cinder import utils
 
 
@@ -54,7 +59,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     def create_volume(self, volume):
         """Creates a Volume."""
         self.common.create_volume(volume, self)
-        self.common.set_volume_tags(volume)
+        self.common.set_volume_tags(volume, ['_obj_volume_type'])
         volSize = self.updateVolumeSize(int(volume['size']))
         return {'size': volSize}
 
@@ -69,12 +74,12 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     def create_cloned_volume(self, volume, src_vref):
         """Creates a cloned Volume."""
         self.common.create_cloned_volume(volume, src_vref)
-        self.common.set_volume_tags(volume)
+        self.common.set_volume_tags(volume, ['_obj_volume_type'])
 
     def create_volume_from_snapshot(self, volume, snapshot):
         """Creates a volume from a snapshot."""
         self.common.create_volume_from_snapshot(snapshot, volume, self.db)
-        self.common.set_volume_tags(volume)
+        self.common.set_volume_tags(volume, ['_obj_volume_type'])
 
     def extend_volume(self, volume, new_size):
         """expands the size of the volume."""
@@ -297,8 +302,10 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def _get_client_id(self, server_ip, server_port, server_username,
                        server_password, sdc_ip):
+        ip_encoded = urllib.parse.quote(sdc_ip, '')
+        ip_double_encoded = urllib.parse.quote(ip_encoded, '')
         request = "https://" + server_ip + ":" + server_port + \
-            "/api/types/Client/instances/getByIp::" + sdc_ip + "/"
+            "/api/types/Sdc/instances/getByIp::" + ip_double_encoded + "/"
         LOG.info("ScaleIO get client id by ip request: %s" % request)
 
         if(self.configuration.scaleio_verify_server_certificate == 'True'):
@@ -309,7 +316,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         version = self._get_scaleio_version()
         r = None
 
-        if 'R1_31' in version:
+        if 'R1_31' in version or 'R2_0' in version:
             r = requests.get(
                 request, auth=(server_username, self.server_token),
                 verify=verify_cert)

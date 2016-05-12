@@ -17,10 +17,11 @@ from threading import Timer
 
 import json
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd import consistencygroup
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
-from cinder.volume.drivers.emc.coprhd import volume
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers import volume
 
 
 class Snapshot(object):
@@ -72,7 +73,7 @@ class Snapshot(object):
         o = common.json_decode(s)
         return o['snapshot']
 
-    def snapshot_show_uri(self, otype, resourceUri, suri, xml=False):
+    def snapshot_show_uri(self, otype, resourceUri, suri):
         '''
         Retrieves snapshot details based on snapshot Name or Label
         Parameters:
@@ -92,16 +93,14 @@ class Snapshot(object):
                     resourceUri,
                     suri),
                 None,
-                None, xml)
+                None)
         else:
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "GET",
-                Snapshot.URI_SNAPSHOTS.format(otype, suri), None, None, xml)
+                Snapshot.URI_SNAPSHOTS.format(otype, suri), None, None)
 
-        if(xml is False):
-            return common.json_decode(s)
-        return s
+        return common.json_decode(s)
 
     def snapshot_query(self, storageresType,
                        storageresTypename, resuri, snapshotName):
@@ -215,7 +214,6 @@ class Snapshot(object):
                 ouri       : uri of volume
                 snaplabel  : name of the snapshot
                 activate   : activate snapshot in vnx and vmax
-                rptype     : type of replication
         '''
 
         # check snapshot is already exist
@@ -242,8 +240,6 @@ class Snapshot(object):
             # between source and target volumes
             'create_inactive': inactive
         }
-        if(rptype):
-            parms['type'] = rptype
         if(readonly == "true"):
             parms['read_only'] = readonly
         body = json.dumps(parms)

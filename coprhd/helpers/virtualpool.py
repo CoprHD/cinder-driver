@@ -16,8 +16,9 @@
 #    under the License.
 
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
 
 
 class VirtualPool(object):
@@ -33,7 +34,7 @@ class VirtualPool(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def vpool_show_uri(self, vpooltype, uri, xml=False):
+    def vpool_show_uri(self, vpooltype, uri):
         '''
         This function will take uri as input and returns with
         all parameters of VPOOL like label, urn and type.
@@ -51,14 +52,8 @@ class VirtualPool(object):
         if(o['inactive']):
             return None
 
-        if(xml is False):
-            return o
+        return o
 
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
-            "GET",
-            self.URI_VPOOL_SHOW.format(vpooltype, uri), None, None, xml)
-        return s
 
     def vpool_query(self, name, vpooltype):
         '''

@@ -17,9 +17,10 @@
 
 import json
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
-from cinder.volume.drivers.emc.coprhd.project import Project
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers.project import Project
 
 
 class ConsistencyGroup(object):
@@ -74,7 +75,7 @@ class ConsistencyGroup(object):
 
         return congroups
 
-    def show(self, name, project, tenant, xml=False):
+    def show(self, name, project, tenant):
         '''
         This function will take consistency group name and project name
         as input and It will display the consistency group with details.
@@ -91,17 +92,7 @@ class ConsistencyGroup(object):
         o = common.json_decode(s)
         if(o['inactive']):
             return None
-
-        if(xml is False):
-            return o
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            self.URI_CONSISTENCY_GROUPS_INSTANCE.format(uri), None, None, xml)
-
-        if not s:
-            return None
-        return s
+        return o
 
     def consistencygroup_query(self, name, project, tenant):
         '''
@@ -219,7 +210,7 @@ class ConsistencyGroup(object):
         parms = []
         add_voluris = []
         remove_voluris = []
-        from cinder.volume.drivers.emc.coprhd.volume import Volume
+        from cinder.volume.drivers.emc.coprhd.helpers.volume import Volume
         volobj = Volume(self.__ipAddr, self.__port)
         if(add_volumes):
             for volname in add_volumes:

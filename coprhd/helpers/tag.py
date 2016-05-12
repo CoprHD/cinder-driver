@@ -21,8 +21,9 @@ Contains tagging related methods
 '''
 import json
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
 
 
 def tag_resource(ipaddr, port, uri, resourceid, add, remove):

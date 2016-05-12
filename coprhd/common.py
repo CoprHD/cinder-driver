@@ -35,20 +35,25 @@ try:
     from oslo_log import log as logging
 except ImportError:
     from cinder.openstack.common import log as logging
+try:
+    from cinder.openstack.common.gettextutils import _
+except ImportError:
+    from cinder.i18n import _
 
-from cinder.openstack.common.gettextutils import _
 from cinder import context
-from cinder.volume.drivers.emc.coprhd import authentication as CoprHD_auth
-from cinder.volume.drivers.emc.coprhd import consistencygroup as CoprHD_cg
-from cinder.volume.drivers.emc.coprhd import exportgroup as CoprHD_eg
-from cinder.volume.drivers.emc.coprhd import host as CoprHD_host
-from cinder.volume.drivers.emc.coprhd \
-    import hostinitiators as CoprHD_host_initiator
-from cinder.volume.drivers.emc.coprhd import snapshot as CoprHD_snap
-from cinder.volume.drivers.emc.coprhd import tag as CoprHD_tag
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as CoprHD_utils
-from cinder.volume.drivers.emc.coprhd import virtualarray as CoprHD_varray
-from cinder.volume.drivers.emc.coprhd import volume as CoprHD_vol
+from cinder.volume.drivers.emc.coprhd.helpers \
+    import authentication as CoprHD_auth
+from cinder.volume.drivers.emc.coprhd.helpers \
+    import consistencygroup as CoprHD_cg
+from cinder.volume.drivers.emc.coprhd.helpers import exportgroup as CoprHD_eg
+from cinder.volume.drivers.emc.coprhd.helpers import host as CoprHD_host
+from cinder.volume.drivers.emc.coprhd.helpers import snapshot as CoprHD_snap
+from cinder.volume.drivers.emc.coprhd.helpers import tag as CoprHD_tag
+from cinder.volume.drivers.emc.coprhd.helpers \
+    import commoncoprhdapi as CoprHD_utils
+from cinder.volume.drivers.emc.coprhd.helpers \
+    import virtualarray as CoprHD_varray
+from cinder.volume.drivers.emc.coprhd.helpers import volume as CoprHD_vol
 from cinder import exception
 from cinder.volume import volume_types
 
@@ -77,9 +82,6 @@ volume_opts = [
     cfg.StrOpt('coprhd_varray',
                default=None,
                help='Virtual Array to utilize within the EMC CoprHD Instance'),
-    cfg.StrOpt('coprhd_cookiedir',
-               default='/tmp',
-               help='directory to store temporary cookies, defaults to /tmp'),
     cfg.StrOpt('coprhd_scaleio_rest_gateway_ip',
                default='None',
                help='Rest Gateway for Scaleio'),
@@ -185,10 +187,6 @@ class EMCCoprHDDriverCommon(object):
             self.configuration.hostname,
             self.configuration.coprhd_port)
 
-        self.hostinitiator_obj = CoprHD_host_initiator.HostInitiator(
-            self.configuration.hostname,
-            self.configuration.coprhd_port)
-
         self.varray_obj = CoprHD_varray.VirtualArray(
             self.configuration.hostname,
             self.configuration.coprhd_port)
@@ -239,11 +237,6 @@ class EMCCoprHDDriverCommon(object):
                 self.configuration.hostname,
                 self.configuration.coprhd_port)
 
-            cookiedir = self.configuration.coprhd_cookiedir
-            shell_pid = os.getppid()
-            cookie_path = str(
-                self.configuration.coprhd_username) + 'cookie' + str(shell_pid)
-
             username = None
             password = None
 
@@ -263,12 +256,9 @@ class EMCCoprHDDriverCommon(object):
                 username = self.configuration.coprhd_username
                 password = self.configuration.coprhd_password
 
-            obj.authenticate_user(username,
-                                  password,
-                                  cookiedir,
-                                  cookie_path)
+            CoprHD_utils.AUTH_TOKEN = obj.authenticate_user(username,
+                                                            password)
 
-            CoprHD_utils.COOKIE = cookiedir + "/" + cookie_path
             EMCCoprHDDriverCommon.AUTHENTICATED = True
 
     @retry_wrapper
@@ -897,11 +887,11 @@ class EMCCoprHDDriverCommon(object):
 
         if self.configuration.coprhd_emulate_snapshot == 'True':
             self.create_cloned_volume(snapshot, volume)
-            self.set_volume_tags(snapshot, ['_volume'])
+            self.set_volume_tags(snapshot, ['_volume', '_obj_volume_type'])
             return
 
         try:
-            snapshotname = snapshot['display_name']
+            snapshotname = self._get_snapshot_name(snapshot)
             vol = snapshot['volume']
 
             volumename = self._get_coprhd_volume_name(vol)
@@ -958,7 +948,7 @@ class EMCCoprHDDriverCommon(object):
             if(vol['consistencygroup_id']):
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Snapshot delete cant be done individually on a volume" +
+                    "Snapshot delete can't be done individually on a volume" +
                     " that is part of a Consistency Group")
         except AttributeError as e:
             LOG.info("No Consistency Group associated with the volume")
@@ -1323,6 +1313,15 @@ class EMCCoprHDDriverCommon(object):
 
         if name is None or len(name) == 0:
             name = vol['name']
+
+        return name
+
+    def _get_snapshot_name(self, snap):
+
+        name = snap.get('display_name', None)
+
+        if name is None or len(name) == 0:
+            name = snap['name']
 
         return name
 

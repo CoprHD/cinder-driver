@@ -16,9 +16,7 @@
 #    under the License.
 
 
-import os
 import socket
-import sys
 
 import cookielib
 import requests
@@ -27,8 +25,9 @@ from requests.exceptions import SSLError
 from requests.exceptions import Timeout
 from requests.exceptions import TooManyRedirects
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
 
 
 class Authentication(object):
@@ -52,9 +51,9 @@ class Authentication(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def authenticate_user(self, username, password, cookiedir, cookiefile):
+    def authenticate_user(self, username, password):
         '''
-        Makes REST API call to generate the cookiefile for the
+        Makes REST API call to generate the authentication token for the
         specified user after validation.
         Returns:
             SUCCESS OR FAILURE
@@ -188,82 +187,7 @@ class Authentication(object):
         except (SSLError, socket.error, ConnectionError, Timeout) as e:
             raise CoprHdError(CoprHdError.HTTP_ERR, str(e))
 
-        form_cookiefile = None
-        parentshellpid = None
-        installdir_cookie = None
-        if sys.platform.startswith('linux'):
-            parentshellpid = os.getppid()
-            if(cookiefile is None):
-                if (parentshellpid is not None):
-                    cookiefile = str(username) + 'cookie' + str(parentshellpid)
-                else:
-                    cookiefile = str(username) + 'cookie'
-            form_cookiefile = cookiedir + '/' + cookiefile
-            if (parentshellpid is not None):
-                installdir_cookie = '/cookie/' + str(parentshellpid)
-            else:
-                installdir_cookie = '/cookie/cookiefile'
-        elif sys.platform.startswith('win'):
-            if (cookiefile is None):
-                cookiefile = str(username) + 'cookie'
-            form_cookiefile = cookiedir + '\\' + cookiefile
-            installdir_cookie = '\\cookie\\cookiefile'
-        else:
-            if (cookiefile is None):
-                cookiefile = str(username) + 'cookie'
-            form_cookiefile = cookiedir + '/' + cookiefile
-            installdir_cookie = '/cookie/cookiefile'
-        try:
-            if(common.create_file(form_cookiefile)):
-                tokenFile = open(form_cookiefile, "w")
-                if(tokenFile):
-                    tokenFile.write(authToken)
-                    tokenFile.close()
-                else:
-                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                      " Failed to save the cookie file path " +
-                                      form_cookiefile)
-
-        except (OSError) as e:
-            raise CoprHdError(e.errno, cookiedir + " " + e.strerror)
-        except IOError as e:
-            raise CoprHdError(e.errno, e.strerror)
-
-        if (common.create_file(form_cookiefile)):
-
-            # cookiejar.save(form_cookiefile, ignore_discard=True,
-            #               ignore_expires=True);
-            sos_cli_install_dir = "."
-
-            if (sos_cli_install_dir):
-                if (not os.path.isdir(sos_cli_install_dir)):
-                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                      sos_cli_install_dir +
-                                      " : Not a directory")
-                config_file = sos_cli_install_dir + installdir_cookie
-                if (common.create_file(config_file)):
-                    fd = open(config_file, 'w+')
-                    if (fd):
-                        fd_content = os.path.abspath(form_cookiefile) + '\n'
-                        fd.write(fd_content)
-                        fd.close()
-                        ret_val = username +\
-                            ' : Authenticated Successfully\n' +\
-                            form_cookiefile + ' : Cookie saved successfully'
-                    else:
-                        raise CoprHdError(
-                            CoprHdError.NOT_FOUND_ERR, config_file +
-                            " : Failed to save the cookie file path " +
-                            form_cookiefile)
-                else:
-                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                      config_file + " : Failed to create file")
-
-            else:
-                raise CoprHdError(
-                    CoprHdError.NOT_FOUND_ERR,
-                    "CoprHD_CLI_INSTALL_DIR is not set.")
-        return ret_val
+        return authToken
 
     def extract_error_detail(self, login_response):
         details_str = ""

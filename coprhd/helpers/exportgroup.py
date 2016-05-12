@@ -17,13 +17,14 @@
 
 import json
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
-from cinder.volume.drivers.emc.coprhd.host import Host
-from cinder.volume.drivers.emc.coprhd.project import Project
-from cinder.volume.drivers.emc.coprhd.snapshot import Snapshot
-from cinder.volume.drivers.emc.coprhd.virtualarray import VirtualArray
-from cinder.volume.drivers.emc.coprhd.volume import Volume
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers.host import Host
+from cinder.volume.drivers.emc.coprhd.helpers.project import Project
+from cinder.volume.drivers.emc.coprhd.helpers.snapshot import Snapshot
+from cinder.volume.drivers.emc.coprhd.helpers.virtualarray import VirtualArray
+from cinder.volume.drivers.emc.coprhd.helpers.volume import Volume
 
 
 class ExportGroup(object):
@@ -50,33 +51,12 @@ class ExportGroup(object):
 
     def exportgroup_remove_volumes_by_uri(self, exportgroup_uri, volumeIdList,
                                           sync=False, tenantname=None,
-                                          projectname=None, snapshots=None,
+                                          projectname=None,
                                           cg=None, synctimeout=0):
-        # if snapshot given then snapshot added to exportgroup
-        volume_snapshots = volumeIdList
-        if(snapshots):
-            resuri = None
-            if(cg):
-                blockTypeName = 'consistency-groups'
-                from cinder.volume.drivers.emc.coprhd.consistencygroup \
-                    import ConsistencyGroup
-                cgObject = ConsistencyGroup(self.__ipAddr, self.__port)
-                resuri = cgObject.consistencygroup_query(cg, projectname,
-                                                         tenantname)
-            else:
-                blockTypeName = 'volumes'
-                if(len(volumeIdList) > 0):
-                    resuri = volumeIdList[0]
-            volume_snapshots = []
-            snapshotObject = Snapshot(self.__ipAddr, self.__port)
-            for snapshot in snapshots:
-                volume_snapshots.append(
-                    snapshotObject.snapshot_query(
-                        'block', blockTypeName, resuri, snapshot))
-
+        volume_list = volumeIdList
         parms = {}
 
-        parms['volume_changes'] = self._remove_list(volume_snapshots)
+        parms['volume_changes'] = self._remove_list(volume_list)
         o = self.send_json_request(exportgroup_uri, parms)
         return self.check_for_sync(o, sync, synctimeout)
 
@@ -146,7 +126,7 @@ class ExportGroup(object):
 
         return exportgroups
 
-    def exportgroup_show(self, name, project, tenant, varray=None, xml=False):
+    def exportgroup_show(self, name, project, tenant, varray=None):
         '''
         This function will take export group name and project name as input and
         It will display the Export group with details.
@@ -170,17 +150,7 @@ class ExportGroup(object):
         if(o['inactive']):
             return None
 
-        if(not xml):
-            return o
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr,
-            self.__port,
-            "GET",
-            self.URI_EXPORT_GROUPS_SHOW.format(uri),
-            None, None, xml)
-
-        return s
+        return o
 
     def exportgroup_create(self, name, project, tenant, varray,
                            exportgrouptype, export_destination=None):
@@ -273,7 +243,7 @@ class ExportGroup(object):
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
-                                projectname, volumenames, snapshots=None,
+                                projectname, volumenames,
                                 cg=None, synctimeout=0, varray=None):
         '''
         add volume to export group
@@ -300,40 +270,19 @@ class ExportGroup(object):
         # get volume uri
         if(tenantname is None):
             tenantname = ""
-        # List of volumes.
-        # incase of snapshots from volume, this will hold the source volume
-        # URI.
-        volume_snapshots = []
+        # List of volumes
+        volume_list = []
 
         if(volumenames):
-            volume_snapshots = self._get_resource_lun_tuple(
+            volume_list = self._get_resource_lun_tuple(
                 volumenames, "volumes", None, tenantname,
                 projectname, None)
-
-        # if snapshot given then snapshot added to exportgroup
-        if(snapshots and len(snapshots) > 0):
-            resuri = None
-            if(cg):
-                blockTypeName = 'consistency-groups'
-                from cinder.volume.drivers.emc.coprhd.consistencygroup \
-                    import ConsistencyGroup
-                cgObject = ConsistencyGroup(self.__ipAddr, self.__port)
-                resuri = cgObject.consistencygroup_query(cg, projectname,
-                                                         tenantname)
-            else:
-                blockTypeName = 'volumes'
-                if(len(volume_snapshots) > 0):
-                    resuri = volume_snapshots[0]['id']
-
-            volume_snapshots = self._get_resource_lun_tuple(
-                snapshots, "snapshots", resuri, tenantname,
-                projectname, blockTypeName)
 
         parms = {}
         # construct the body
 
         volChanges = {}
-        volChanges['add'] = volume_snapshots
+        volChanges['add'] = volume_list
         path_parameters = {}
 
         if (maxpaths):
@@ -352,14 +301,13 @@ class ExportGroup(object):
     def _get_resource_lun_tuple(self, resources, resType, baseResUri,
                                 tenantname, projectname, blockTypeName):
         '''
-        function to validate input volumes/snapshots
+        function to validate input volumes
         and return list of ids and luns
         input
-            list of volumes/snapshots in the format name:lun
+            list of volumes in the format name:lun
         '''
 
         copyEntries = []
-        snapshotObject = Snapshot(self.__ipAddr, self.__port)
         volumeObject = Volume(self.__ipAddr, self.__port)
         for copy in resources:
             copyParam = []
@@ -379,9 +327,6 @@ class ExportGroup(object):
                 fullvolname = tenantname + "/" + projectname + "/"
                 fullvolname += copyParam[0]
                 copy['id'] = volumeObject.volume_query(fullvolname)
-            if(resType == "snapshots"):
-                copy['id'] = snapshotObject.snapshot_query(
-                    'block', blockTypeName, baseResUri, copyParam[0])
             if(len(copyParam) > 1):
                 copy['lun'] = copyParam[1]
             copyEntries.append(copy)

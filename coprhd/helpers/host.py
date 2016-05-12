@@ -16,9 +16,10 @@
 #    under the License.
 
 
-from cinder.volume.drivers.emc.coprhd import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.commoncoprhdapi import CoprHdError
-from cinder.volume.drivers.emc.coprhd.tenant import Tenant
+from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
+    import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers.tenant import Tenant
 
 '''
 The class definition for the operation on the CoprHD Host
@@ -109,7 +110,7 @@ class Host(object):
     Gets the host system details, given its uri/id
     '''
 
-    def show_by_uri(self, uri, xml=False):
+    def show_by_uri(self, uri):
         '''
         Makes a REST API call to retrieve details of a Host based on its UUID
         '''
@@ -121,14 +122,7 @@ class Host(object):
 
         if(inactive):
             return None
-        if(xml):
-            (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port, "GET",
-                Host.URI_HOST_DETAILS.format(uri),
-                None, None, xml)
-            return s
-        else:
-            return o
+        return o
 
     def search_by_name(self, host_name):
         '''

@@ -15,15 +15,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
 '''
 Contains some commonly used utility methods
 '''
 import json
-import os
 import re
 import socket
-import stat
 import sys
 from threading import Timer
 
@@ -93,7 +90,7 @@ def json_encode(name, value):
 
 
 def service_json_request(ip_addr, port, http_method, uri, body, token=None,
-                         xml=False, contenttype='application/json',
+                         contenttype='application/json',
                          filename=None, customheaders=None):
     '''
     Used to make an HTTP request and get the response.
@@ -109,18 +106,13 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
         a tuple of two elements: (response body, response headers)
     Throws: CoprHdError in case of HTTP errors with err_code 3
     '''
-    global COOKIE
+    global AUTH_TOKEN
 
     SEC_AUTHTOKEN_HEADER = 'X-SDS-AUTH-TOKEN'
 
-    if (xml):
-        headers = {'Content-Type': contenttype,
-                   'ACCEPT': 'application/xml, application/octet-stream',
-                   'X-EMC-REST-CLIENT': 'TRUE'}
-    else:
-        headers = {'Content-Type': contenttype,
-                   'ACCEPT': 'application/json, application/octet-stream',
-                   'X-EMC-REST-CLIENT': 'TRUE'}
+    headers = {'Content-Type': contenttype,
+               'ACCEPT': 'application/json, application/octet-stream',
+               'X-EMC-REST-CLIENT': 'TRUE'}
 
     if(customheaders):
         headers.update(customheaders)
@@ -132,69 +124,13 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
             uri += '?requestToken=' + token
 
     try:
-
-        cookiefile = COOKIE
-        form_cookiefile = None
-        if (cookiefile is None):
-            install_dir = "."
-            if (install_dir is None):
-                raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                  "CoprHD_CLI_INSTALL_DIR is not set.\n")
-            if sys.platform.startswith('linux'):
-                parentshellpid = os.getppid()
-                if (parentshellpid is not None):
-                    form_cookiefile = install_dir + '/cookie/' + \
-                        str(parentshellpid)
-                else:
-                    form_cookiefile = install_dir + '/cookie/cookiefile'
-            elif sys.platform.startswith('win'):
-                form_cookiefile = install_dir + '\\cookie\\cookiefile'
-            else:
-                form_cookiefile = install_dir + '/cookie/cookiefile'
-        if (form_cookiefile):
-            cookiefile = form_cookiefile
-            if (not os.path.exists(cookiefile)):
-                raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                  cookiefile + " : Cookie not found :" +
-                                  " Please authenticate again")
-            fd = open(cookiefile, 'r')
-            if (fd):
-                fd_content = fd.readline().rstrip()
-                if(fd_content):
-                    cookiefile = fd_content
-                else:
-                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                      cookiefile + " : Failed to retrive" +
-                                      " the cookie file")
-            else:
-                raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                  cookiefile + " : read failure\n")
-        # cli support for api version
         protocol = "https://"
         if(str(port) == '8080'):
             protocol = "http://"
         url = protocol + ip_addr + ":" + str(port) + uri
 
         cookiejar = cookielib.LWPCookieJar()
-        if (cookiefile):
-            if (not os.path.exists(cookiefile)):
-                raise CoprHdError(CoprHdError.NOT_FOUND_ERR, cookiefile +
-                                  " : " +
-                                  "Cookie not found :" +
-                                  " Please authenticate again")
-            if (not os.path.isfile(cookiefile)):
-                raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                  cookiefile + " : Not a cookie file")
-            # cookiejar.load(cookiefile, ignore_discard=True,
-            # ignore_expires=True)
-            tokenfile = open(cookiefile)
-            token = tokenfile.read()
-            tokenfile.close()
-        else:
-            raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                              cookiefile + " : Cookie file not found")
-
-        headers[SEC_AUTHTOKEN_HEADER] = token
+        headers[SEC_AUTHTOKEN_HEADER] = AUTH_TOKEN
 
         if (http_method == 'GET'):
             '''when the GET request is specified with a filename, we write
@@ -443,62 +379,6 @@ def get_node_value(json_object, parent_node_name, child_node_name=None):
         return_value = None
 
     return return_value
-
-
-def show_by_href(ipAddr, port, href):
-    '''
-    This function will get the href of object and display the details
-    of the same
-    '''
-    link = href['link']
-    hrefuri = link['href']
-    # we need keep except to over exception from appliance,
-    # later we can take off
-    try:
-        (s, h) = service_json_request(ipAddr, port, "GET",
-                                      hrefuri, None, None)
-        o = json_decode(s)
-        if(o['inactive']):
-            return None
-        return o
-    except:
-        pass
-    return None
-
-
-def create_file(file_path):
-    '''
-    Create a file in the specified path.
-    If the file_path is not an absolute pathname, create the file from the
-    current working directory.
-    raise exception : Incase of any failures.
-    returns True: Incase of successful creation of file
-    '''
-    fd = None
-    try:
-        if (file_path):
-            if (os.path.exists(file_path)):
-                if (os.path.isfile(file_path)):
-                    return True
-                else:
-                    raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                      file_path + ": Not a regular file")
-            else:
-                directory = os.path.dirname(file_path)
-                if (directory and not os.path.exists(directory)):
-                    os.makedirs(directory)
-            fd = os.open(file_path, os.O_RDWR | os.O_CREAT,
-                         stat.S_IREAD | stat.S_IWRITE |
-                         stat.S_IRGRP | stat.S_IROTH)
-
-    except OSError as e:
-        raise e
-    except IOError as e:
-        raise e
-    finally:
-        if(fd):
-            os.close(fd)
-    return True
 
 
 # This method defines the standard and consistent error message format
