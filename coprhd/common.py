@@ -419,7 +419,6 @@ class EMCCoprHDDriverCommon(object):
                     self.configuration.coprhd_project +
                     "/" +
                     vol_name,
-                    volume_name_list=None,
                     sync=True,
                     forceDelete=True)
 
@@ -707,7 +706,6 @@ class EMCCoprHDDriverCommon(object):
         self.authenticate_user()
         name = self._get_volume_name(vol)
         srcname = self._get_coprhd_volume_name(src_vref)
-        number_of_volumes = 1
 
         try:
             if(src_vref['consistencygroup_id']):
@@ -733,7 +731,6 @@ class EMCCoprHDDriverCommon(object):
 
             self.volume_obj.clone(
                 name,
-                number_of_volumes,
                 resource_id,
                 sync=True)
 
@@ -799,7 +796,6 @@ class EMCCoprHDDriverCommon(object):
         # src_snapshot_name = snapshot['display_name']
         src_vol_ref = volume_db.volume_get(ctxt, snapshot['volume_id'])
         new_volume_name = self._get_volume_name(volume)
-        number_of_volumes = 1
 
         try:
             src_vol_name, src_vol_uri = self._get_coprhd_volume_name(
@@ -821,7 +817,6 @@ class EMCCoprHDDriverCommon(object):
 
             self.volume_obj.clone(
                 new_volume_name,
-                number_of_volumes,
                 resource_id,
                 sync=True)
 
@@ -849,7 +844,6 @@ class EMCCoprHDDriverCommon(object):
                 self.configuration.coprhd_project +
                 "/" +
                 name,
-                volume_name_list=None,
                 sync=True)
         except CoprHD_utils.CoprHdError as e:
             if e.err_code == CoprHD_utils.CoprHdError.NOT_FOUND_ERR:

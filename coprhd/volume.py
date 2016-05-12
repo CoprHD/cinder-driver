@@ -79,12 +79,7 @@ class Volume(object):
             List of volumes uuids in JSON response payload
         '''
 
-        from cinder.volume.drivers.emc.coprhd.project import Project
-
-        proj = Project(self.__ipAddr, self.__port)
-        project_uri = proj.project_query(project)
-
-        volume_uris = self.search_volumes(project_uri)
+        volume_uris = self.search_volumes(project)
         volumes = []
         for uri in volume_uris:
             volume = self.show_by_uri(uri)
@@ -92,7 +87,11 @@ class Volume(object):
                 volumes.append(volume)
         return volumes
 
-    def search_volumes(self, project_uri):
+    def search_volumes(self, project):
+
+        from cinder.volume.drivers.emc.coprhd.project import Project
+        proj = Project(self.__ipAddr, self.__port)
+        project_uri = proj.project_query(project)
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET",
@@ -110,7 +109,7 @@ class Volume(object):
         return volume_uris
 
     # Shows volume information given its uri
-    def show_by_uri(self, uri, show_inactive=False, xml=False):
+    def show_by_uri(self, uri):
         '''
         Makes REST API call and retrieves volume details based on UUID
         Parameters:
@@ -118,20 +117,12 @@ class Volume(object):
         Returns:
             Volume details in JSON response payload
         '''
-        if(xml):
-            (s, h) = common.service_json_request(self.__ipAddr, self.__port,
-                                                 "GET",
-                                                 Volume.URI_VOLUME.format(uri),
-                                                 None, None, xml)
-            return s
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET",
                                              Volume.URI_VOLUME.format(uri),
                                              None)
         o = common.json_decode(s)
-        if(show_inactive):
-            return o
         inactive = common.get_node_value(o, 'inactive')
         if(inactive is True):
             return None
@@ -219,7 +210,6 @@ class Volume(object):
         Returns:
             Volume details in JSON response payload
         '''
-        from cinder.volume.drivers.emc.coprhd.project import Project
 
         if (common.is_uri(name)):
             return name
@@ -228,10 +218,7 @@ class Volume(object):
         if(not pname):
             raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
                               "Project name  not specified")
-        proj = Project(self.__ipAddr, self.__port)
-        puri = proj.project_query(pname)
-        puri = puri.strip()
-        uris = self.search_volumes(puri)
+        uris = self.search_volumes(pname)
         for uri in uris:
             volume = self.show_by_uri(uri)
             if (volume and 'name' in volume and volume['name'] == label):
@@ -294,14 +281,13 @@ class Volume(object):
         return resUri
 
     # Creates volume(s) from given source volume
-    def clone(self, new_vol_name, number_of_volumes, resourceUri,
+    def clone(self, new_vol_name, resourceUri,
               sync, synctimeout=0):
         '''
         Makes REST API call to clone volume
         Parameters:
             project: name of the project under which the volume will be created
             new_vol_name: name of volume
-            number_of_volumes: count of volumes
             src_vol_name: name of the source volume
             src_snap_name : name of the source snapshot
             sync: synchronous request
@@ -330,8 +316,7 @@ class Volume(object):
             'count': 1
         }
 
-        if(number_of_volumes and number_of_volumes > 1):
-            request["count"] = number_of_volumes
+        request["count"] = 1
 
         body = json.dumps(request)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -341,18 +326,17 @@ class Volume(object):
         o = common.json_decode(s)
 
         if(sync):
-            if(number_of_volumes < 2):
-                task = o["task"][0]
+            task = o["task"][0]
 
-                if(is_snapshot_clone):
-                    return (
-                        snap_obj.block_until_complete(
-                            "block",
-                            task["resource"]["id"],
-                            task["id"])
-                    )
-                else:
-                    return self.check_for_sync(task, sync, synctimeout)
+            if(is_snapshot_clone):
+                return (
+                    snap_obj.block_until_complete(
+                        "block",
+                        task["resource"]["id"],
+                        task["id"])
+                )
+            else:
+                return self.check_for_sync(task, sync, synctimeout)
         else:
             return o
 
@@ -412,7 +396,6 @@ class Volume(object):
         Returns:
             Volume details in JSON response payload
         '''
-        from cinder.volume.drivers.emc.coprhd.project import Project
 
         if (common.is_uri(name)):
             return name
@@ -421,11 +404,7 @@ class Volume(object):
             raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
                               str(name) + ": not found")
 
-        proj = Project(self.__ipAddr, self.__port)
-        puri = proj.project_query(pname)
-        puri = puri.strip()
-
-        uris = self.search_volumes(puri)
+        uris = self.search_volumes(pname)
 
         for uri in uris:
             volume = self.show_by_uri(uri, show_inactive)
@@ -470,38 +449,16 @@ class Volume(object):
         return o
 
     # Deletes a volume given a volume name
-    def delete(self, name, volume_name_list=None, sync=False,
+    def delete(self, name, sync=False,
                forceDelete=False, coprhdonly=False, synctimeout=0):
         '''
         Deletes a volume based on volume name
         Parameters:
-            name: name of volume if volume_name_list is None
-                     otherwise it will be name of project
+            name: name of volume
         '''
-        if(volume_name_list is None):
-            volume_uri = self.volume_query(name)
-            return self.delete_by_uri(volume_uri, sync, forceDelete,
-                                      coprhdonly, synctimeout)
-        else:
-            vol_uris = []
-            invalid_vol_names = ""
-            for vol_name in volume_name_list:
-                try:
-                    volume_uri = self.volume_query(name + '/' + vol_name)
-                    vol_uris.append(volume_uri)
-                except CoprHdError as e:
-                    if(e.err_code == CoprHdError.NOT_FOUND_ERR):
-                        invalid_vol_names += vol_name + " "
-                        continue
-                    else:
-                        raise e
-
-            if(len(vol_uris) > 0):
-                self.delete_bulk_uris(vol_uris, forceDelete, coprhdonly)
-
-            if(len(invalid_vol_names) > 0):
-                raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volumes: " +
-                                  str(invalid_vol_names) + " not found")
+        volume_uri = self.volume_query(name)
+        return self.delete_by_uri(volume_uri, sync, forceDelete,
+                                  coprhdonly, synctimeout)
 
     # Deletes a volume given a volume uri
     def delete_by_uri(self, uri, sync=False,
@@ -529,29 +486,6 @@ class Volume(object):
         o = common.json_decode(s)
         if(sync):
             return self.check_for_sync(o, sync, synctimeout)
-        return o
-
-    def delete_bulk_uris(self, uris, forceDelete, coprhdonly):
-        '''
-        Deletes all the volumes given in the uris
-        Parameters:
-            uris: uris of volume
-        '''
-        params = ''
-        if (forceDelete):
-            params += '&' if ('?' in params) else '?'
-            params += "force=" + "true"
-        if (coprhdonly is True):
-            params += '&' if ('?' in params) else '?'
-            params += "type=" + 'CoprHD_ONLY'
-
-        body = json.dumps({'id': uris})
-
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
-                                             "POST",
-                                             Volume.URI_BULK_DELETE + params,
-                                             body)
-        o = common.json_decode(s)
         return o
 
     # Gets the exports info given a volume uri
