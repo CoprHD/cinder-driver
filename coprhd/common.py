@@ -275,7 +275,7 @@ class EMCCoprHDDriverCommon(object):
             try:
                 cgid = vol['consistencygroup_id']
                 ctx = context.get_admin_context()
-                if(cgid):
+                if cgid:
                     CoprHD_cgid = self._get_coprhd_cgid(driver, ctx, cgid)
             except AttributeError as e:
                 CoprHD_cgid = None
@@ -290,7 +290,7 @@ class EMCCoprHDDriverCommon(object):
                 # no longer specified in volume creation
                 consistencygroup=CoprHD_cgid)
         except CoprHD_utils.CoprHdError as e:
-            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Volume " + name + ": create failed\n" + e.err_text)
@@ -319,7 +319,7 @@ class EMCCoprHDDriverCommon(object):
                 cgUri, group)
 
         except CoprHD_utils.CoprHdError as e:
-            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Consistency Group " + name + ": create failed\n" +
@@ -339,12 +339,12 @@ class EMCCoprHDDriverCommon(object):
         remove_volnames = []
 
         try:
-            if(add_volumes):
+            if add_volumes:
                 for vol in add_volumes:
                     vol_name = self._get_coprhd_volume_name(vol)
                     add_volnames.append(vol_name)
 
-            if(remove_volumes):
+            if remove_volumes:
                 for vol in remove_volumes:
                     vol_name = self._get_coprhd_volume_name(vol)
                     remove_volnames.append(vol_name)
@@ -358,7 +358,7 @@ class EMCCoprHDDriverCommon(object):
             return model_update, None, None
 
         except CoprHD_utils.CoprHdError as e:
-            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Consistency Group " + cg_uri + ": update failed\n" +
@@ -376,13 +376,13 @@ class EMCCoprHDDriverCommon(object):
             self.configuration.hostname,
             self.configuration.coprhd_port)
 
-        if(len(rslt) > 0):
+        if len(rslt) > 0:
             rsltCg = self.consistencygroup_obj.show(
                 rslt[0],
                 self.configuration.coprhd_project,
                 self.configuration.coprhd_tenant)
 
-            if(verbose is True):
+            if verbose is True:
                 return rsltCg['id'], rslt[0]
             else:
                 return rsltCg['id']
@@ -425,7 +425,7 @@ class EMCCoprHDDriverCommon(object):
             return model_update, volumes
 
         except CoprHD_utils.CoprHdError as e:
-            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Consistency Group " + name + ": delete failed\n" +
@@ -444,7 +444,7 @@ class EMCCoprHDDriverCommon(object):
         cg_id = cgsnapshot['consistencygroup_id']
         cg_name = None
 
-        if(cg_id):
+        if cg_id:
             CoprHD_cgid = self._get_coprhd_cgid(driver, context, cg_id)
             cg_name = self._get_consistencygroup_name(driver, context, cg_id)
 
@@ -476,7 +476,7 @@ class EMCCoprHDDriverCommon(object):
                     self.configuration.hostname,
                     self.configuration.coprhd_port)
 
-                if((rslt is None) or (len(rslt) == 0)):
+                if rslt is None or len(rslt) == 0:
                     continue
 
                 volUri = rslt[0]
@@ -508,18 +508,18 @@ class EMCCoprHDDriverCommon(object):
                            name and filter our the snapshots that correspond to
                            the cgsnapshot
                         '''
-                        if('-' in snapshot_obj['name']):
+                        if '-' in snapshot_obj['name']:
                             (prefix, postfix) = snapshot_obj[
                                 'name'].rsplit('-', 1)
 
-                            if(cgsnapshot_name == prefix):
+                            if cgsnapshot_name == prefix:
                                 self.set_tags_for_resource(
                                     CoprHD_snap.Snapshot.
                                     URI_BLOCK_SNAPSHOTS_TAG,
                                     snapUri['id'],
                                     snapshot)
 
-                        elif(cgsnapshot_name == snapshot_obj['name']):
+                        elif cgsnapshot_name == snapshot_obj['name']:
                             self.set_tags_for_resource(
                                 CoprHD_snap.Snapshot.URI_BLOCK_SNAPSHOTS_TAG,
                                 snapUri['id'],
@@ -532,7 +532,7 @@ class EMCCoprHDDriverCommon(object):
             return model_update, snapshots
 
         except CoprHD_utils.CoprHdError as e:
-            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot for Consistency Group " + cg_name +
@@ -589,7 +589,7 @@ class EMCCoprHDDriverCommon(object):
             return model_update, snapshots
 
         except CoprHD_utils.CoprHdError as e:
-            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot " + cgsnapshot_id + " for Consistency Group " +
@@ -652,10 +652,10 @@ class EMCCoprHDDriverCommon(object):
         try:
             for prop, value in vars(resource).iteritems():
                 try:
-                    if(prop in exemptTags):
+                    if prop in exemptTags:
                         continue
 
-                    if(prop.startswith("_")):
+                    if prop.startswith("_"):
                         prop = prop.replace("_", '', 1)
 
                     # don't put the status in, it's always the status before
@@ -698,7 +698,7 @@ class EMCCoprHDDriverCommon(object):
         srcname = self._get_coprhd_volume_name(src_vref)
 
         try:
-            if(src_vref['consistencygroup_id']):
+            if src_vref['consistencygroup_id']:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Clone can't be taken individually on a volume" +
@@ -730,14 +730,14 @@ class EMCCoprHDDriverCommon(object):
             LOG.info("Is volume detachable : " + str(detachable))
 
             # detach it from the source volume immediately after creation
-            if(detachable):
+            if detachable:
                 self.volume_obj.volume_clone_detach("", clone_vol_path, True)
 
         except IndexError as e:
             LOG.exception("Volume clone detach returned empty task list")
 
         except CoprHD_utils.CoprHdError as e:
-            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Volume " + name + ": clone failed\n" + e.err_text)
@@ -780,10 +780,8 @@ class EMCCoprHDDriverCommon(object):
             return
 
         ctxt = context.get_admin_context()
-
+        
         src_snapshot_name = None
-
-        # src_snapshot_name = snapshot['display_name']
         src_vol_ref = volume_db.volume_get(ctxt, snapshot['volume_id'])
         new_volume_name = self._get_volume_name(volume)
 
@@ -811,7 +809,7 @@ class EMCCoprHDDriverCommon(object):
                 sync=True)
 
         except CoprHD_utils.CoprHdError as e:
-            if(e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR):
+            if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot " +
@@ -877,7 +875,7 @@ class EMCCoprHDDriverCommon(object):
         volume = volume_db.volume_get(ctxt, volume_id)
 
         try:
-            if(volume['consistencygroup_id']):
+            if volume['consistencygroup_id']:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot can't be taken individually on a volume" +
@@ -945,7 +943,7 @@ class EMCCoprHDDriverCommon(object):
         vol = snapshot['volume']
 
         try:
-            if(vol['consistencygroup_id']):
+            if vol['consistencygroup_id']:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     "Snapshot delete can't be done individually on a volume" +
@@ -1017,8 +1015,8 @@ class EMCCoprHDDriverCommon(object):
                     LOG.debug(
                         "checking for initiator port:" + initiatorPorts[i])
                     foundhostname = self._find_host(initiatorPorts[i])
-                    if ((foundhostname is None) and
-                            (i + 1 == len(initiatorPorts))):
+                    if (foundhostname is None) and
+                            (i + 1 == len(initiatorPorts)):
                         LOG.error("Auto host creation not supported")
                     else:
                         LOG.info(_("Found host %s") % foundhostname)
@@ -1065,11 +1063,11 @@ class EMCCoprHDDriverCommon(object):
                                 for vol in coprhd_exportgroup['volumes']]
                 volumes_list.sort()
                 for iter_var in volumes_list:
-                    if(iter_var > next_lun_id):
+                    if iter_var > next_lun_id:
                         break
-                    elif(iter_var < next_lun_id):
+                    elif iter_var < next_lun_id:
                         continue
-                    elif(iter_var == next_lun_id):
+                    elif iter_var == next_lun_id:
                         next_lun_id = next_lun_id + 1
 
                 LOG.debug(
@@ -1261,7 +1259,7 @@ class EMCCoprHDDriverCommon(object):
         # if the result is empty, then search with the tagname
         # as "OpenStack:obj_id"
         # as snapshots will be having the obj_id instead of just id.
-        if((rslt is None) or (len(rslt) == 0)):
+        if rslt is None or len(rslt) == 0:
             tagname = "OpenStack:obj_id:" + snapshot['id']
             rslt = CoprHD_utils.search_by_tag(
                 CoprHD_snap.Snapshot.URI_SEARCH_SNAPSHOT_BY_TAG.format(
@@ -1269,7 +1267,7 @@ class EMCCoprHDDriverCommon(object):
                 self.configuration.hostname,
                 self.configuration.coprhd_port)
 
-        if((rslt is None) or (len(rslt) == 0)):
+        if rslt is None or len(rslt) == 0:
             return snapshot['name']
         else:
             rsltSnap = self.snapshot_obj.snapshot_show_uri(
@@ -1288,17 +1286,17 @@ class EMCCoprHDDriverCommon(object):
         # if the result is empty, then search with the tagname
         # as "OpenStack:obj_id"
         # as snapshots will be having the obj_id instead of just id.
-        if(len(rslt) == 0):
+        if len(rslt) == 0:
             tagname = "OpenStack:obj_id:" + vol['id']
             rslt = CoprHD_utils.search_by_tag(
                 CoprHD_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
                 self.configuration.hostname,
                 self.configuration.coprhd_port)
 
-        if(len(rslt) > 0):
+        if len(rslt) > 0:
             rsltVol = self.volume_obj.show_by_uri(rslt[0])
 
-            if(verbose is True):
+            if verbose is True:
                 return rsltVol['name'], rslt[0]
             else:
                 return rsltVol['name']
