@@ -55,7 +55,7 @@ class ConsistencyGroup(object):
         return
             returns with list of consistency group ids separated by comma.
         '''
-        if(tenant is None):
+        if tenant is None:
             tenant = ""
         projobj = Project(self.__ipAddr, self.__port)
         fullproj = tenant + "/" + project
@@ -90,7 +90,7 @@ class ConsistencyGroup(object):
             self.__ipAddr, self.__port, "GET",
             self.URI_CONSISTENCY_GROUPS_INSTANCE.format(uri), None)
         o = common.json_decode(s)
-        if(o['inactive']):
+        if o['inactive']:
             return None
         return o
 
@@ -103,21 +103,20 @@ class ConsistencyGroup(object):
         return
             return with id of the consistency group.
          '''
-        if (common.is_uri(name)):
+        if common.is_uri(name):
             return name
 
         uris = self.list(project, tenant)
         for uri in uris:
             congroup = self.show(uri, project, tenant)
-            if(congroup):
-                if (congroup['name'] == name):
+            if congroup and congroup['name'] == name:
                     return congroup['id']
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
                           "Consistency Group " + name + ": not found")
 
     # Blocks the opertaion until the task is complete/error out/timeout
     def check_for_sync(self, result, sync, synctimeout=0):
-        if(len(result["resource"]) > 0):
+        if len(result["resource"]) > 0:
             resource = result["resource"]
             return (
                 common.block_until_complete("consistencygroup", resource["id"],
@@ -144,8 +143,8 @@ class ConsistencyGroup(object):
         try:
             status = self.show(name, project, tenant)
         except CoprHdError as e:
-            if(e.err_code == CoprHdError.NOT_FOUND_ERR):
-                if(tenant is None):
+            if e.err_code == CoprHdError.NOT_FOUND_ERR:
+                if tenant is None:
                     tenant = ""
                 fullproj = tenant + "/" + project
                 projobj = Project(self.__ipAddr, self.__port)
@@ -162,7 +161,7 @@ class ConsistencyGroup(object):
                 return o
             else:
                 raise e
-        if(status):
+        if status:
             common.format_err_msg_and_raise(
                 "create", "consistency group",
                 "consistency group with name: " + name + " already exists",
@@ -180,7 +179,7 @@ class ConsistencyGroup(object):
             false incase it fails to do delete.
         '''
         params = ''
-        if (coprhdonly is True):
+        if coprhdonly is True:
             params += "?type=" + 'CoprHD_ONLY'
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
@@ -204,7 +203,7 @@ class ConsistencyGroup(object):
         return
             returns with status of creation.
         '''
-        if(tenant is None):
+        if tenant is None:
             tenant = ""
 
         parms = []
@@ -212,14 +211,14 @@ class ConsistencyGroup(object):
         remove_voluris = []
         from cinder.volume.drivers.emc.coprhd.helpers.volume import Volume
         volobj = Volume(self.__ipAddr, self.__port)
-        if(add_volumes):
+        if add_volumes:
             for volname in add_volumes:
                 fullvolname = tenant + "/" + project + "/" + volname
                 add_voluris.append(volobj.volume_query(fullvolname))
             volumes = {'volume': add_voluris}
             parms = {'add_volumes': volumes}
 
-        if(remove_volumes):
+        if remove_volumes:
             for volname in remove_volumes:
                 fullvolname = tenant + "/" + project + "/" + volname
                 remove_voluris.append(volobj.volume_query(fullvolname))
@@ -233,7 +232,7 @@ class ConsistencyGroup(object):
             body, None, None)
 
         o = common.json_decode(s)
-        if(sync):
+        if sync:
             return self.check_for_sync(o, sync, synctimeout)
         else:
             return o
