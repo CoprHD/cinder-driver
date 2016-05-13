@@ -62,7 +62,7 @@ class ExportGroup(object):
 
     def _remove_list(self, uris):
         resChanges = {}
-        if(not isinstance(uris, list)):
+        if not isinstance(uris, list):
             resChanges['remove'] = [uris]
         else:
             resChanges['remove'] = uris
@@ -76,8 +76,8 @@ class ExportGroup(object):
         return common.json_decode(s)
 
     def check_for_sync(self, result, sync, synctimeout=0):
-        if(sync):
-            if(len(result["resource"]) > 0):
+        if sync:
+            if len(result["resource"]) > 0:
                 resource = result["resource"]
                 return (
                     common.block_until_complete("export", resource["id"],
@@ -100,7 +100,7 @@ class ExportGroup(object):
         return
             returns with list of export group ids separated by comma.
         '''
-        if(tenant is None):
+        if tenant is None:
             tenant = ""
         projobj = Project(self.__ipAddr, self.__port)
         fullproj = tenant + "/" + project
@@ -108,7 +108,7 @@ class ExportGroup(object):
 
         uri = self.URI_EXPORT_GROUP_SEARCH
 
-        if ('?' in uri):
+        if '?' in uri:
             uri += '&project=' + projuri
         else:
             uri += '?project=' + projuri
@@ -137,7 +137,7 @@ class ExportGroup(object):
             returns with Details of export group.
         '''
         varrayuri = None
-        if(varray):
+        if varray:
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
         uri = self.exportgroup_query(name, project, tenant, varrayuri)
@@ -147,7 +147,7 @@ class ExportGroup(object):
             "GET",
             self.URI_EXPORT_GROUPS_SHOW.format(uri), None)
         o = common.json_decode(s)
-        if(o['inactive']):
+        if o['inactive']:
             return None
 
         return o
@@ -168,8 +168,8 @@ class ExportGroup(object):
         try:
             status = self.exportgroup_show(name, project, tenant)
         except CoprHdError as e:
-            if(e.err_code == CoprHdError.NOT_FOUND_ERR):
-                if(tenant is None):
+            if e.err_code == CoprHdError.NOT_FOUND_ERR:
+                if tenant is None:
                     tenant = ""
 
                 fullproj = tenant + "/" + project
@@ -186,7 +186,7 @@ class ExportGroup(object):
                     'type': exportgrouptype
                 }
 
-                if(exportgrouptype and export_destination):
+                if exportgrouptype and export_destination:
                     host_obj = Host(self.__ipAddr, self.__port)
                     try:
                         host_uri = host_obj.query_by_name(
@@ -206,7 +206,7 @@ class ExportGroup(object):
             else:
                 raise e
 
-        if(status):
+        if status:
             raise CoprHdError(
                 CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
                 "Export group with name " + name +
@@ -221,17 +221,16 @@ class ExportGroup(object):
         return
             return with id of the export group.
          '''
-        if (common.is_uri(name)):
+        if common.is_uri(name):
             return name
 
         uris = self.exportgroup_list(project, tenant)
         for uri in uris:
             exportgroup = self.exportgroup_show(uri, project, tenant)
-            if(exportgroup):
-                if (exportgroup['name'] == name):
-                    if(varrayuri):
+            if exportgroup and exportgroup['name'] == name:
+                    if varrayuri:
                         varrayobj = exportgroup['varray']
-                        if(varrayobj['id'] == varrayuri):
+                        if varrayobj['id'] == varrayuri:
                             return exportgroup['id']
                         else:
                             continue
@@ -258,7 +257,7 @@ class ExportGroup(object):
             return action result
         '''
         varrayuri = None
-        if(varray):
+        if varray:
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
 
@@ -273,7 +272,7 @@ class ExportGroup(object):
         # List of volumes
         volume_list = []
 
-        if(volumenames):
+        if volumenames:
             volume_list = self._get_resource_lun_tuple(
                 volumenames, "volumes", None, tenantname,
                 projectname, None)
@@ -285,11 +284,11 @@ class ExportGroup(object):
         volChanges['add'] = volume_list
         path_parameters = {}
 
-        if (maxpaths):
+        if maxpaths:
             path_parameters['max_paths'] = maxpaths
-        if (minpaths):
+        if minpaths:
             path_parameters['min_paths'] = minpaths
-        if(pathsperinitiator is not None):
+        if pathsperinitiator is not None:
             path_parameters['paths_per_initiator'] = pathsperinitiator
 
         parms['path_parameters'] = path_parameters
@@ -319,15 +318,15 @@ class ExportGroup(object):
                     "Please provide valid format volume: lun for parameter " +
                     resType)
             copy = dict()
-            if(not len(copyParam)):
+            if not len(copyParam):
                 raise CoprHdError(
                     CoprHdError.CMD_LINE_ERR,
                     "Please provide atleast volume for parameter " + resType)
-            if(resType == "volumes"):
+            if resType == "volumes":
                 fullvolname = tenantname + "/" + projectname + "/"
                 fullvolname += copyParam[0]
                 copy['id'] = volumeObject.volume_query(fullvolname)
-            if(len(copyParam) > 1):
+            if len(copyParam) > 1:
                 copy['lun'] = copyParam[1]
             copyEntries.append(copy)
         return copyEntries
