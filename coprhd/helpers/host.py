@@ -69,7 +69,7 @@ class Host(object):
          Parameters
              hostName : The name of the host
         '''
-        if(not common.is_uri(hostName)):
+        if not common.is_uri(hostName):
             hostUri = self.query_by_name(hostName, None)
         else:
             hostUri = hostName
@@ -80,7 +80,7 @@ class Host(object):
             None)
         o = common.json_decode(s)
 
-        if(not o or "initiator" not in o):
+        if not o or "initiator" not in o:
             return []
 
         return common.get_node_value(o, 'initiator')
@@ -92,7 +92,7 @@ class Host(object):
     def list_all(self, tenant):
         restapi = self.URI_COMPUTE_HOST
         tenant_obj = Tenant(self.__ipAddr, self.__port)
-        if(tenant is None):
+        if tenant is None:
             tenant_uri = tenant_obj.tenant_getid()
         else:
             tenant_uri = tenant_obj.tenant_query(tenant)
@@ -120,7 +120,7 @@ class Host(object):
         o = common.json_decode(s)
         inactive = common.get_node_value(o, 'inactive')
 
-        if(inactive):
+        if inactive:
             return None
         return o
 

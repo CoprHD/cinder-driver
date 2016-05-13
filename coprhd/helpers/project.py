@@ -43,7 +43,7 @@ class Project(object):
         Throws:
             CoprHdError - when project name is not found
         '''
-        if (common.is_uri(name)):
+        if common.is_uri(name):
             return name
         (tenant_name, project_name) = common.get_parent_child_from_xpath(name)
 
@@ -53,9 +53,9 @@ class Project(object):
         try:
             tenant_uri = tenant_obj.tenant_query(tenant_name)
             projects = self.project_list(tenant_uri)
-            if(projects and len(projects) > 0):
+            if projects and len(projects) > 0:
                 for project in projects:
-                    if (project):
+                    if project:
                         project_detail = self.project_show_by_uri(
                             project['id'])
                         if(project_detail and
@@ -84,7 +84,7 @@ class Project(object):
                                              None)
         o = common.json_decode(s)
 
-        if("project" in o):
+        if "project" in o:
             return common.get_list(o, 'project')
         return []
 
@@ -102,7 +102,7 @@ class Project(object):
                                              None)
         o = common.json_decode(s)
         inactive = common.get_node_value(o, 'inactive')
-        if(inactive is True):
+        if inactive is True:
             return None
 
         return o

@@ -104,7 +104,7 @@ class Snapshot(object):
 
     def snapshot_query(self, storageresType,
                        storageresTypename, resuri, snapshotName):
-        if(resuri is not None):
+        if resuri is not None:
             uris = self.snapshot_list_uri(
                 storageresType,
                 storageresTypename,
@@ -114,9 +114,9 @@ class Snapshot(object):
                     storageresType,
                     resuri,
                     uri['id'])
-                if(False == (common.get_node_value(snapshot, 'inactive'))):
-                    if (snapshot['name'] == snapshotName):
-                        return snapshot['id']
+                if False == common.get_node_value(snapshot, 'inactive') and \
+                    snapshot['name'] == snapshotName:
+                    return snapshot['id']
 
         raise CoprHdError(
             CoprHdError.SOS_FAILURE_ERR,
@@ -143,18 +143,17 @@ class Snapshot(object):
         else:
             t = Timer(self.timeout, self.timeout_handler)
         t.start()
-        while(True):
-            # out = self.show_by_uri(id)
+        while True:            
             out = self.snapshot_show_task_opid(storageresType, resuri, task_id)
 
-            if(out):
-                if(out["state"] == "ready"):
+            if out:
+                if out["state"] == "ready":
                     # cancel the timer and return
                     t.cancel()
                     break
                 # if the status of the task is 'error' then cancel the timer
                 # and raise exception
-                if(out["state"] == "error"):
+                if out["state"] == "error":
                     # cancel the timer
                     t.cancel()
                     error_message = "Please see logs for more details"
@@ -168,10 +167,12 @@ class Snapshot(object):
                         " is failed with error: " +
                         error_message)
 
-            if(self.isTimeout):
-                print "Operation timed out"
+            if self.isTimeout:
                 self.isTimeout = False
-                break
+                raise CoprHdError(CoprHdError.TIME_OUT, 
+                              "Task did not complete in %d secs." + 
+                              "Operation timed out. Task in CoprHD "+ 
+                              "will continue")                                     
         return
 
     def storageResource_query(self,
@@ -181,15 +182,15 @@ class Snapshot(object):
                               project,
                               tenant):
         resourcepath = "/" + project + "/"
-        if(tenant is not None):
+        if tenant is not None:
             resourcepath = tenant + resourcepath
 
         resUri = None
         resourceObj = None
-        if(Snapshot.BLOCK == storageresType and volumeName is not None):
+        if Snapshot.BLOCK == storageresType and volumeName is not None:
             resourceObj = volume.Volume(self.__ipAddr, self.__port)
             resUri = resourceObj.volume_query(resourcepath + volumeName)
-        elif(Snapshot.BLOCK == storageresType and cgName is not None):
+        elif Snapshot.BLOCK == storageresType and cgName is not None:
             resourceObj = consistencygroup.ConsistencyGroup(
                 self.__ipAddr,
                 self.__port)
@@ -221,12 +222,12 @@ class Snapshot(object):
         try:
             self.snapshot_query(otype, typename, ouri, snaplabel)
         except CoprHdError as e:
-            if(e.err_code == CoprHdError.NOT_FOUND_ERR):
+            if e.err_code == CoprHdError.NOT_FOUND_ERR:
                 is_snapshot_exist = False
             else:
                 raise e
 
-        if(is_snapshot_exist):
+        if is_snapshot_exist:
             raise CoprHdError(
                 CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
                 "Snapshot with name " +
@@ -240,7 +241,7 @@ class Snapshot(object):
             # between source and target volumes
             'create_inactive': inactive
         }
-        if(readonly == "true"):
+        if readonly == "true":
             parms['read_only'] = readonly
         body = json.dumps(parms)
 
@@ -253,7 +254,7 @@ class Snapshot(object):
 
         task = o["task"][0]
 
-        if(sync):
+        if sync:
             return (
                 self.block_until_complete(
                     otype,
@@ -270,7 +271,7 @@ class Snapshot(object):
             suri : Uri of the Snapshot.
         '''
         s = None
-        if(resourceUri.find("Volume") > 0):
+        if resourceUri.find("Volume") > 0:
 
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
@@ -278,7 +279,7 @@ class Snapshot(object):
                 Snapshot.URI_RESOURCE_DEACTIVATE.format(
                     Snapshot.URI_BLOCK_SNAPSHOTS.format(suri)),
                 None)
-        elif(resourceUri.find("BlockConsistencyGroup") > 0):
+        elif resourceUri.find("BlockConsistencyGroup") > 0:
 
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
@@ -290,7 +291,7 @@ class Snapshot(object):
         o = common.json_decode(s)
         task = o["task"][0]
 
-        if(sync):
+        if sync:
             return (
                 self.block_until_complete(
                     otype,
