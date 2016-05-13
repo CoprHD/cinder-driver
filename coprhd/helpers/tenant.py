@@ -45,7 +45,7 @@ class Tenant(object):
         (ex tenant1/tenant2/tenant3)
         '''
 
-        if (common.is_uri(label)):
+        if common.is_uri(label):
             return label
 
         tenant_id = self.tenant_getid()
@@ -57,9 +57,9 @@ class Tenant(object):
         subtenants.append(self.tenant_show(None))
 
         for tenant in subtenants:
-            if (tenant['name'] == label):
+            if tenant['name'] == label:
                 rslt = self.tenant_show_by_uri(tenant['id'])
-                if(rslt):
+                if rslt:
                     return tenant['id']
 
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
@@ -92,7 +92,7 @@ class Tenant(object):
                 JSON payload of tenant list
         '''
 
-        if (not uri):
+        if not uri:
             uri = self.tenant_getid()
 
         tenantdtls = self.tenant_show_by_uri(uri, False)
@@ -118,22 +118,21 @@ class Tenant(object):
                                              None, None)
 
         o = common.json_decode(s)
-        if('inactive' in o):
-            if(o['inactive']):
+        if 'inactive' in o and o['inactive']:
                 return None
 
         return o
 
     def get_tenant_by_name(self, tenant):
         uri = None
-        if (not tenant):
+        if not tenant:
             uri = self.tenant_getid()
         else:
             if not common.is_uri(tenant):
                 uri = self.tenant_query(tenant)
             else:
                 uri = tenant
-            if (not uri):
+            if not uri:
                 raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
                                   'Tenant ' + tenant + ': not found')
         return uri

@@ -49,7 +49,7 @@ class VirtualPool(object):
             self.URI_VPOOL_SHOW.format(vpooltype, uri), None, None)
 
         o = common.json_decode(s)
-        if(o['inactive']):
+        if o['inactive']:
             return None
 
         return o
@@ -65,7 +65,7 @@ class VirtualPool(object):
         return
             return with uri of the given vpool.
         '''
-        if (common.is_uri(name)):
+        if common.is_uri(name):
             return name
 
         (s, h) = common.service_json_request(
@@ -73,7 +73,7 @@ class VirtualPool(object):
             self.URI_VPOOL_SEARCH.format(vpooltype, name), None)
 
         o = common.json_decode(s)
-        if(len(o['resource']) > 0):
+        if len(o['resource']) > 0:
             # Get the Active vpool ID.
             for vpool in o['resource']:
                 if self.vpool_show_uri(vpooltype, vpool['id'], False) is not \

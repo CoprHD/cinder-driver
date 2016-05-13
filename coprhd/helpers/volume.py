@@ -84,7 +84,7 @@ class Volume(object):
         volumes = []
         for uri in volume_uris:
             volume = self.show_by_uri(uri)
-            if(volume):
+            if volume:
                 volumes.append(volume)
         return volumes
 
@@ -125,7 +125,7 @@ class Volume(object):
                                              None)
         o = common.json_decode(s)
         inactive = common.get_node_value(o, 'inactive')
-        if(inactive is True):
+        if inactive is True:
             return None
         return o
 
@@ -164,7 +164,7 @@ class Volume(object):
             'vpool': vpool_uri
         }
         request["count"] = 1
-        if(consistencygroup):
+        if consistencygroup:
             request['consistency_group'] = consistencygroup
 
         body = json.dumps(request)
@@ -174,9 +174,9 @@ class Volume(object):
                                              body)
         o = common.json_decode(s)
 
-        if(sync):
+        if sync:
             # check task empty
-            if (len(o["task"]) > 0):
+            if len(o["task"]) > 0:
                 task = o["task"][0]
                 return self.check_for_sync(task, sync, synctimeout)
             else:
@@ -188,8 +188,8 @@ class Volume(object):
 
     # Blocks the operation until the task is complete/error out/timeout
     def check_for_sync(self, result, sync, synctimeout=0):
-        if(sync):
-            if(len(result["resource"]) > 0):
+        if sync:
+            if len(result["resource"]) > 0:
                 resource = result["resource"]
                 return (
                     common.block_until_complete("volume", resource["id"],
@@ -213,17 +213,17 @@ class Volume(object):
             Volume details in JSON response payload
         '''
 
-        if (common.is_uri(name)):
+        if common.is_uri(name):
             return name
 
         (pname, label) = common.get_parent_child_from_xpath(name)
-        if(not pname):
+        if not pname:
             raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
                               "Project name  not specified")
         uris = self.search_volumes(pname)
         for uri in uris:
             volume = self.show_by_uri(uri)
-            if (volume and 'name' in volume and volume['name'] == label):
+            if volume and 'name' in volume and volume['name'] == label:
                 return volume['id']
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
                           label + ": not found")
@@ -232,13 +232,13 @@ class Volume(object):
         storageresType = None
         storageresTypeName = None
 
-        if(snapshotName is not None):
+        if snapshotName is not None:
             storageresType = Volume.BLOCK
             storageresTypeName = Volume.SNAPSHOTS
-        elif(volumeName is not None):
+        elif volumeName is not None:
             storageresType = Volume.BLOCK
             storageresTypeName = Volume.VOLUMES
-        elif(cgName is not None):
+        elif cgName is not None:
             storageresType = Volume.BLOCK
             storageresTypeName = Volume.CG
         else:
@@ -254,15 +254,15 @@ class Volume(object):
                               project,
                               tenant):
         resourcepath = "/" + project + "/"
-        if(tenant is not None):
+        if tenant is not None:
             resourcepath = tenant + resourcepath
 
         resUri = None
         resourceObj = None
 
-        if(Volume.BLOCK == storageresType and volumeName is not None):
+        if Volume.BLOCK == storageresType and volumeName is not None:
             resUri = self.volume_query(resourcepath + volumeName)
-            if(snapshotName is not None):
+            if snapshotName is not None:
 
                 from cinder.volume.drivers.emc.coprhd.helpers.snapshot import Snapshot
                 snapobj = Snapshot(self.__ipAddr, self.__port)
@@ -270,7 +270,7 @@ class Volume(object):
                                                 Volume.VOLUMES, resUri,
                                                 snapshotName)
 
-        elif(Volume.BLOCK == storageresType and cgName is not None):
+        elif Volume.BLOCK == storageresType and cgName is not None:
             resourceObj = consistencygroup.ConsistencyGroup(
                 self.__ipAddr, self.__port)
             resUri = resourceObj.consistencygroup_query(
@@ -302,9 +302,9 @@ class Volume(object):
         clone_full_uri = None
 
         # consistency group
-        if(resourceUri.find("BlockConsistencyGroup") > 0):
+        if resourceUri.find("BlockConsistencyGroup") > 0:
             clone_full_uri = Volume.URI_CG_CLONE.format(resourceUri)
-        elif(resourceUri.find("BlockSnapshot") > 0):
+        elif resourceUri.find("BlockSnapshot") > 0:
             is_snapshot_clone = True
             clone_full_uri = \
                 Volume.URI_SNAPSHOT_PROTECTION_FULLCOPIES.format(resourceUri)
@@ -327,10 +327,10 @@ class Volume(object):
                                              body)
         o = common.json_decode(s)
 
-        if(sync):
+        if sync:
             task = o["task"][0]
 
-            if(is_snapshot_clone):
+            if is_snapshot_clone:
                 return (
                     snap_obj.block_until_complete(
                         "block",
@@ -366,7 +366,7 @@ class Volume(object):
         volumeUri = self.volume_query(name)
 
         # consistency group
-        if(resourceUri.find("BlockConsistencyGroup") > 0):
+        if resourceUri.find("BlockConsistencyGroup") > 0:
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",
@@ -380,7 +380,7 @@ class Volume(object):
                 Volume.URI_VOLUME_CLONE_DETACH.format(volumeUri), None)
 
         o = common.json_decode(s)
-        if(sync):
+        if sync:
             task = o["task"][0]
             return self.check_for_sync(task, sync, synctimeout)
         else:
@@ -399,10 +399,10 @@ class Volume(object):
             Volume details in JSON response payload
         '''
 
-        if (common.is_uri(name)):
+        if common.is_uri(name):
             return name
         (pname, label) = common.get_parent_child_from_xpath(name)
-        if (pname is None):
+        if pname is None:
             raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
                               str(name) + ": not found")
 
@@ -410,19 +410,18 @@ class Volume(object):
 
         for uri in uris:
             volume = self.show_by_uri(uri, show_inactive)
-            if (volume and 'name' in volume and volume['name'] == label):
+            if volume and 'name' in volume and volume['name'] == label:
                 return volume
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
                           str(label) + ": not found")
 
     def expand(self, name, new_size, sync=False, synctimeout=0):
-
-        # volume_uri = self.volume_query(name)
+        
         volume_detail = self.show(name)
         from decimal import Decimal
         new_size_in_gb = Decimal(Decimal(new_size) / (1024 * 1024 * 1024))
         current_size = Decimal(volume_detail["provisioned_capacity_gb"])
-        if(new_size_in_gb <= current_size):
+        if new_size_in_gb <= current_size:
             raise CoprHdError(
                 CoprHdError.VALUE_ERR,
                 "error: Incorrect value of new size: " + str(new_size_in_gb) +
@@ -438,11 +437,11 @@ class Volume(object):
                                              Volume.URI_EXPAND.format(
                                                  volume_detail["id"]),
                                              body)
-        if(not s):
+        if not s:
             return None
         o = common.json_decode(s)
 
-        if(sync):
+        if sync:
             return self.check_for_sync(o, sync, synctimeout)
         return o
 
@@ -467,10 +466,10 @@ class Volume(object):
             uri: uri of volume
         '''
         params = ''
-        if (forceDelete):
+        if forceDelete:
             params += '&' if ('?' in params) else '?'
             params += "force=" + "true"
-        if (coprhdonly is True):
+        if coprhdonly is True:
             params += '&' if ('?' in params) else '?'
             params += "type=" + 'CoprHD_ONLY'
 
@@ -479,10 +478,10 @@ class Volume(object):
                                              Volume.URI_DEACTIVATE.format(
                                                  uri) + params,
                                              None)
-        if(not s):
+        if not s:
             return None
         o = common.json_decode(s)
-        if(sync):
+        if sync:
             return self.check_for_sync(o, sync, synctimeout)
         return o
 

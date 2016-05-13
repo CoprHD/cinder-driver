@@ -44,15 +44,14 @@ class VirtualArray(object):
         '''
         Returns the UID of the varray specified by the name
         '''
-        if (common.is_uri(name)):
+        if common.is_uri(name):
             return name
 
         uris = self.varray_list()
 
         for uri in uris:
             varray = self.varray_show(uri, False)
-            if(varray):
-                if(varray['name'] == name):
+            if varray and varray['name'] == name:
                     return varray['id']
 
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
@@ -66,7 +65,7 @@ class VirtualArray(object):
                 JSON payload of varray list
         '''
         vdcrestapi = None
-        if(vdcname is not None):
+        if vdcname is not None:
             vdcrestapi = VirtualArray.URI_VIRTUALARRAY_BY_VDC_ID.format(
                 vdcname)
         else:
@@ -96,8 +95,7 @@ class VirtualArray(object):
             None, None)
 
         o = common.json_decode(s)
-        if('inactive' in o):
-            if(o['inactive'] is True):
-                return None
-            else:
-                return o
+        if 'inactive' in o and o['inactive'] is True:
+            return None
+        else:
+            return o

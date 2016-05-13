@@ -42,7 +42,7 @@ def tag_resource(ipaddr, port, uri, resourceid, add, remove):
 
 def list_tags(ipaddr, port, resourceUri):
 
-    if(resourceUri.__contains__("tag") is False):
+    if resourceUri.__contains__("tag") is False:
         raise CoprHdError(CoprHdError.VALUE_ERR, "URI should end with /tag")
 
     (s, h) = common.service_json_request(ipaddr,
