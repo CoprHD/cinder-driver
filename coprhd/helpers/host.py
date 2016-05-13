@@ -52,8 +52,8 @@ class Host(object):
         for host in hostList:
             hostUri = host['id']
             hostDetails = self.show_by_uri(hostUri)
-            if(hostDetails):
-                if(hostDetails['name'] == hostName):
+            if hostDetails:
+                if hostDetails['name'] == hostName:
                     return hostUri
 
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
