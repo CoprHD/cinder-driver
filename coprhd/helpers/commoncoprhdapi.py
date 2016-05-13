@@ -114,32 +114,32 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                'ACCEPT': 'application/json, application/octet-stream',
                'X-EMC-REST-CLIENT': 'TRUE'}
 
-    if(customheaders):
+    if customheaders:
         headers.update(customheaders)
 
-    if (token):
-        if ('?' in uri):
+    if token:
+        if '?' in uri:
             uri += '&requestToken=' + token
         else:
             uri += '?requestToken=' + token
 
     try:
         protocol = "https://"
-        if(str(port) == '8080'):
+        if str(port) == '8080':
             protocol = "http://"
         url = protocol + ip_addr + ":" + str(port) + uri
 
         cookiejar = cookielib.LWPCookieJar()
         headers[SEC_AUTHTOKEN_HEADER] = AUTH_TOKEN
 
-        if (http_method == 'GET'):
+        if http_method == 'GET':
             '''when the GET request is specified with a filename, we write
                the contents of the GET request to the filename. This option
                generally is used when the contents to be returned are large.
                So, rather than getting all the data at once we Use
                stream=True for the purpose of streaming. Stream = True
                means we can stream data'''
-            if(filename):
+            if filename:
                 response = requests.get(url, stream=True, headers=headers,
                                         verify=False, cookies=cookiejar)
 
@@ -147,10 +147,10 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                 response = requests.get(url, headers=headers, verify=False,
                                         cookies=cookiejar)
 
-            if(filename):
+            if filename:
                 try:
                     with open(filename, 'wb') as fp:
-                        while(True):
+                        while True:
                             chunk = response.raw.read(100)
 
                             if not chunk:
@@ -159,18 +159,18 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                 except IOError as e:
                     raise CoprHdError(e.errno, e.strerror)
 
-        elif (http_method == 'POST'):
-            if(filename):
+        elif http_method == 'POST':
+            if filename:
                 with open(filename, "rb") as f:
                     response = requests.post(url, data=f, headers=headers,
                                              verify=False, cookies=cookiejar)
             else:
                 response = requests.post(url, data=body, headers=headers,
                                          verify=False, cookies=cookiejar)
-        elif (http_method == 'PUT'):
+        elif http_method == 'PUT':
             response = requests.put(url, data=body, headers=headers,
                                     verify=False, cookies=cookiejar)
-        elif (http_method == 'DELETE'):
+        elif http_method == 'DELETE':
 
             response = requests.delete(url, headers=headers, verify=False,
                                        cookies=cookiejar)
@@ -179,31 +179,31 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                               "Unknown/Unsupported HTTP method: " +
                               http_method)
 
-        if((response.status_code == requests.codes['ok']) or
-           (response.status_code == 202)):
+        if response.status_code == requests.codes['ok'] or
+           response.status_code == 202:
             return (response.text, response.headers)
         else:
             error_msg = None
-            if(response.status_code == 500):
+            if response.status_code == 500:
                 responseText = json_decode(response.text)
                 errorDetails = ""
-                if('details' in responseText):
+                if 'details' in responseText:
                     errorDetails = responseText['details']
                 error_msg = "CoprHD internal server error. Error details: " + \
                     errorDetails
-            elif(response.status_code == 401):
+            elif response.status_code == 401:
                 error_msg = "Access forbidden: Authentication required"
-            elif(response.status_code == 403):
+            elif response.status_code == 403:
                 error_msg = ""
                 errorDetails = ""
                 errorDescription = ""
 
                 responseText = json_decode(response.text)
 
-                if('details' in responseText):
+                if 'details' in responseText:
                     errorDetails = responseText['details']
                     error_msg = error_msg + "Error details: " + errorDetails
-                elif('description' in responseText):
+                elif 'description' in responseText:
                     errorDescription = responseText['description']
                     error_msg = error_msg + "Error description: " + \
                         errorDescription
@@ -211,9 +211,9 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                     error_msg = "Access forbidden: You don't have" + \
                         " sufficient privileges to perform this operation"
 
-            elif(response.status_code == 404):
+            elif response.status_code == 404:
                 error_msg = "Requested resource not found"
-            elif(response.status_code == 405):
+            elif response.status_code == 405:
                 error_msg = str(response.text)
             elif response.status_code == 503:
                 error_msg = ""
@@ -281,7 +281,7 @@ def get_parent_child_from_xpath(name):
     '''
     Returns the parent and child elements from XPath
     '''
-    if('/' in name):
+    if '/' in name:
         (pname, label) = name.rsplit('/', 1)
     else:
         pname = None
@@ -313,15 +313,15 @@ def to_bytes(in_str):
     value = match.group(1)
 
     size_count = long(value)
-    if (unit in ['K', 'KB']):
+    if unit in ['K', 'KB']:
         multiplier = long(1024)
-    elif (unit in ['M', 'MB']):
+    elif unit in ['M', 'MB']:
         multiplier = long(1024 * 1024)
-    elif (unit in ['G', 'GB']):
+    elif unit in ['G', 'GB']:
         multiplier = long(1024 * 1024 * 1024)
-    elif (unit in ['T', 'TB']):
+    elif unit in ['T', 'TB']:
         multiplier = long(1024 * 1024 * 1024 * 1024)
-    elif (unit == ""):
+    elif unit == "":
         return size_count
     else:
         return None
@@ -335,18 +335,18 @@ def get_list(json_object, parent_node_name, child_node_name=None):
     Returns a list of values from child_node_name
     If child_node is not given, then it will retrieve list from parent node
     '''
-    if(not json_object):
+    if not json_object:
         return []
 
     return_list = []
     if isinstance(json_object[parent_node_name], list):
         for detail in json_object[parent_node_name]:
-            if(child_node_name):
+            if child_node_name:
                 return_list.append(detail[child_node_name])
             else:
                 return_list.append(detail)
     else:
-        if(child_node_name):
+        if child_node_name:
             return_list.append(json_object[parent_node_name][child_node_name])
         else:
             return_list.append(json_object[parent_node_name])
@@ -361,19 +361,19 @@ def get_node_value(json_object, parent_node_name, child_node_name=None):
     returns None: If json_object or parent_node is not given,
                   If child_node is not found under parent_node
     '''
-    if(not json_object):
+    if not json_object:
         return None
 
-    if(not parent_node_name):
+    if not parent_node_name:
         return None
 
     detail = json_object[parent_node_name]
-    if(not child_node_name):
+    if not child_node_name:
         return detail
 
     return_value = None
 
-    if(child_node_name in detail):
+    if child_node_name in detail:
         return_value = detail[child_node_name]
     else:
         return_value = None
@@ -396,7 +396,7 @@ def get_node_value(json_object, parent_node_name, child_node_name=None):
 def format_err_msg_and_raise(operationType, component,
                              errorMessage, errorCode):
     formatedErrMsg = "Error: Failed to " + operationType + " " + component
-    if(errorMessage.startswith("\"\'") and errorMessage.endswith("\'\"")):
+    if errorMessage.startswith("\"\'") and errorMessage.endswith("\'\""):
         # stripping the first 2 and last 2 characters, which are quotes.
         errorMessage = errorMessage[2:len(errorMessage) - 2]
 
@@ -425,7 +425,7 @@ Parameter resourceSearchUri : The tag based search uri.
 def search_by_tag(resourceSearchUri, ipAddr, port):
     # check if the URI passed has both project and name parameters
     strUri = str(resourceSearchUri)
-    if(strUri.__contains__("search") and strUri.__contains__("?tag=")):
+    if strUri.__contains__("search") and strUri.__contains__("?tag="):
         # Get the project URI
 
         (s, h) = service_json_request(
@@ -469,12 +469,12 @@ def block_until_complete(componentType,
         synctimeout = 300
         t = Timer(300, timeout_handler)
     t.start()
-    while(True):
+    while True:
         out = get_task_by_resourceuri_and_taskId(
             componentType, resource_uri, task_id, ipAddr, port)
 
-        if(out):
-            if(out["state"] == "ready"):
+        if out:
+            if out["state"] == "ready":
 
                     # cancel the timer and return
                 t.cancel()
@@ -482,22 +482,22 @@ def block_until_complete(componentType,
 
             # if the status of the task is 'error' then cancel the timer
             # and raise exception
-            if(out["state"] == "error"):
+            if out["state"] == "error":
                 # cancel the timer
-                t.cancel()
-                error_message = "Please see logs for more details"
-                if("service_error" in out and
-                   "details" in out["service_error"]):
+                t.cancel()                
+                if "service_error" in out and
+                    "details" in out["service_error"]:
                     error_message = out["service_error"]["details"]
                 raise CoprHdError(CoprHdError.VALUE_ERR, "Task: " + task_id +
                                   " is failed with error: " + error_message)
 
-        if(IS_TASK_TIMEOUT):
-            print "Task did not complete in %d secs. Task still in" + \
-                  " progress. Please check the logs for task status" \
-                % synctimeout
+        if IS_TASK_TIMEOUT:
             IS_TASK_TIMEOUT = False
-            break
+            raise CoprHdError(CoprHdError.TIME_OUT, 
+                              "Task did not complete in %d secs." + 
+                              "Operation timed out. Task in CoprHD "+ 
+                              "will continue")                
+                                    
     return
 
 
@@ -515,7 +515,7 @@ def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
     (s, h) = service_json_request(
         ipAddr, port, "GET",
         task_uri_constant.format(resource_uri, task_id), None)
-    if (not s):
+    if not s:
         return None
     o = json_decode(s)
     return o
@@ -536,6 +536,7 @@ class CoprHdError(Exception):
     NOT_FOUND_ERR = 1
     ENTRY_ALREADY_EXISTS_ERR = 5
     MAX_COUNT_REACHED = 6
+    TIME_OUT = 7
 
     def __init__(self, err_code, err_text):
         self.err_code = err_code
