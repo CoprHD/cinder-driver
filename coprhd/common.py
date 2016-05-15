@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
 import random
 import string
 import sys
@@ -272,6 +271,7 @@ class EMCCoprHDDriverCommon(object):
 
         try:
             cgid = None
+            CoprHD_cgid = None
             try:
                 cgid = vol['consistencygroup_id']
                 ctx = context.get_admin_context()
@@ -780,7 +780,7 @@ class EMCCoprHDDriverCommon(object):
             return
 
         ctxt = context.get_admin_context()
-        
+
         src_snapshot_name = None
         src_vol_ref = volume_db.volume_get(ctxt, snapshot['volume_id'])
         new_volume_name = self._get_volume_name(volume)
@@ -1015,7 +1015,7 @@ class EMCCoprHDDriverCommon(object):
                     LOG.debug(
                         "checking for initiator port:" + initiatorPorts[i])
                     foundhostname = self._find_host(initiatorPorts[i])
-                    if (foundhostname is None) and
+                    if (foundhostname is None) and \
                             (i + 1 == len(initiatorPorts)):
                         LOG.error("Auto host creation not supported")
                     else:
@@ -1042,7 +1042,7 @@ class EMCCoprHDDriverCommon(object):
                         foundgroupname,
                         self.configuration.coprhd_project,
                         self.configuration.coprhd_tenant,
-                        None, False)
+                        None)
 
                 except CoprHD_utils.CoprHdError as e:
                     if e.err_code == CoprHD_utils.CoprHdError.NOT_FOUND_ERR:

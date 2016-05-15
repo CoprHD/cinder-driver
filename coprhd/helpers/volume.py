@@ -264,7 +264,8 @@ class Volume(object):
             resUri = self.volume_query(resourcepath + volumeName)
             if snapshotName is not None:
 
-                from cinder.volume.drivers.emc.coprhd.helpers.snapshot import Snapshot
+                from cinder.volume.drivers.emc.coprhd.helpers.snapshot \
+                    import Snapshot
                 snapobj = Snapshot(self.__ipAddr, self.__port)
                 resUri = snapobj.snapshot_query(storageresType,
                                                 Volume.VOLUMES, resUri,
@@ -387,7 +388,7 @@ class Volume(object):
             return o
 
     # Shows volume information given its name
-    def show(self, name, show_inactive=False):
+    def show(self, name):
         '''
         Retrieves volume details based on volume name
         Parameters:
@@ -409,14 +410,14 @@ class Volume(object):
         uris = self.search_volumes(pname)
 
         for uri in uris:
-            volume = self.show_by_uri(uri, show_inactive)
+            volume = self.show_by_uri(uri)
             if volume and 'name' in volume and volume['name'] == label:
                 return volume
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
                           str(label) + ": not found")
 
     def expand(self, name, new_size, sync=False, synctimeout=0):
-        
+
         volume_detail = self.show(name)
         from decimal import Decimal
         new_size_in_gb = Decimal(Decimal(new_size) / (1024 * 1024 * 1024))
@@ -525,7 +526,8 @@ class Volume(object):
             volume_uri = self.volume_query(prefix_path + "/" + item)
             volumeurilist.append(volume_uri)
 
-        from cinder.volume.drivers.emc.coprhd.helpers.virtualpool import VirtualPool
+        from cinder.volume.drivers.emc.coprhd.helpers.virtualpool \
+            import VirtualPool
 
         vpool_obj = VirtualPool(self.__ipAddr, self.__port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")

@@ -54,7 +54,6 @@ class VirtualPool(object):
 
         return o
 
-
     def vpool_query(self, name, vpooltype):
         '''
         This function will take the VPOOL name and type of VPOOL
@@ -76,8 +75,7 @@ class VirtualPool(object):
         if len(o['resource']) > 0:
             # Get the Active vpool ID.
             for vpool in o['resource']:
-                if self.vpool_show_uri(vpooltype, vpool['id'], False) is not \
-                   None:
+                if self.vpool_show_uri(vpooltype, vpool['id']) is not None:
                     return vpool['id']
         # Raise not found exception. as we did not find any active vpool.
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "VPool " + name +

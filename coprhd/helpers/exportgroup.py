@@ -228,14 +228,14 @@ class ExportGroup(object):
         for uri in uris:
             exportgroup = self.exportgroup_show(uri, project, tenant)
             if exportgroup and exportgroup['name'] == name:
-                    if varrayuri:
-                        varrayobj = exportgroup['varray']
-                        if varrayobj['id'] == varrayuri:
-                            return exportgroup['id']
-                        else:
-                            continue
-                    else:
+                if varrayuri:
+                    varrayobj = exportgroup['varray']
+                    if varrayobj['id'] == varrayuri:
                         return exportgroup['id']
+                    else:
+                        continue
+                else:
+                    return exportgroup['id']
         raise CoprHdError(
             CoprHdError.NOT_FOUND_ERR,
             "Export Group " + name + ": not found")

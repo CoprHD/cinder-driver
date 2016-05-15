@@ -16,9 +16,9 @@
 #    under the License.
 
 
+import cookielib
 import socket
 
-import cookielib
 import requests
 from requests.exceptions import ConnectionError
 from requests.exceptions import SSLError
@@ -28,7 +28,7 @@ from requests.exceptions import TooManyRedirects
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
     import CoprHdError
-
+    
 
 class Authentication(object):
 
@@ -43,12 +43,12 @@ class Authentication(object):
     HEADERS = {'Content-Type': 'application/json',
                'ACCEPT': 'application/json', 'X-EMC-REST-CLIENT': 'TRUE'}
 
-    def __init__(self, ipAddr, port):
+    def __init__(self, ipaddr, port):
         '''
         Constructor: takes IP address and port of the CoprHD instance.
         These are needed to make http requests for REST API
         '''
-        self.__ipAddr = ipAddr
+        self.__ipaddr = ipaddr
         self.__port = port
 
     def authenticate_user(self, username, password):
@@ -67,18 +67,18 @@ class Authentication(object):
 
         cookiejar = cookielib.LWPCookieJar()
 
-        url = ('https://' + str(self.__ipAddr) + ':' + str(self.__port) +
+        url = ('https://' + str(self.__ipaddr) + ':' + str(self.__port) +
                self.URI_AUTHENTICATION)
 
         try:
-            if(self.__port == APISVC_PORT):
+            if self.__port == APISVC_PORT:
                 login_response = requests.get(
                     url, headers=self.HEADERS, verify=False,
                     auth=(username, password), cookies=cookiejar,
                     allow_redirects=False, timeout=common.TIMEOUT_SEC)
-                if(login_response.status_code == SEC_REDIRECT):
+                if login_response.status_code == SEC_REDIRECT:
                     location = login_response.headers['Location']
-                    if(not location):
+                    if not location:
                         raise CoprHdError(
                             CoprHdError.HTTP_ERR, "The redirect location of " +
                             "the authentication service is not provided")
@@ -99,36 +99,36 @@ class Authentication(object):
                         auth=(username, password), verify=False,
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
-                    if(not login_response.status_code == SEC_REDIRECT):
+                    if not login_response.status_code == SEC_REDIRECT:
                         raise CoprHdError(
                             CoprHdError.HTTP_ERR,
                             "Access forbidden: Authentication required")
                     location = login_response.headers['Location']
-                    if(not location):
+                    if not location:
                         raise CoprHdError(
                             CoprHdError.HTTP_ERR, "The authentication" +
                             " service failed to provide the location of" +
                             " the service URI when redirecting back")
-                    authToken = login_response.headers[SEC_AUTHTOKEN_HEADER]
-                    if (not authToken):
+                    authtoken = login_response.headers[SEC_AUTHTOKEN_HEADER]
+                    if not authtoken:
                         details_str = self.extract_error_detail(login_response)
                         raise CoprHdError(CoprHdError.HTTP_ERR,
                                           "The token is not generated" +
                                           " by authentication service." +
                                           details_str)
                     # Make the final call to get the page with the token
-                    newHeaders = self.HEADERS
-                    newHeaders[SEC_AUTHTOKEN_HEADER] = authToken
+                    new_headers = self.HEADERS
+                    new_headers[SEC_AUTHTOKEN_HEADER] = authtoken
                     login_response = requests.get(
-                        location, headers=newHeaders, verify=False,
+                        location, headers=new_headers, verify=False,
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
-                    if(login_response.status_code != requests.codes['ok']):
+                    if login_response.status_code != requests.codes['ok']:
                         raise CoprHdError(
                             CoprHdError.HTTP_ERR, "Login failure code: " +
                             str(login_response.status_code) + " Error: " +
                             login_response.text)
-            elif(self.__port == LB_API_PORT):
+            elif self.__port == LB_API_PORT:
                 login_response = requests.get(
                     url, headers=self.HEADERS, verify=False,
                     cookies=cookiejar, allow_redirects=False)
@@ -139,9 +139,9 @@ class Authentication(object):
                     login_response = requests.get(
                         url, headers=self.HEADERS, auth=(username, password),
                         verify=False, cookies=cookiejar, allow_redirects=False)
-                authToken = None
-                if(SEC_AUTHTOKEN_HEADER in login_response.headers):
-                    authToken = login_response.headers[SEC_AUTHTOKEN_HEADER]
+                authtoken = None
+                if SEC_AUTHTOKEN_HEADER in login_response.headers:
+                    authtoken = login_response.headers[SEC_AUTHTOKEN_HEADER]
             else:
                 raise CoprHdError(
                     CoprHdError.HTTP_ERR,
@@ -149,29 +149,29 @@ class Authentication(object):
                     str(LB_API_PORT) + ", api service port is: " +
                     str(APISVC_PORT) + ".")
 
-            if (not authToken):
+            if not authToken:
                 details_str = self.extract_error_detail(login_response)
                 raise CoprHdError(
                     CoprHdError.HTTP_ERR,
                     "The token is not generated by authentication service." +
                     details_str)
 
-            if (login_response.status_code != requests.codes['ok']):
+            if login_response.status_code != requests.codes['ok']:
                 error_msg = None
-                if(login_response.status_code == 401):
+                if login_response.status_code == 401:
                     error_msg = "Access forbidden: Authentication required"
-                elif(login_response.status_code == 403):
+                elif login_response.status_code == 403:
                     error_msg = ("Access forbidden: You don't have" +
                                  " sufficient privileges to perform" +
                                  " this operation")
-                elif(login_response.status_code == 500):
+                elif login_response.status_code == 500:
                     error_msg = "Bourne internal server error"
-                elif(login_response.status_code == 404):
+                elif login_response.status_code == 404:
                     error_msg = "Requested resource is currently unavailable"
-                elif(login_response.status_code == 405):
+                elif login_response.status_code == 405:
                     error_msg = ("GET method is not supported by resource: " +
                                  url)
-                elif(login_response.status_code == 503):
+                elif login_response.status_code == 503:
                     error_msg = ("Service temporarily unavailable:" +
                                  " The server is temporarily unable" +
                                  " to service your request")
@@ -187,14 +187,14 @@ class Authentication(object):
         except (SSLError, socket.error, ConnectionError, Timeout) as e:
             raise CoprHdError(CoprHdError.HTTP_ERR, str(e))
 
-        return authToken
+        return authtoken
 
     def extract_error_detail(self, login_response):
         details_str = ""
         try:
-            if(login_response.content):
+            if login_response.content:
                 json_object = common.json_decode(login_response.content)
-                if(json_object.has_key('details')):
+                if 'details' in json_object:
                     details_str = json_object['details']
 
             return details_str

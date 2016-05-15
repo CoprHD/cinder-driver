@@ -19,9 +19,9 @@ import json
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
+from cinder.volume.drivers.emc.coprhd.helpers import volume
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
     import CoprHdError
-from cinder.volume.drivers.emc.coprhd.helpers import volume
 
 
 class Snapshot(object):
@@ -115,7 +115,7 @@ class Snapshot(object):
                     resuri,
                     uri['id'])
                 if False == common.get_node_value(snapshot, 'inactive') and \
-                    snapshot['name'] == snapshotName:
+                        snapshot['name'] == snapshotName:
                     return snapshot['id']
 
         raise CoprHdError(
@@ -139,11 +139,11 @@ class Snapshot(object):
     def block_until_complete(self, storageresType, resuri,
                              task_id, synctimeout=0):
         if synctimeout:
-            t = Timer(synctimeout, self.timeout_handler)
+            t = Timer(synctimeout, common.timeout_handler)
         else:
-            t = Timer(self.timeout, self.timeout_handler)
+            t = Timer(self.timeout, common.timeout_handler)
         t.start()
-        while True:            
+        while True:
             out = self.snapshot_show_task_opid(storageresType, resuri, task_id)
 
             if out:
@@ -169,10 +169,10 @@ class Snapshot(object):
 
             if self.isTimeout:
                 self.isTimeout = False
-                raise CoprHdError(CoprHdError.TIME_OUT, 
-                              "Task did not complete in %d secs." + 
-                              "Operation timed out. Task in CoprHD "+ 
-                              "will continue")                                     
+                raise CoprHdError(CoprHdError.TIME_OUT,
+                                  "Task did not complete in %d secs." +
+                                  "Operation timed out. Task in CoprHD " +
+                                  "will continue")
         return
 
     def storageResource_query(self,

@@ -50,9 +50,9 @@ class VirtualArray(object):
         uris = self.varray_list()
 
         for uri in uris:
-            varray = self.varray_show(uri, False)
+            varray = self.varray_show(uri)
             if varray and varray['name'] == name:
-                    return varray['id']
+                return varray['id']
 
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
                           "varray " + name + ": not found")

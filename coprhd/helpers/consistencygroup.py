@@ -110,7 +110,7 @@ class ConsistencyGroup(object):
         for uri in uris:
             congroup = self.show(uri, project, tenant)
             if congroup and congroup['name'] == name:
-                    return congroup['id']
+                return congroup['id']
         raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
                           "Consistency Group " + name + ": not found")
 

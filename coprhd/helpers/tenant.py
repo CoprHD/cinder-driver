@@ -95,7 +95,7 @@ class Tenant(object):
         if not uri:
             uri = self.tenant_getid()
 
-        tenantdtls = self.tenant_show_by_uri(uri, False)
+        tenantdtls = self.tenant_show_by_uri(uri)
 
         if(tenantdtls and not ('parent_tenant' in tenantdtls and
                                ("id" in tenantdtls['parent_tenant']))):
@@ -119,7 +119,7 @@ class Tenant(object):
 
         o = common.json_decode(s)
         if 'inactive' in o and o['inactive']:
-                return None
+            return None
 
         return o
 

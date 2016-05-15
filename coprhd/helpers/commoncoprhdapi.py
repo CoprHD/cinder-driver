@@ -18,6 +18,7 @@
 '''
 Contains some commonly used utility methods
 '''
+import cookielib
 import json
 import re
 import socket
@@ -26,7 +27,6 @@ from threading import Timer
 
 import requests
 from requests.exceptions import ConnectionError
-import cookielib
 from requests.exceptions import SSLError
 from requests.exceptions import Timeout
 from requests.exceptions import TooManyRedirects
@@ -78,15 +78,6 @@ def json_decode(rsp):
         raise CoprHdError(CoprHdError.VALUE_ERR,
                           "Failed to recognize JSON payload:\n[" + rsp + "]")
     return o
-
-
-def json_encode(name, value):
-    '''
-    Used to encode any attribute in JSON format
-    '''
-
-    body = json.dumps({name: value})
-    return body
 
 
 def service_json_request(ip_addr, port, http_method, uri, body, token=None,
@@ -179,7 +170,7 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                               "Unknown/Unsupported HTTP method: " +
                               http_method)
 
-        if response.status_code == requests.codes['ok'] or
+        if response.status_code == requests.codes['ok'] or \
            response.status_code == 202:
             return (response.text, response.headers)
         else:
@@ -484,20 +475,20 @@ def block_until_complete(componentType,
             # and raise exception
             if out["state"] == "error":
                 # cancel the timer
-                t.cancel()                
-                if "service_error" in out and
-                    "details" in out["service_error"]:
+                t.cancel()
+                if "service_error" in out and \
+                        "details" in out["service_error"]:
                     error_message = out["service_error"]["details"]
                 raise CoprHdError(CoprHdError.VALUE_ERR, "Task: " + task_id +
                                   " is failed with error: " + error_message)
 
         if IS_TASK_TIMEOUT:
             IS_TASK_TIMEOUT = False
-            raise CoprHdError(CoprHdError.TIME_OUT, 
-                              "Task did not complete in %d secs." + 
-                              "Operation timed out. Task in CoprHD "+ 
-                              "will continue")                
-                                    
+            raise CoprHdError(CoprHdError.TIME_OUT,
+                              "Task did not complete in %d secs." +
+                              "Operation timed out. Task in CoprHD " +
+                              "will continue")
+
     return
 
 
