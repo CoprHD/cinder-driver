@@ -21,6 +21,7 @@ Contains some commonly used utility methods
 import cookielib
 import json
 import re
+import six
 import socket
 import sys
 from threading import Timer
@@ -37,6 +38,8 @@ PROD_NAME = 'storageos'
 
 TIMEOUT_SEC = 20  # 20 SECONDS
 IS_TASK_TIMEOUT = False
+
+global AUTH_TOKEN
 
 
 def _decode_list(data):
@@ -68,9 +71,10 @@ def _decode_dict(data):
 
 
 def json_decode(rsp):
+    '''Used to decode the JSON encoded response
+
     '''
-    Used to decode the JSON encoded response
-    '''
+
     o = ""
     try:
         o = json.loads(rsp, object_hook=_decode_dict)
@@ -80,12 +84,11 @@ def json_decode(rsp):
     return o
 
 
-def service_json_request(ip_addr, port, http_method, uri, body, token=None,
-                         contenttype='application/json',
-                         filename=None, customheaders=None):
-    '''
-    Used to make an HTTP request and get the response.
-    The message body is encoded in JSON format.
+def service_json_request(ip_addr, port, http_method, uri, body,
+                         contenttype='application/json', customheaders=None):
+    '''Used to make an HTTP request and get the response
+
+    The message body is encoded in JSON format
     Parameters:
         ip_addr: IP address or host name of the server
         port: port number of the server on which it
@@ -97,7 +100,6 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
         a tuple of two elements: (response body, response headers)
     Throws: CoprHdError in case of HTTP errors with err_code 3
     '''
-    global AUTH_TOKEN
 
     SEC_AUTHTOKEN_HEADER = 'X-SDS-AUTH-TOKEN'
 
@@ -107,12 +109,6 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
 
     if customheaders:
         headers.update(customheaders)
-
-    if token:
-        if '?' in uri:
-            uri += '&requestToken=' + token
-        else:
-            uri += '?requestToken=' + token
 
     try:
         protocol = "https://"
@@ -124,40 +120,11 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
         headers[SEC_AUTHTOKEN_HEADER] = AUTH_TOKEN
 
         if http_method == 'GET':
-            '''when the GET request is specified with a filename, we write
-               the contents of the GET request to the filename. This option
-               generally is used when the contents to be returned are large.
-               So, rather than getting all the data at once we Use
-               stream=True for the purpose of streaming. Stream = True
-               means we can stream data'''
-            if filename:
-                response = requests.get(url, stream=True, headers=headers,
-                                        verify=False, cookies=cookiejar)
-
-            else:
-                response = requests.get(url, headers=headers, verify=False,
-                                        cookies=cookiejar)
-
-            if filename:
-                try:
-                    with open(filename, 'wb') as fp:
-                        while True:
-                            chunk = response.raw.read(100)
-
-                            if not chunk:
-                                break
-                            fp.write(chunk)
-                except IOError as e:
-                    raise CoprHdError(e.errno, e.strerror)
-
+            response = requests.get(url, headers=headers, verify=False,
+                                    cookies=cookiejar)
         elif http_method == 'POST':
-            if filename:
-                with open(filename, "rb") as f:
-                    response = requests.post(url, data=f, headers=headers,
-                                             verify=False, cookies=cookiejar)
-            else:
-                response = requests.post(url, data=body, headers=headers,
-                                         verify=False, cookies=cookiejar)
+            response = requests.post(url, data=body, headers=headers,
+                                     verify=False, cookies=cookiejar)
         elif http_method == 'PUT':
             response = requests.put(url, data=body, headers=headers,
                                     verify=False, cookies=cookiejar)
@@ -171,95 +138,95 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                               http_method)
 
         if response.status_code == requests.codes['ok'] or \
-           response.status_code == 202:
+                response.status_code == 202:
             return (response.text, response.headers)
-        else:
-            error_msg = None
-            if response.status_code == 500:
-                responseText = json_decode(response.text)
-                errorDetails = ""
-                if 'details' in responseText:
-                    errorDetails = responseText['details']
-                error_msg = "CoprHD internal server error. Error details: " + \
-                    errorDetails
-            elif response.status_code == 401:
-                error_msg = "Access forbidden: Authentication required"
-            elif response.status_code == 403:
-                error_msg = ""
-                errorDetails = ""
-                errorDescription = ""
 
-                responseText = json_decode(response.text)
+        error_msg = None
+        if response.status_code == 500:
+            responseText = json_decode(response.text)
+            errorDetails = ""
+            if 'details' in responseText:
+                errorDetails = responseText['details']
+            error_msg = "CoprHD internal server error. Error details: " + \
+                errorDetails
+        elif response.status_code == 401:
+            error_msg = "Access forbidden: Authentication required"
+        elif response.status_code == 403:
+            error_msg = ""
+            errorDetails = ""
+            errorDescription = ""
 
-                if 'details' in responseText:
-                    errorDetails = responseText['details']
-                    error_msg = error_msg + "Error details: " + errorDetails
-                elif 'description' in responseText:
-                    errorDescription = responseText['description']
-                    error_msg = error_msg + "Error description: " + \
-                        errorDescription
-                else:
-                    error_msg = "Access forbidden: You don't have" + \
-                        " sufficient privileges to perform this operation"
+            responseText = json_decode(response.text)
 
-            elif response.status_code == 404:
-                error_msg = "Requested resource not found"
-            elif response.status_code == 405:
-                error_msg = str(response.text)
-            elif response.status_code == 503:
-                error_msg = ""
-                errorDetails = ""
-                errorDescription = ""
-
-                responseText = json_decode(response.text)
-
-                if 'code' in responseText:
-                    errorCode = responseText['code']
-                    error_msg = error_msg + "Error " + str(errorCode)
-
-                if 'details' in responseText:
-                    errorDetails = responseText['details']
-                    error_msg = error_msg + ": " + errorDetails
-                elif 'description' in responseText:
-                    errorDescription = responseText['description']
-                    error_msg = error_msg + ": " + errorDescription
-                else:
-                    error_msg = "Service temporarily unavailable:" + \
-                                " The server is temporarily unable to " + \
-                                " service your request"
+            if 'details' in responseText:
+                errorDetails = responseText['details']
+                error_msg = error_msg + "Error details: " + errorDetails
+            elif 'description' in responseText:
+                errorDescription = responseText['description']
+                error_msg = error_msg + "Error description: " + \
+                    errorDescription
             else:
-                error_msg = response.text
-                if isinstance(error_msg, unicode):
-                    error_msg = error_msg.encode('utf-8')
-            raise CoprHdError(CoprHdError.HTTP_ERR, "HTTP code: " +
-                              str(response.status_code) +
-                              ", " + response.reason + " [" + error_msg + "]")
+                error_msg = "Access forbidden: You don't have" + \
+                    " sufficient privileges to perform this operation"
+
+        elif response.status_code == 404:
+            error_msg = "Requested resource not found"
+        elif response.status_code == 405:
+            error_msg = str(response.text)
+        elif response.status_code == 503:
+            error_msg = ""
+            errorDetails = ""
+            errorDescription = ""
+
+            responseText = json_decode(response.text)
+
+            if 'code' in responseText:
+                errorCode = responseText['code']
+                error_msg = error_msg + "Error " + str(errorCode)
+
+            if 'details' in responseText:
+                errorDetails = responseText['details']
+                error_msg = error_msg + ": " + errorDetails
+            elif 'description' in responseText:
+                errorDescription = responseText['description']
+                error_msg = error_msg + ": " + errorDescription
+            else:
+                error_msg = "Service temporarily unavailable:" + \
+                            " The server is temporarily unable to " + \
+                            " service your request"
+        else:
+            error_msg = response.text
+            if isinstance(error_msg, unicode):
+                error_msg = error_msg.encode('utf-8')
+        raise CoprHdError(CoprHdError.HTTP_ERR, "HTTP code: " +
+                          str(response.status_code) +
+                          ", " + response.reason + " [" + error_msg + "]")
 
     except (CoprHdError, socket.error, SSLError,
             ConnectionError, TooManyRedirects, Timeout) as e:
-        raise CoprHdError(CoprHdError.HTTP_ERR, str(e))
-    # TODO : Either following exception should have proper message or IOError
-    # should just be combined with the above statement
+        raise CoprHdError(CoprHdError.HTTP_ERR, six.text_type(e))
+    # TODO(Ravi) : Either following exception should have proper message or
+    # IOError should just be combined with the above statement
     except IOError as e:
-        raise CoprHdError(CoprHdError.HTTP_ERR, str(e))
+        raise CoprHdError(CoprHdError.HTTP_ERR, six.text_type(e))
 
 
 def is_uri(name):
-    '''
-    Checks whether the name is a UUID or not
+    '''Checks whether the name is a UUID or not
+
     Returns:
         True if name is UUID, False otherwise
     '''
     try:
         (urn, prod, trailer) = name.split(':', 2)
         return (urn == 'urn' and prod == PROD_NAME)
-    except:
+    except Exception:
         return False
 
 
 def format_json_object(obj):
-    '''
-    Formats JSON object to make it readable by proper indentation
+    '''Formats JSON object to make it readable by proper indentation
+
     Parameters:
         obj - JSON object
     Returns:
@@ -269,8 +236,8 @@ def format_json_object(obj):
 
 
 def get_parent_child_from_xpath(name):
-    '''
-    Returns the parent and child elements from XPath
+    '''Returns the parent and child elements from XPath
+
     '''
     if '/' in name:
         (pname, label) = name.rsplit('/', 1)
@@ -281,8 +248,8 @@ def get_parent_child_from_xpath(name):
 
 
 def to_bytes(in_str):
-    """
-    Converts a size to bytes
+    """Converts a size to bytes
+
     Parameters:
         in_str - a number suffixed with a unit: {number}{unit}
                 units supported:
@@ -293,7 +260,6 @@ def to_bytes(in_str):
     Returns:
         number of bytes
         None; if input is incorrect
-
     """
     match = re.search('^([0-9]+)([a-zA-Z]{0,2})$', in_str)
 
@@ -322,8 +288,8 @@ def to_bytes(in_str):
 
 
 def get_list(json_object, parent_node_name, child_node_name=None):
-    '''
-    Returns a list of values from child_node_name
+    '''Returns a list of values from child_node_name
+
     If child_node is not given, then it will retrieve list from parent node
     '''
     if not json_object:
@@ -346,9 +312,9 @@ def get_list(json_object, parent_node_name, child_node_name=None):
 
 
 def get_node_value(json_object, parent_node_name, child_node_name=None):
-    '''
-    Returns value of given child_node. If child_node is not given, then value
-    of parent node is returned.
+    '''Returns value of given child_node
+
+    If child_node is not given, then value of parent node is returned
     returns None: If json_object or parent_node is not given,
                   If child_node is not found under parent_node
     '''
@@ -394,8 +360,8 @@ def format_err_msg_and_raise(operationType, component,
     formatedErrMsg = formatedErrMsg + "\nReason:" + errorMessage
     raise CoprHdError(errorCode, formatedErrMsg)
 
-'''
-Terminate the script execution with status code.
+'''Terminate the script execution with status code
+
 Ignoring the exit status code means the script execution completed successfully
 exit_status_code = 0, means success, its a default behavior
 exit_status_code = integer greater than zero, abnormal termination
@@ -406,14 +372,12 @@ def exit_gracefully(exit_status_code):
     sys.exit(exit_status_code)
 
 
-'''
-Fetches the list of resources with a given tag
-Parameter resourceSearchUri : The tag based search uri.
-                              Example: '/block/volumes/search?tag=tagexample1'
-'''
-
-
 def search_by_tag(resourceSearchUri, ipAddr, port):
+    '''Fetches the list of resources with a given tag
+
+    Parameter resourceSearchUri : The tag based search uri
+                              Example: '/block/volumes/search?tag=tagexample1'
+    '''
     # check if the URI passed has both project and name parameters
     strUri = str(resourceSearchUri)
     if strUri.__contains__("search") and strUri.__contains__("?tag="):
@@ -492,14 +456,11 @@ def block_until_complete(componentType,
     return
 
 
-'''
-Returns the single task details for a given resource and its associated task
-parameter task_uri_constant : The URI constant for the task
-'''
-
-
 def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
                                        task_id, ipAddr, port):
+    '''Returns the single task details
+
+    '''
 
     task_uri_constant = singletonURIHelperInstance.getUri(
         componentType, "task")
@@ -514,8 +475,8 @@ def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
 
 class CoprHdError(Exception):
 
-    '''
-    Custom exception class used to report CLI logical errors
+    '''Custom exception class used to report CLI logical errors
+
     Attributes:
         err_code - String error code
         err_text - String text

@@ -20,19 +20,20 @@ Driver for EMC CoprHD ScaleIO volumes.
 """
 
 import requests
-import six
 from six.moves import urllib
 
 try:
     from oslo_log import log as logging
 except ImportError:
     from cinder.openstack.common import log as logging
-from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 from cinder.volume import driver
+from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 try:
     from cinder.openstack.common import processutils
 except ImportError:
     from oslo_concurrency import processutils
+from cinder import exception
+from cinder.i18n import _LI
 from cinder import utils
 
 
@@ -113,7 +114,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         pass
 
     def remove_export(self, context, volume):
-        """Driver exntry point to remove an export for a volume.
+        """Driver exntry point to remove an export for a volume
+
         """
         pass
 
@@ -131,11 +133,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         """Deletes a consistency group."""
         return self.common.delete_consistencygroup(self, context, group)
 
-    def create_cgsnapshot(self, context, cgsnapshot):
+    def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""
         return self.common.create_cgsnapshot(self, context, cgsnapshot)
 
-    def delete_cgsnapshot(self, context, cgsnapshot):
+    def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
         return self.common.delete_cgsnapshot(self, context, cgsnapshot)
 
@@ -209,11 +211,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         properties['serverToken'] = self.server_token
         protocol = 'scaleio'
         hostname = connector['host']
-        itls = self.common.initialize_connection(volume,
-                                                 protocol,
-                                                 initiatorNodes,
-                                                 initiatorPorts,
-                                                 hostname)
+        self.common.initialize_connection(volume,
+                                          protocol,
+                                          initiatorNodes,
+                                          initiatorPorts,
+                                          hostname)
 
         dictobj = {
             'driver_volume_type': 'scaleio',
@@ -276,17 +278,19 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         self._stats = self.common.update_volume_stats()
 
     def _get_scaleio_version(self):
-        LOG.info("Get version of the scaleio SDC")
+        LOG.info(_LI("Get version of the scaleio SDC"))
 
         cmd = ['drv_cfg']
         cmd += ["--query_version"]
 
-        LOG.info("ScaleIO sdc query version command: " + str(cmd))
+        LOG.info(_LI("ScaleIO sdc query version command: %s"), str(cmd))
 
         try:
             (out, err) = utils.execute(*cmd, run_as_root=True)
-            LOG.info("Get ScaleIO version %s: stdout=%s stderr=%s" %
-                     (cmd, out, err))
+            LOG.info(_LI("Get ScaleIO version cmd=%(cmd)s:"
+                         "stdout=%(out)s strerr=%(err)s") %
+                     {'cmd': cmd,
+                      'out': out, 'err': err})
         except processutils.ProcessExecutionError as e:
             msg = ("Error querying sdc version: %s" % (e.stderr))
             if('unrecognized option \'--query_version\'' in msg):
@@ -306,7 +310,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         ip_double_encoded = urllib.parse.quote(ip_encoded, '')
         request = "https://" + server_ip + ":" + server_port + \
             "/api/types/Sdc/instances/getByIp::" + ip_double_encoded + "/"
-        LOG.info("ScaleIO get client id by ip request: %s" % request)
+        LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
 
         if(self.configuration.scaleio_verify_server_certificate == 'True'):
             verify_cert = self.scaleio_server_certificate_path
@@ -337,14 +341,15 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                    (sdc_ip, sdc_id['message']))
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
-        LOG.info("ScaleIO sdc id is %s" % sdc_id)
+        LOG.info(_LI("ScaleIO sdc id is %s"), sdc_id)
         return sdc_id
 
     def _check_response(self, response, request,
                         server_ip, server_port,
                         server_username, server_password):
         if (response.status_code == 401 or response.status_code == 403):
-            LOG.info("Token is invalid, going to re-login and get a new one")
+            LOG.info(
+                _LI("Token is invalid, going to re-login and get a new one"))
             login_request = "https://" + server_ip + \
                 ":" + server_port + "/api/login"
             if(self.configuration.scaleio_verify_server_certificate == 'True'):
@@ -359,10 +364,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             token = r.json()
             self.server_token = token
             # repeat request with valid token
-
-            LOG.info(
-                "going to perform request again {0} with valid token".
-                format(request))
+            LOG.info(_LI("going to perform request again %s with valid token"),
+                     request)
             res = requests.get(
                 request, auth=(server_username, self.server_token),
                 verify=verify_cert)

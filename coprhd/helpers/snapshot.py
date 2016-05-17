@@ -18,10 +18,10 @@ from threading import Timer
 import json
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
-from cinder.volume.drivers.emc.coprhd.helpers import volume
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
     import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
+from cinder.volume.drivers.emc.coprhd.helpers import volume
 
 
 class Snapshot(object):
@@ -48,17 +48,17 @@ class Snapshot(object):
     timeout = 300
 
     def __init__(self, ipAddr, port):
-        '''
-        Constructor: takes IP address and port of the CoprHD instance.
+        '''Constructor: takes IP address and port of the CoprHD instance
+
         These are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
 
     def snapshot_list_uri(self, otype, otypename, ouri):
-        '''
-        Makes REST API call to list snapshots under a volume
-         parameters:
+        '''Makes REST API call to list snapshots under a volume
+
+        Parameters:
             otype     : block
             otypename : either volumes or consistency-groups should be provided
             ouri      : uri of volumes or consistency-group
@@ -74,8 +74,8 @@ class Snapshot(object):
         return o['snapshot']
 
     def snapshot_show_uri(self, otype, resourceUri, suri):
-        '''
-        Retrieves snapshot details based on snapshot Name or Label
+        '''Retrieves snapshot details based on snapshot Name or Label
+
         Parameters:
             otype : block
             suri : uri of the Snapshot.
@@ -92,13 +92,12 @@ class Snapshot(object):
                 Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE.format(
                     resourceUri,
                     suri),
-                None,
                 None)
         else:
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "GET",
-                Snapshot.URI_SNAPSHOTS.format(otype, suri), None, None)
+                Snapshot.URI_SNAPSHOTS.format(otype, suri), None)
 
         return common.json_decode(s)
 
@@ -206,15 +205,16 @@ class Snapshot(object):
     def snapshot_create(self, otype, typename, ouri,
                         snaplabel, inactive, sync,
                         readonly=False, synctimeout=0):
-        '''new snapshot is created, for a given volume
-            parameters:
-                otype      : block
-                type should be provided
-                typename   : either volume or consistency-groups should
-                be provided
-                ouri       : uri of volume
-                snaplabel  : name of the snapshot
-                activate   : activate snapshot in vnx and vmax
+        '''New snapshot is created, for a given volume
+
+        Parameters:
+            otype      : block
+            type should be provided
+            typename   : either volume or consistency-groups should
+            be provided
+            ouri       : uri of volume
+            snaplabel  : name of the snapshot
+            activate   : activate snapshot in vnx and vmax
         '''
 
         # check snapshot is already exist
@@ -266,9 +266,10 @@ class Snapshot(object):
 
     def snapshot_delete_uri(self, otype, resourceUri, suri, sync, synctimeout):
         '''Delete a snapshot by uri
-        parameters:
+
+        Parameters:
             otype : block
-            suri : Uri of the Snapshot.
+            suri : Uri of the Snapshot
         '''
         s = None
         if resourceUri.find("Volume") > 0:

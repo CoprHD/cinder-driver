@@ -23,8 +23,8 @@ try:
     from oslo_log import log as logging
 except ImportError:
     from cinder.openstack.common import log as logging
-from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 from cinder.volume import driver
+from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 
 
 LOG = logging.getLogger(__name__)
@@ -89,11 +89,12 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         pass
 
     def create_export(self, context, volume, connector=None):
-        """Driver entry point to get the export info for a new volume."""
+        """Driver entry point to get the export info for a new volume"""
         pass
 
     def remove_export(self, context, volume):
-        """Driver exntry point to remove an export for a volume.
+        """Driver exntry point to remove an export for a volume
+
         """
         pass
 
@@ -111,11 +112,11 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         return self.common.update_consistencygroup(self, context, group,
                                                    add_volumes, remove_volumes)
 
-    def create_cgsnapshot(self, context, cgsnapshot):
+    def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""
         return self.common.create_cgsnapshot(self, context, cgsnapshot)
 
-    def delete_cgsnapshot(self, context, cgsnapshot):
+    def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
         return self.common.delete_cgsnapshot(self, context, cgsnapshot)
 

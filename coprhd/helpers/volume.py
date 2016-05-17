@@ -18,17 +18,14 @@
 import json
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
     import CoprHdError
+from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
 from cinder.volume.drivers.emc.coprhd.helpers.virtualarray import VirtualArray
 
 
 class Volume(object):
 
-    '''
-    The class definition for operations on 'Volume'.
-    '''
     # Commonly used URIs for the 'Volume' module
     URI_SEARCH_VOLUMES = '/block/volumes/search?project={0}'
     URI_SEARCH_VOLUMES_BY_TAG = '/block/volumes/search?tag={0}'
@@ -63,17 +60,17 @@ class Volume(object):
     timeout = 300
 
     def __init__(self, ipAddr, port):
-        '''
-        Constructor: takes IP address and port of the CoprHD instance. These
-        are needed to make http requests for REST API
+        '''Constructor: takes IP address and port of the CoprHD instance.
+
+        These are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
 
     # Lists volumes in a project
     def list_volumes(self, project):
-        '''
-        Makes REST API call to list volumes under a project
+        '''Makes REST API call to list volumes under a project
+
         Parameters:
             project: name of project
         Returns:
@@ -111,8 +108,8 @@ class Volume(object):
 
     # Shows volume information given its uri
     def show_by_uri(self, uri):
-        '''
-        Makes REST API call and retrieves volume details based on UUID
+        '''Makes REST API call and retrieves volume details based on UUID
+
         Parameters:
             uri: UUID of volume
         Returns:
@@ -132,8 +129,8 @@ class Volume(object):
     # Creates a volume given label, project, vpool and size
     def create(self, project, label, size, varray, vpool,
                sync, consistencygroup, synctimeout=0):
-        '''
-        Makes REST API call to create volume under a project
+        '''Makes REST API call to create volume under a project
+
         Parameters:
             project: name of the project under which the volume will be created
             label: name of volume
@@ -205,14 +202,13 @@ class Volume(object):
 
     # Queries a volume given its name
     def volume_query(self, name):
-        '''
-        Makes REST API call to query the volume by name
+        '''Makes REST API call to query the volume by name
+
         Parameters:
             name: name of volume
         Returns:
             Volume details in JSON response payload
         '''
-
         if common.is_uri(name):
             return name
 
@@ -286,8 +282,8 @@ class Volume(object):
     # Creates volume(s) from given source volume
     def clone(self, new_vol_name, resourceUri,
               sync, synctimeout=0):
-        '''
-        Makes REST API call to clone volume
+        '''Makes REST API call to clone volume
+
         Parameters:
             project: name of the project under which the volume will be created
             new_vol_name: name of volume
@@ -297,6 +293,7 @@ class Volume(object):
         Returns:
             Created task details in JSON response payload
         '''
+
         from cinder.volume.drivers.emc.coprhd.helpers.snapshot import Snapshot
         snap_obj = Snapshot(self.__ipAddr, self.__port)
         is_snapshot_clone = False
@@ -389,8 +386,8 @@ class Volume(object):
 
     # Shows volume information given its name
     def show(self, name):
-        '''
-        Retrieves volume details based on volume name
+        '''Retrieves volume details based on volume name
+
         Parameters:
             name: name of the volume. If the volume is under a project,
             then full XPath needs to be specified.
@@ -399,7 +396,6 @@ class Volume(object):
         Returns:
             Volume details in JSON response payload
         '''
-
         if common.is_uri(name):
             return name
         (pname, label) = common.get_parent_child_from_xpath(name)
@@ -449,8 +445,8 @@ class Volume(object):
     # Deletes a volume given a volume name
     def delete(self, name, sync=False,
                forceDelete=False, coprhdonly=False, synctimeout=0):
-        '''
-        Deletes a volume based on volume name
+        '''Deletes a volume based on volume name
+
         Parameters:
             name: name of volume
         '''
@@ -461,11 +457,12 @@ class Volume(object):
     # Deletes a volume given a volume uri
     def delete_by_uri(self, uri, sync=False,
                       forceDelete=False, coprhdonly=False, synctimeout=0):
-        '''
-        Deletes a volume based on volume uri
+        '''Deletes a volume based on volume uri
+
         Parameters:
             uri: uri of volume
         '''
+
         params = ''
         if forceDelete:
             params += '&' if ('?' in params) else '?'
@@ -488,8 +485,8 @@ class Volume(object):
 
     # Gets the exports info given a volume uri
     def get_exports_by_uri(self, uri):
-        '''
-        Makes REST API call to get exports info of a volume
+        '''Makes REST API call to get exports info of a volume
+
         Parameters:
             uri: URI of the volume
         Returns:
@@ -505,8 +502,8 @@ class Volume(object):
     # Update a volume information
     # Changed the volume vpool
     def update(self, prefix_path, name, vpool):
-        '''
-        Makes REST API call to update a volume information
+        '''Makes REST API call to update a volume information
+
         Parameters:
             name: name of the volume to be updated
             vpool: name of vpool

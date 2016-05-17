@@ -29,13 +29,15 @@ class VirtualPool(object):
 
     def __init__(self, ipAddr, port):
         '''Constructor: takes IP address and port of the CoprHD instance.
+
         These are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
 
     def vpool_show_uri(self, vpooltype, uri):
-        '''
+        '''Makes REST API call and retrieves vpool details based on UUID
+
         This function will take uri as input and returns with
         all parameters of VPOOL like label, urn and type.
         parameters
@@ -43,10 +45,11 @@ class VirtualPool(object):
         return
             returns with object contain all details of VPOOL.
         '''
+
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
-            self.URI_VPOOL_SHOW.format(vpooltype, uri), None, None)
+            self.URI_VPOOL_SHOW.format(vpooltype, uri), None)
 
         o = common.json_decode(s)
         if o['inactive']:
@@ -55,7 +58,8 @@ class VirtualPool(object):
         return o
 
     def vpool_query(self, name, vpooltype):
-        '''
+        '''Makes REST API call to query the vpool by name and type
+
         This function will take the VPOOL name and type of VPOOL
         as input and get uri of the first occurance of given VPOOL.
         parameters:

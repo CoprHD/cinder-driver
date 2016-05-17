@@ -26,8 +26,8 @@ try:
 except ImportError:
     from cinder.openstack.common import log as logging
 
-from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 from cinder.volume import driver
+from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 try:
     # new utilities introduced in Juno
     from cinder.zonemanager.utils import AddFCZone
@@ -123,11 +123,11 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Deletes a consistency group."""
         return self.common.delete_consistencygroup(self, context, group)
 
-    def create_cgsnapshot(self, context, cgsnapshot):
+    def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""
         return self.common.create_cgsnapshot(self, context, cgsnapshot)
 
-    def delete_cgsnapshot(self, context, cgsnapshot):
+    def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
         return self.common.delete_cgsnapshot(self, context, cgsnapshot)
 

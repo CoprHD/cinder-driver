@@ -22,37 +22,32 @@ from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
     import CoprHdError
 from cinder.volume.drivers.emc.coprhd.helpers.host import Host
 from cinder.volume.drivers.emc.coprhd.helpers.project import Project
-from cinder.volume.drivers.emc.coprhd.helpers.snapshot import Snapshot
 from cinder.volume.drivers.emc.coprhd.helpers.virtualarray import VirtualArray
 from cinder.volume.drivers.emc.coprhd.helpers.volume import Volume
 
 
 class ExportGroup(object):
 
-    '''
-    The class definition for operations on 'Export group Service'.
-    '''
     URI_EXPORT_GROUP = "/block/exports"
     URI_EXPORT_GROUPS_SHOW = URI_EXPORT_GROUP + "/{0}"
     URI_EXPORT_GROUP_SEARCH = '/block/exports/search'
     URI_EXPORT_GROUP_UPDATE = '/block/exports/{0}'
 
     def __init__(self, ipAddr, port):
-        '''
-        Constructor: takes IP address and port of the CoprHD instance. These
-        are needed to make http requests for REST API
+        '''Constructor: takes IP address and port of the CoprHD instance
+
+        These are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
-
-    '''
-    Remove volumes from the exportgroup, given the uris of volume.
-    '''
 
     def exportgroup_remove_volumes_by_uri(self, exportgroup_uri, volumeIdList,
                                           sync=False, tenantname=None,
                                           projectname=None,
                                           cg=None, synctimeout=0):
+        '''Remove volumes from the exportgroup, given the uris of volume
+
+        '''
         volume_list = volumeIdList
         parms = {}
 
@@ -92,13 +87,12 @@ class ExportGroup(object):
             return result
 
     def exportgroup_list(self, project, tenant):
-        '''
-        This function will give us the list of export group uris
-        separated by comma.
-        parameters:
-            project: Name of the project path.
+        '''This function gives us list of export group uris separated by comma
+
+        Parameters:
+            project: Name of the project path
         return
-            returns with list of export group ids separated by comma.
+            returns with list of export group ids separated by comma
         '''
         if tenant is None:
             tenant = ""
@@ -127,14 +121,13 @@ class ExportGroup(object):
         return exportgroups
 
     def exportgroup_show(self, name, project, tenant, varray=None):
-        '''
-        This function will take export group name and project name as input and
-        It will display the Export group with details.
-        parameters:
-           name : Name of the export group.
-           project: Name of the project.
+        '''This function display the Export group with details
+
+        Parameters:
+           name : Name of the export group
+           project: Name of the project
         return
-            returns with Details of export group.
+            returns with Details of export group
         '''
         varrayuri = None
         if varray:
@@ -154,15 +147,14 @@ class ExportGroup(object):
 
     def exportgroup_create(self, name, project, tenant, varray,
                            exportgrouptype, export_destination=None):
-        '''
-        This function will take export group name and project name  as input
-        and it will create the Export group with given name.
-        parameters:
-           name : Name of the export group.
-           project: Name of the project path.
-           tenant: Container tenant name.
+        '''This function creates the Export group with given name
+
+        Parameters:
+           name : Name of the export group
+           project: Name of the project path
+           tenant: Container tenant name
         return
-            returns with status of creation.
+            returns with status of creation
         '''
         # check for existence of export group.
         try:
@@ -213,14 +205,13 @@ class ExportGroup(object):
                 " already exists")
 
     def exportgroup_query(self, name, project, tenant, varrayuri=None):
-        '''
-        This function will take export group name/id and project name  as input
-        and returns export group id.
-        parameters:
-           name : Name/id of the export group.
+        '''Makes REST API call to query the exportgroup by name
+
+        Parameters:
+            name : Name/id of the export group.
         return
             return with id of the export group.
-         '''
+        '''
         if common.is_uri(name):
             return name
 
@@ -244,9 +235,9 @@ class ExportGroup(object):
                                 maxpaths, minpaths, pathsperinitiator,
                                 projectname, volumenames,
                                 cg=None, synctimeout=0, varray=None):
-        '''
-        add volume to export group
-        parameters:
+        '''Add volume to export group
+
+        Parameters:
            exportgroupname : Name/id of the export group.
            tenantname      : tenant name
            projectname     : name of project
@@ -299,9 +290,8 @@ class ExportGroup(object):
 
     def _get_resource_lun_tuple(self, resources, resType, baseResUri,
                                 tenantname, projectname, blockTypeName):
-        '''
-        function to validate input volumes
-        and return list of ids and luns
+        '''Function to validate input volumes and return list of ids and luns
+
         input
             list of volumes in the format name:lun
         '''
@@ -312,7 +302,7 @@ class ExportGroup(object):
             copyParam = []
             try:
                 copyParam = copy.split(":")
-            except Exception as e:
+            except Exception:
                 raise CoprHdError(
                     CoprHdError.CMD_LINE_ERR,
                     "Please provide valid format volume: lun for parameter " +

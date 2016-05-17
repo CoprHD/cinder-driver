@@ -23,26 +23,22 @@ from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
 
 class VirtualArray(object):
 
-    '''
-    The class definition for operations on 'VirtualArray'.
-    '''
-
     # Commonly used URIs for the 'varrays' module
     URI_VIRTUALARRAY = '/vdc/varrays'
     URI_VIRTUALARRAY_BY_VDC_ID = '/vdc/varrays?vdc-id={0}'
     URI_VIRTUALARRAY_URI = '/vdc/varrays/{0}'
 
     def __init__(self, ipAddr, port):
-        '''
-        Constructor: takes IP address and port of the CoprHD instance.
+        '''Constructor: takes IP address and port of the CoprHD instance.
+
         These are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
 
     def varray_query(self, name):
-        '''
-        Returns the UID of the varray specified by the name
+        '''Returns the UID of the varray specified by the name
+
         '''
         if common.is_uri(name):
             return name
@@ -58,8 +54,8 @@ class VirtualArray(object):
                           "varray " + name + ": not found")
 
     def varray_list(self, vdcname=None):
-        '''
-        Returns all the varrays in a vdc
+        '''Returns all the varrays in a vdc
+
         Parameters:
         Returns:
                 JSON payload of varray list
@@ -83,16 +79,15 @@ class VirtualArray(object):
         return returnlst
 
     def varray_show(self, label):
-        '''
-        Makes a REST API call to retrieve details of a varray
-        based on its UUID
+        '''Makes REST API call to retrieve varray details based on its name
+
         '''
         uri = self.varray_query(label)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
             VirtualArray.URI_VIRTUALARRAY_URI.format(uri),
-            None, None)
+            None)
 
         o = common.json_decode(s)
         if 'inactive' in o and o['inactive'] is True:

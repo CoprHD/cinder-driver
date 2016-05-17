@@ -17,24 +17,20 @@
 
 
 import cookielib
+import six
 import socket
 
 import requests
 from requests.exceptions import ConnectionError
 from requests.exceptions import SSLError
 from requests.exceptions import Timeout
-from requests.exceptions import TooManyRedirects
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
     import CoprHdError
-    
+
 
 class Authentication(object):
-
-    '''
-    The class definition for authenticating the specified user
-    '''
 
     # Commonly used URIs for the 'Authentication' module
     URI_SERVICES_BASE = ''
@@ -44,17 +40,19 @@ class Authentication(object):
                'ACCEPT': 'application/json', 'X-EMC-REST-CLIENT': 'TRUE'}
 
     def __init__(self, ipaddr, port):
-        '''
-        Constructor: takes IP address and port of the CoprHD instance.
+        '''Constructor: takes IP address and port of the CoprHD instance
+
         These are needed to make http requests for REST API
         '''
         self.__ipaddr = ipaddr
         self.__port = port
 
     def authenticate_user(self, username, password):
-        '''
-        Makes REST API call to generate the authentication token for the
-        specified user after validation.
+        '''Makes REST API call to generate the authentication token
+
+        Authentication token is generated for the specified user after
+        validation
+
         Returns:
             SUCCESS OR FAILURE
         '''
@@ -149,7 +147,7 @@ class Authentication(object):
                     str(LB_API_PORT) + ", api service port is: " +
                     str(APISVC_PORT) + ".")
 
-            if not authToken:
+            if not authtoken:
                 details_str = self.extract_error_detail(login_response)
                 raise CoprHdError(
                     CoprHdError.HTTP_ERR,
@@ -185,7 +183,7 @@ class Authentication(object):
                                   " [" + str(error_msg) + "]")
 
         except (SSLError, socket.error, ConnectionError, Timeout) as e:
-            raise CoprHdError(CoprHdError.HTTP_ERR, str(e))
+            raise CoprHdError(CoprHdError.HTTP_ERR, six.text_type(e))
 
         return authtoken
 
@@ -198,5 +196,5 @@ class Authentication(object):
                     details_str = json_object['details']
 
             return details_str
-        except CoprHdError as e:
+        except CoprHdError:
             return details_str

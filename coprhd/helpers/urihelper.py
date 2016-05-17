@@ -16,8 +16,8 @@
 
 class URIHelper(object):
 
-    '''
-    This map will be a map of maps
+    '''This map will be a map of maps
+
     e.g for project component type, it will hold a map
     of its operations vs their uris
     '''
@@ -49,8 +49,8 @@ class URIHelper(object):
     URI_EXPORT_GROUP_TASK = URI_EXPORT_GROUP_TASKS_LIST + '/{1}'
 
     def __init__(self):
-        '''
-        During initialization of the class, lets fill all the maps
+        '''During initialization of the class, lets fill all the maps
+
         '''
         self.__fillExportGroupMap()
         self.__fillVolumeMap()

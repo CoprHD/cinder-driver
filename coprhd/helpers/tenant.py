@@ -22,26 +22,22 @@ from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
 
 class Tenant(object):
 
-    '''
-    The class definition for operations on 'Tenant'.
-    '''
-
     URI_SERVICES_BASE = ''
     URI_TENANT = URI_SERVICES_BASE + '/tenant'
     URI_TENANTS = URI_SERVICES_BASE + '/tenants/{0}'
     URI_TENANTS_SUBTENANT = URI_TENANTS + '/subtenants'
 
     def __init__(self, ipAddr, port):
-        '''
-        Constructor: takes IP address and port of the CoprHD instance. These
-        are needed to make http requests for REST API
+        '''Constructor: takes IP address and port of the CoprHD instance
+
+        These are needed to make http requests for REST API
         '''
         self.__ipAddr = ipAddr
         self.__port = port
 
     def tenant_query(self, label):
-        '''
-        Returns the UID of the tenant specified by the hierarchical name
+        '''Returns the UID of the tenant specified by the hierarchical name
+
         (ex tenant1/tenant2/tenant3)
         '''
 
@@ -66,8 +62,8 @@ class Tenant(object):
                           "Tenant " + label + ": not found")
 
     def tenant_show(self, label):
-        '''
-        Returns the details of the tenant based on its name
+        '''Returns the details of the tenant based on its name
+
         '''
         if label:
             tenant_id = self.tenant_query(label)
@@ -84,8 +80,8 @@ class Tenant(object):
         return o['id']
 
     def tenant_list(self, uri=None):
-        '''
-        Returns all the tenants under a parent tenant
+        '''Returns all the tenants under a parent tenant
+
         Parameters:
             parent: The parent tenant name
         Returns:
@@ -110,12 +106,12 @@ class Tenant(object):
             return []
 
     def tenant_show_by_uri(self, uri):
-        '''
-        Makes a REST API call to retrieve details of a tenant based on its UUID
+        '''Makes REST API call to retrieve tenant details based on its UUID
+
         '''
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
                                              Tenant.URI_TENANTS.format(uri),
-                                             None, None)
+                                             None)
 
         o = common.json_decode(s)
         if 'inactive' in o and o['inactive']:
