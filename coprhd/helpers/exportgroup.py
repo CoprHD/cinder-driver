@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # Copyright (c) 2016 EMC Corporation
 # All Rights Reserved.
 #
@@ -15,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
+import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
@@ -64,7 +62,7 @@ class ExportGroup(object):
         return resChanges
 
     def send_json_request(self, exportgroup_uri, param):
-        body = json.dumps(param)
+        body = oslo_serialization.jsonutils.dumps(param)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "PUT",
             self.URI_EXPORT_GROUP_UPDATE.format(exportgroup_uri), body)
@@ -187,7 +185,7 @@ class ExportGroup(object):
                         raise e
                     parms['hosts'] = [host_uri]
 
-                body = json.dumps(parms)
+                body = oslo_serialization.jsonutils.dumps(parms)
                 (s, h) = common.service_json_request(self.__ipAddr,
                                                      self.__port, "POST",
                                                      self.URI_EXPORT_GROUP,
@@ -238,12 +236,21 @@ class ExportGroup(object):
         '''Add volume to export group
 
         Parameters:
-           exportgroupname : Name/id of the export group.
-           tenantname      : tenant name
-           projectname     : name of project
-           volumename      : name of volume that needs
-                             to be added to exportgroup
-           lunid           : lun id
+           sync              : synchronous request
+           exportgroupname   : Name/id of the export group.
+           tenantname        : tenant name
+           maxpaths          : Maximum number of paths
+           minpaths          : Minimum number of paths
+           pathsperinitiator : Paths per initiator
+           projectname       : name of project
+           volumenames       : names of volumes that needs
+                               to be added to exportgroup
+           cg                : consistency group
+           synctimeout       : Query for task status for "synctimeout" secs.
+                               If the task doesn't complete in synctimeout
+                               secs, an exception is thrown
+           varray            : Name of varray
+
         return
             return action result
         '''

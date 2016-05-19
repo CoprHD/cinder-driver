@@ -19,7 +19,8 @@
 '''
 Contains tagging related methods
 '''
-import json
+
+import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
@@ -32,7 +33,7 @@ def tag_resource(ipaddr, port, uri, resourceid, add, remove):
         'add': add,
         'remove': remove
     }
-    body = json.dumps(params)
+    body = oslo_serialization.jsonutils.dumps(params)
 
     (s, h) = common.service_json_request(ipaddr, port, "PUT",
                                          uri.format(resourceid), body)

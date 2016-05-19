@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # Copyright (c) 2016 EMC Corporation
 # All Rights Reserved.
 #

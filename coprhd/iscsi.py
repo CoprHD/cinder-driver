@@ -19,10 +19,8 @@ Driver for EMC CoprHD iSCSI volumes.
 
 """
 
-try:
-    from oslo_log import log as logging
-except ImportError:
-    from cinder.openstack.common import log as logging
+from oslo_log import log as logging
+
 from cinder.volume import driver
 from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 
@@ -31,7 +29,7 @@ LOG = logging.getLogger(__name__)
 
 
 class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
-    """EMC CoprHD iSCSI Driver"""
+    """CoprHD iSCSI Driver"""
 
     def __init__(self, *args, **kwargs):
         super(EMCCoprHDISCSIDriver, self).__init__(*args, **kwargs)
@@ -66,7 +64,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         self.common.expand_volume(volume, new_size)
 
     def delete_volume(self, volume):
-        """Deletes an EMC volume."""
+        """Deletes an volume."""
         self.common.delete_volume(volume)
 
     def create_snapshot(self, snapshot):

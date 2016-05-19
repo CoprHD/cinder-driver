@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
+import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
@@ -145,7 +145,7 @@ class ConsistencyGroup(object):
                 projuri = projobj.project_query(fullproj)
 
                 parms = {'name': name, 'project': projuri, }
-                body = json.dumps(parms)
+                body = oslo_serialization.jsonutils.dumps(parms)
 
                 (s, h) = common.service_json_request(
                     self.__ipAddr, self.__port, "POST",
@@ -188,11 +188,15 @@ class ConsistencyGroup(object):
 
         It will update the consistency  group with given volumes
         Parameters:
-           name : Name of the consistency group
-           project: Name of the project path
-           tenant: Container tenant name
-           add_volumes : volumes to be added to the consistency group
-           remove_volumes: volumes to be removed from CG
+           name           : Name of the consistency group
+           project        : Name of the project path
+           tenant         : Container tenant name
+           add_volumes    : volumes to be added to the consistency group
+           remove_volumes : volumes to be removed from CG
+           sync           : synchronous request
+           synctimeout    : Query for task status for "synctimeout" secs. If
+                            the task doesn't complete in synctimeout secs, an
+                            exception is thrown
         return
             returns with status of creation
         '''
@@ -218,7 +222,7 @@ class ConsistencyGroup(object):
             volumes = {'volume': remove_voluris}
             parms = {'remove_volumes': volumes}
 
-        body = json.dumps(parms)
+        body = oslo_serialization.jsonutils.dumps(parms)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "PUT",
             self.URI_CONSISTENCY_GROUPS_INSTANCE.format(uri),

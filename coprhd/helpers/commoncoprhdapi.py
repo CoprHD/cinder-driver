@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # Copyright (c) 2016 EMC Corporation
 # All Rights Reserved.
 #
@@ -26,6 +24,7 @@ import socket
 import sys
 from threading import Timer
 
+import oslo_serialization
 import requests
 from requests.exceptions import ConnectionError
 from requests.exceptions import SSLError
@@ -232,7 +231,7 @@ def format_json_object(obj):
     Returns:
         a string of  formatted JSON object
     '''
-    return json.dumps(obj, sort_keys=True, indent=3)
+    return oslo_serialization.jsonutils.dumps(obj, sort_keys=True, indent=3)
 
 
 def get_parent_child_from_xpath(name):

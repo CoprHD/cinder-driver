@@ -15,7 +15,7 @@
 
 from threading import Timer
 
-import json
+import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
@@ -208,13 +208,19 @@ class Snapshot(object):
         '''New snapshot is created, for a given volume
 
         Parameters:
-            otype      : block
-            type should be provided
-            typename   : either volume or consistency-groups should
-            be provided
-            ouri       : uri of volume
-            snaplabel  : name of the snapshot
-            activate   : activate snapshot in vnx and vmax
+            otype       : block
+                         type should be provided
+            typename    : either volume or consistency-groups should
+                         be provided
+            ouri        : uri of volume
+            snaplabel   : name of the snapshot
+            inactive    : if true, the snapshot will not activate the
+                         synchronization between source and target volumes
+            sync        : synchronous request
+            synctimeout : Query for task status for "synctimeout" secs.
+                          If the task doesn't complete in synctimeout
+                          secs, an exception is thrown
+
         '''
 
         # check snapshot is already exist
@@ -241,9 +247,9 @@ class Snapshot(object):
             # between source and target volumes
             'create_inactive': inactive
         }
-        if readonly == "true":
+        if readonly is True:
             parms['read_only'] = readonly
-        body = json.dumps(parms)
+        body = oslo_serialization.jsonutils.dumps(parms)
 
         # REST api call
         (s, h) = common.service_json_request(
@@ -270,6 +276,10 @@ class Snapshot(object):
         Parameters:
             otype : block
             suri : Uri of the Snapshot
+            sync : To perform operation synchronously
+            synctimeout : Query for task status for "synctimeout" secs. If
+                          the task doesn't complete in synctimeout secs, an
+                          exception is thrown
         '''
         s = None
         if resourceUri.find("Volume") > 0:

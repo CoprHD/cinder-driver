@@ -45,7 +45,7 @@ LOG = logging.getLogger(__name__)
 
 
 class EMCCoprHDFCDriver(driver.FibreChannelDriver):
-    """EMC CoprHD FC Driver"""
+    """CoprHD FC Driver"""
 
     def __init__(self, *args, **kwargs):
         super(EMCCoprHDFCDriver, self).__init__(*args, **kwargs)
@@ -80,7 +80,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         self.common.expand_volume(volume, new_size)
 
     def delete_volume(self, volume):
-        """Deletes an EMC volume."""
+        """Deletes a volume."""
         self.common.delete_volume(volume)
 
     def create_snapshot(self, snapshot):

@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # Copyright (c) 2016 EMC Corporation
 # All Rights Reserved.
 #
@@ -54,7 +52,7 @@ class Authentication(object):
         validation
 
         Returns:
-            SUCCESS OR FAILURE
+            The authtoken
         '''
         SEC_REDIRECT = 302
         SEC_AUTHTOKEN_HEADER = 'X-SDS-AUTH-TOKEN'

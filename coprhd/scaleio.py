@@ -22,26 +22,21 @@ Driver for EMC CoprHD ScaleIO volumes.
 import requests
 from six.moves import urllib
 
-try:
-    from oslo_log import log as logging
-except ImportError:
-    from cinder.openstack.common import log as logging
-from cinder.volume import driver
-from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
-try:
-    from cinder.openstack.common import processutils
-except ImportError:
-    from oslo_concurrency import processutils
+from oslo_concurrency import processutils
+from oslo_log import log as logging
+
 from cinder import exception
 from cinder.i18n import _LI
 from cinder import utils
+from cinder.volume import driver
+from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 
 
 LOG = logging.getLogger(__name__)
 
 
 class EMCCoprHDScaleIODriver(driver.VolumeDriver):
-    """EMC CoprHD ScaleIO Driver"""
+    """CoprHD ScaleIO Driver"""
     server_token = None
 
     def __init__(self, *args, **kwargs):
@@ -87,7 +82,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         self.common.expand_volume(volume, new_size)
 
     def delete_volume(self, volume):
-        """Deletes an EMC volume."""
+        """Deletes an volume."""
         self.common.delete_volume(volume)
 
     def create_snapshot(self, snapshot):

@@ -14,22 +14,21 @@
 #    under the License.
 
 import random
+import six
 import string
 import sys
 import time
 import traceback
 
 from oslo_config import cfg
+from oslo_log import log as logging
 from oslo_utils import excutils
-try:
-    from oslo_log import log as logging
-except ImportError:
-    from cinder.openstack.common import log as logging
+
 from cinder import context
 from cinder import exception
+from cinder.i18n import _
 from cinder.i18n import _LE
 from cinder.i18n import _LI
-
 from cinder.volume.drivers.emc.coprhd.helpers \
     import authentication as CoprHD_auth
 from cinder.volume.drivers.emc.coprhd.helpers \
@@ -52,25 +51,25 @@ LOG = logging.getLogger(__name__)
 volume_opts = [
     cfg.StrOpt('hostname',
                default=None,
-               help='Hostname for the EMC CoprHD Instance'),
+               help='Hostname for the CoprHD Instance'),
     cfg.IntOpt('coprhd_port',
                default=4443,
-               help='Port for the EMC CoprHD Instance'),
+               help='Port for the CoprHD Instance'),
     cfg.StrOpt('coprhd_username',
                default=None,
-               help='Username for accessing the EMC CoprHD Instance'),
+               help='Username for accessing the CoprHD Instance'),
     cfg.StrOpt('coprhd_password',
                default=None,
-               help='Password for accessing the EMC CoprHD Instance'),
+               help='Password for accessing the CoprHD Instance'),
     cfg.StrOpt('coprhd_tenant',
                default=None,
-               help='Tenant to utilize within the EMC CoprHD Instance'),
+               help='Tenant to utilize within the CoprHD Instance'),
     cfg.StrOpt('coprhd_project',
                default=None,
-               help='Project to utilize within the EMC CoprHD Instance'),
+               help='Project to utilize within the CoprHD Instance'),
     cfg.StrOpt('coprhd_varray',
                default=None,
-               help='Virtual Array to utilize within the EMC CoprHD Instance'),
+               help='Virtual Array to utilize within the CoprHD Instance'),
     cfg.StrOpt('coprhd_scaleio_rest_gateway_ip',
                default='None',
                help='Rest Gateway for Scaleio'),
@@ -91,7 +90,7 @@ volume_opts = [
                help='Server certificate path'),
     cfg.StrOpt('coprhd_emulate_snapshot',
                default='False',
-               help='True | False to indicate if the storage array' +
+               help='True | False to indicate if the storage array '
                'in CoprHD is VMAX or VPLEX'),
     cfg.StrOpt('coprhd_security_file',
                default=None,
@@ -154,7 +153,7 @@ class EMCCoprHDDriverCommon(object):
                       'reserved_percentage': '0',
                       'storage_protocol': protocol,
                       'total_capacity_gb': 'unknown',
-                      'vendor_name': 'EMC',
+                      'vendor_name': 'CoprHD',
                       'volume_backend_name':
                       self.configuration.volume_backend_name or
                       default_backend_name}
@@ -191,31 +190,31 @@ class EMCCoprHDDriverCommon(object):
     def check_for_setup_error(self):
         # validate all of the coprhd_* configuration values
         if self.configuration.hostname is None:
-            message = "hostname is not set in cinder configuration"
+            message = _("hostname is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
 
         if self.configuration.coprhd_port is None:
-            message = "coprhd_port is not set in cinder configuration"
+            message = _("coprhd_port is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
 
         if self.configuration.coprhd_username is None:
-            message = "coprhd_username is not set in cinder configuration"
+            message = _("coprhd_username is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
 
         if self.configuration.coprhd_password is None:
-            message = "coprhd_password is not set in cinder configuration"
+            message = _("coprhd_password is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
 
         if self.configuration.coprhd_tenant is None:
-            message = "coprhd_tenant is not set in cinder configuration"
+            message = _("coprhd_tenant is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
 
         if self.configuration.coprhd_project is None:
-            message = "coprhd_project is not set in cinder configuration"
+            message = _("coprhd_project is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
 
         if self.configuration.coprhd_varray is None:
-            message = "coprhd_varray is not set in cinder configuration"
+            message = _("coprhd_varray is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
 
     def authenticate_user(self):
@@ -250,7 +249,6 @@ class EMCCoprHDDriverCommon(object):
 
             EMCCoprHDDriverCommon.AUTHENTICATED = True
 
-    @retry_wrapper
     def create_volume(self, vol, driver):
         self.authenticate_user()
         name = self._get_volume_name(vol)
@@ -282,10 +280,11 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Volume " + name + ": create failed\n" + e.err_text)
+                    _("Volume %(name)s: create failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
-                    LOG.exception(_LE("Volume : %s creation failed") % name)
+                    LOG.exception(_LE("Volume : %s creation failed"), name)
 
     @retry_wrapper
     def create_consistencygroup(self, context, group):
@@ -311,8 +310,8 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Consistency Group " + name + ": create failed\n" +
-                    e.err_text)
+                    _("Consistency Group %(name)s: create failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE
@@ -351,8 +350,8 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Consistency Group " + cg_uri + ": update failed\n" +
-                    e.err_text)
+                    _("Consistency Group %(cg_uri)s: update failed\n%(err)s"),
+                    {'cg_uri': cg_uri, 'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE
@@ -396,8 +395,8 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Consistency Group " + name + ": delete failed\n" +
-                    e.err_text)
+                    _("Consistency Group %(name)s: delete failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE
@@ -423,7 +422,7 @@ class EMCCoprHDDriverCommon(object):
 
         model_update = {}
         LOG.info(_LI('Start to create cgsnapshot for consistency group'
-                     ': %(group_name)s') %
+                     ': %(group_name)s'),
                  {'group_name': cg_name})
 
         try:
@@ -438,7 +437,7 @@ class EMCCoprHDDriverCommon(object):
             for snapshot in snapshots:
                 vol_id_of_snap = snapshot['volume_id']
 
-                '''Finding the volume in CoprHD for this volume id'''
+                # Finding the volume in CoprHD for this volume id
                 tagname = "OpenStack:id:" + vol_id_of_snap
                 rslt = CoprHD_utils.search_by_tag(
                     CoprHD_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(
@@ -446,7 +445,7 @@ class EMCCoprHDDriverCommon(object):
                     self.configuration.hostname,
                     self.configuration.coprhd_port)
 
-                if rslt is None or len(rslt) == 0:
+                if not rslt:
                     continue
 
                 volUri = rslt[0]
@@ -465,7 +464,9 @@ class EMCCoprHDDriverCommon(object):
                     if(False == (CoprHD_utils.get_node_value(snapshot_obj,
                                                              'inactive'))):
 
-                        '''When we create a consistency group snapshot on
+                        '''Creating snapshot for a consistency group
+
+                           When we create a consistency group snapshot on
                            coprhd then each snapshot of volume in the
                            consistencygroup will be given a subscript. Ex if
                            the snapshot name is cgsnap1 and lets say there are
@@ -505,14 +506,15 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Snapshot for Consistency Group " + cg_name +
-                    ": create failed\n" + e.err_text)
+                    _("Snapshot for Consistency Group %(cg_name)s:"
+                      "create failed\n%(err)s"),
+                    {'cg_name': cg_name, 'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Snapshot %(name)s for Consistency"
-                                      " Group: %(cg_name)s creation failed")
-                                  % {'cg_name': cg_name,
-                                     'name': cgsnapshot_name})
+                                      " Group: %(cg_name)s creation failed"),
+                                  {'cg_name': cg_name,
+                                   'name': cgsnapshot_name})
 
     @retry_wrapper
     def delete_cgsnapshot(self, driver, context, cgsnapshot):
@@ -530,8 +532,8 @@ class EMCCoprHDDriverCommon(object):
         model_update = {}
         model_update['status'] = cgsnapshot['status']
         LOG.info(_LI('Delete cgsnapshot %(snap_name)s for consistency group: '
-                     '%(group_name)s') % {'snap_name': cgsnapshot['name'],
-                                          'group_name': cg_name})
+                     '%(group_name)s'), {'snap_name': cgsnapshot['name'],
+                                         'group_name': cg_name})
 
         try:
             uri = None
@@ -562,15 +564,16 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Snapshot " + cgsnapshot_id + " for Consistency Group " +
-                    cg_name +
-                    ": delete failed\n" + e.err_text)
+                    _("Snapshot %(cgsnapshot_id)s: for Consistency Group "
+                      "%(cg_name)s: delete failed\n%(err)s"),
+                    {'cgsnapshot_id': cgsnapshot_id, 'cg_name': cg_name,
+                     'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Snapshot %(name)s for Consistency"
-                                      " Group: %(cg_name)s deletion failed")
-                                  % {'cg_name': cg_name,
-                                      'name': cgsnapshot_name})
+                                      " Group: %(cg_name)s deletion failed"),
+                                  {'cg_name': cg_name,
+                                   'name': cgsnapshot_name})
 
     @retry_wrapper
     def set_volume_tags(self, vol, exemptTags=None):
@@ -619,7 +622,8 @@ class EMCCoprHDDriverCommon(object):
                     remove_tags)
         except CoprHD_utils.CoprHdError as e:
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
-                LOG.debug("CoprHdError adding the tag: " + e.err_text)
+                LOG.debug("CoprHdError adding the tag:\n %s",
+                          six.text_type(e.err_text))
 
         # now add the tags for the resource
         add_tags = []
@@ -646,9 +650,9 @@ class EMCCoprHDDriverCommon(object):
                             ":" +
                             str(value))
                 except TypeError:
-                    LOG.debug("Error tagging the resource property %s ", prop)
+                    LOG.debug("Error tagging the resource property %s", prop)
         except TypeError:
-            LOG.debug("Error tagging the resource properties ")
+            LOG.debug("Error tagging the resource properties")
 
         try:
             CoprHD_tag.tag_resource(
@@ -660,7 +664,9 @@ class EMCCoprHDDriverCommon(object):
                 None)
         except CoprHD_utils.CoprHdError as e:
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
-                LOG.debug("CoprHdError adding the tag: " + e.err_text)
+                LOG.debug(
+                    "CoprHdError adding the tag: %s",
+                    six.text_type(e.err_text))
 
         return CoprHD_tag.list_tags(self.configuration.hostname,
                                     self.configuration.coprhd_port,
@@ -677,14 +683,14 @@ class EMCCoprHDDriverCommon(object):
             if src_vref['consistencygroup_id']:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Clone can't be taken individually on a volume" +
-                    " that is part of a Consistency Group")
+                    _("Clone can't be taken individually on a volume"
+                      " that is part of a Consistency Group"))
         except AttributeError as e:
             LOG.info(_LI("No Consistency Group associated with the volume"))
 
         try:
-            (storageresType, storageresTypename) = \
-                self.volume_obj.get_storageAttributes(
+            (storageresType,
+             storageresTypename) = self.volume_obj.get_storageAttributes(
                 srcname, None, None)
 
             resource_id = self.volume_obj.storageResource_query(
@@ -718,7 +724,8 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Volume " + name + ": clone failed\n" + e.err_text)
+                    _("Volume %(name)s: clone failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : {%s} clone failed"), name)
@@ -728,7 +735,7 @@ class EMCCoprHDDriverCommon(object):
         """expands the volume to new_size specified."""
         self.authenticate_user()
         volume_name = self._get_coprhd_volume_name(vol)
-        size_in_bytes = CoprHD_utils.to_bytes(str(new_size) + "G")
+        size_in_bytes = CoprHD_utils.to_bytes(six.text_type(new_size) + "G")
 
         try:
             self.volume_obj.expand(
@@ -743,7 +750,9 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Volume " + volume_name + ": expand failed\n" + e.err_text)
+                    _("Volume %(volume_name)s: expand failed\n%(err)s"),
+                    {'volume_name': volume_name,
+                     'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : %s expand failed"),
@@ -770,8 +779,8 @@ class EMCCoprHDDriverCommon(object):
             src_snapshot_name = self._get_CoprHD_snapshot_name(
                 snapshot, src_vol_uri)
 
-            (storageresType, storageresTypename) = \
-                self.volume_obj.get_storageAttributes(
+            (storageresType,
+             storageresTypename) = self.volume_obj.get_storageAttributes(
                 src_vol_name, None, src_snapshot_name)
 
             resource_id = self.volume_obj.storageResource_query(
@@ -791,10 +800,9 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Snapshot " +
-                    src_snapshot_name +
-                    ": clone failed\n" +
-                    e.err_text)
+                    _("Snapshot %(src_snapshot_name)s: clone failed\n%(err)s"),
+                    {'src_snapshot_name': src_snapshot_name,
+                     'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE
@@ -822,7 +830,8 @@ class EMCCoprHDDriverCommon(object):
             elif e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Volume " + name + ": Delete failed\n" + e.err_text)
+                    _("Volume %(name)s: delete failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)})
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : %s delete failed"), name)
@@ -858,8 +867,8 @@ class EMCCoprHDDriverCommon(object):
             if volume['consistencygroup_id']:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Snapshot can't be taken individually on a volume" +
-                    " that is part of a Consistency Group")
+                    _("Snapshot can't be taken individually on a volume"
+                      " that is part of a Consistency Group"))
         except AttributeError as e:
             LOG.info(_LI("No Consistency Group associated with the volume"))
 
@@ -907,10 +916,10 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Snapshot: " +
-                    snapshotname +
-                    ", Create Failed\n" +
-                    e.err_text)
+                    _("Snapshot: %(snapshotname)s, create failed\n%(err)s"),
+                    {'snapshotname': snapshotname,
+                     'err': six.text_type(e.err_text)}
+                )
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE
@@ -927,8 +936,8 @@ class EMCCoprHDDriverCommon(object):
             if vol['consistencygroup_id']:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Snapshot delete can't be done individually on a volume" +
-                    " that is part of a Consistency Group")
+                    _("Snapshot delete can't be done individually on a volume"
+                      " that is part of a Consistency Group"))
         except AttributeError as e:
             LOG.info(_LI("No Consistency Group associated with the volume"))
 
@@ -968,9 +977,7 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    "Snapshot " +
-                    snapshotname +
-                    ": Delete Failed\n")
+                    _("Snapshot %s : Delete Failed\n"), snapshotname)
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(
@@ -994,20 +1001,20 @@ class EMCCoprHDDriverCommon(object):
                     # check if this initiator is contained in any CoprHD Host
                     # object
                     LOG.debug(
-                        "checking for initiator port:" + initiatorPorts[i])
+                        "checking for initiator port: %s", initiatorPorts[i])
                     foundhostname = self._find_host(initiatorPorts[i])
-                    if (foundhostname is None) and \
-                            (i + 1 == len(initiatorPorts)):
+                    if (foundhostname is None and
+                            i + 1 == len(initiatorPorts)):
                         LOG.error(_LE("Auto host creation not supported"))
                     else:
                         LOG.info(_LI("Found host %s"), foundhostname)
                 # create an export group for this host
                 foundgroupname = foundhostname + 'SG'
                 # create a unique name
-                foundgroupname = foundgroupname + '-' + \
-                    ''.join(random.choice(string.ascii_uppercase +
-                                          string.digits)
-                            for x in range(6))
+                foundgroupname = foundgroupname + '-' + ''.join(
+                    random.choice(string.ascii_uppercase +
+                                  string.digits)
+                    for x in range(6))
                 self.exportgroup_obj.exportgroup_create(
                     foundgroupname,
                     self.configuration.coprhd_project,
@@ -1052,7 +1059,7 @@ class EMCCoprHDDriverCommon(object):
                         next_lun_id = next_lun_id + 1
 
                 LOG.debug(
-                    "adding the volume to the exportgroup : " + volumename)
+                    "adding the volume to the exportgroup : %s", volumename)
                 try:
                     self.exportgroup_obj.exportgroup_add_volumes(
                         True,

@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
+import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
@@ -132,11 +132,17 @@ class Volume(object):
         '''Makes REST API call to create volume under a project
 
         Parameters:
-            project: name of the project under which the volume will be created
-            label: name of volume
-            size: size of volume
-            varray: name of varray
-            vpool: name of vpool
+            project          : name of the project under which the volume will
+                               be created
+            label            : name of volume
+            size             : size of volume
+            varray           : name of varray
+            vpool            : name of vpool
+            sync             : synchronous request
+            consistencygroup : To create volume under a consistencygroup
+            synctimeout      : Query for task status for "synctimeout" secs.
+                               If the task doesn't complete in synctimeout
+                               secs, an exception is thrown
         Returns:
             Created task details in JSON response payload
         '''
@@ -164,7 +170,7 @@ class Volume(object):
         if consistencygroup:
             request['consistency_group'] = consistencygroup
 
-        body = json.dumps(request)
+        body = oslo_serialization.jsonutils.dumps(request)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
                                              Volume.URI_VOLUMES,
@@ -285,11 +291,13 @@ class Volume(object):
         '''Makes REST API call to clone volume
 
         Parameters:
-            project: name of the project under which the volume will be created
-            new_vol_name: name of volume
-            src_vol_name: name of the source volume
-            src_snap_name : name of the source snapshot
-            sync: synchronous request
+            new_vol_name     : name of volume
+            resourceUri      : uri of source volume
+            sync             : synchronous request
+            synctimeout      : Query for task status for "synctimeout" secs.
+                               If the task doesn't complete in synctimeout
+                               secs, an exception is thrown
+
         Returns:
             Created task details in JSON response payload
         '''
@@ -318,7 +326,7 @@ class Volume(object):
 
         request["count"] = 1
 
-        body = json.dumps(request)
+        body = oslo_serialization.jsonutils.dumps(request)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST",
                                              clone_full_uri,
@@ -425,7 +433,7 @@ class Volume(object):
                 " GB\nNew size must be greater than current size: " +
                 str(current_size) + " GB")
 
-        body = json.dumps({
+        body = oslo_serialization.jsonutils.dumps({
             "new_size": new_size
         })
 
@@ -448,7 +456,15 @@ class Volume(object):
         '''Deletes a volume based on volume name
 
         Parameters:
-            name: name of volume
+            name        : name of volume to be deleted
+            sync        : synchronous request
+            forceDelete : if true, it will force the delete of internal
+                          volumes that have the SUPPORTS_FORCE flag
+            coprhdonly  : to delete volumes from coprHD only
+            synctimeout : Query for task status for "synctimeout" secs. If
+                          the task doesn't complete in synctimeout secs, an
+                          exception is thrown
+
         '''
         volume_uri = self.volume_query(name)
         return self.delete_by_uri(volume_uri, sync, forceDelete,
@@ -534,7 +550,7 @@ class Volume(object):
             'volumes': volumeurilist
         }
 
-        body = json.dumps(params)
+        body = oslo_serialization.jsonutils.dumps(params)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "POST",
