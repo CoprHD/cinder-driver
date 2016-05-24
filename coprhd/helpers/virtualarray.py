@@ -15,8 +15,6 @@
 
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
-    import CoprHdError
 
 
 class VirtualArray(object):
@@ -27,17 +25,17 @@ class VirtualArray(object):
     URI_VIRTUALARRAY_URI = '/vdc/varrays/{0}'
 
     def __init__(self, ipAddr, port):
-        '''Constructor: takes IP address and port of the CoprHD instance.
+        """Constructor: takes IP address and port of the CoprHD instance.
 
         These are needed to make http requests for REST API
-        '''
+        """
         self.__ipAddr = ipAddr
         self.__port = port
 
     def varray_query(self, name):
-        '''Returns the UID of the varray specified by the name
+        """Returns the UID of the varray specified by the name
 
-        '''
+        """
         if common.is_uri(name):
             return name
 
@@ -48,16 +46,16 @@ class VirtualArray(object):
             if varray and varray['name'] == name:
                 return varray['id']
 
-        raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                          "varray " + name + ": not found")
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
+                                 _("varray %s: not found"), name)
 
     def varray_list(self, vdcname=None):
-        '''Returns all the varrays in a vdc
+        """Returns all the varrays in a vdc
 
         Parameters:
         Returns:
                 JSON payload of varray list
-        '''
+        """
         vdcrestapi = None
         if vdcname is not None:
             vdcrestapi = VirtualArray.URI_VIRTUALARRAY_BY_VDC_ID.format(
@@ -77,9 +75,9 @@ class VirtualArray(object):
         return returnlst
 
     def varray_show(self, label):
-        '''Makes REST API call to retrieve varray details based on its name
+        """Makes REST API call to retrieve varray details based on its name
 
-        '''
+        """
         uri = self.varray_query(label)
 
         (s, h) = common.service_json_request(

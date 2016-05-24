@@ -13,13 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from threading import Timer
+import threading
 
 import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
-    import CoprHdError
 from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
 from cinder.volume.drivers.emc.coprhd.helpers import volume
 
@@ -48,15 +46,15 @@ class Snapshot(object):
     timeout = 300
 
     def __init__(self, ipAddr, port):
-        '''Constructor: takes IP address and port of the CoprHD instance
+        """Constructor: takes IP address and port of the CoprHD instance
 
         These are needed to make http requests for REST API
-        '''
+        """
         self.__ipAddr = ipAddr
         self.__port = port
 
     def snapshot_list_uri(self, otype, otypename, ouri):
-        '''Makes REST API call to list snapshots under a volume
+        """Makes REST API call to list snapshots under a volume
 
         Parameters:
             otype     : block
@@ -65,7 +63,7 @@ class Snapshot(object):
 
         Returns:
             return list of snapshots
-        '''
+        """
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
@@ -74,7 +72,7 @@ class Snapshot(object):
         return o['snapshot']
 
     def snapshot_show_uri(self, otype, resourceUri, suri):
-        '''Retrieves snapshot details based on snapshot Name or Label
+        """Retrieves snapshot details based on snapshot Name or Label
 
         Parameters:
             otype : block
@@ -83,7 +81,7 @@ class Snapshot(object):
             typename: volumes or consistency-groups should be provided
         Returns:
             Snapshot details in JSON response payload
-        '''
+        """
         if(resourceUri is not None and
            resourceUri.find('BlockConsistencyGroup') > 0):
             (s, h) = common.service_json_request(
@@ -113,15 +111,15 @@ class Snapshot(object):
                     storageresType,
                     resuri,
                     uri['id'])
-                if False == common.get_node_value(snapshot, 'inactive') and \
-                        snapshot['name'] == snapshotName:
+                if (False == common.get_node_value(snapshot, 'inactive') and
+                        snapshot['name'] == snapshotName):
                     return snapshot['id']
 
-        raise CoprHdError(
-            CoprHdError.SOS_FAILURE_ERR,
-            "snapshot with the name:" +
-            snapshotName +
-            " Not Found")
+        raise common.CoprHdError(
+            common.CoprHdError.SOS_FAILURE_ERR,
+            _("snapshot with the name: " +
+              snapshotName +
+              " Not Found"))
 
     def snapshot_show_task_opid(self, otype, snap, taskid):
         (s, h) = common.service_json_request(
@@ -138,9 +136,9 @@ class Snapshot(object):
     def block_until_complete(self, storageresType, resuri,
                              task_id, synctimeout=0):
         if synctimeout:
-            t = Timer(synctimeout, common.timeout_handler)
+            t = threading.Timer(synctimeout, common.timeout_handler)
         else:
-            t = Timer(self.timeout, common.timeout_handler)
+            t = threading.Timer(self.timeout, common.timeout_handler)
         t.start()
         while True:
             out = self.snapshot_show_task_opid(storageresType, resuri, task_id)
@@ -159,27 +157,27 @@ class Snapshot(object):
                     if("service_error" in out and
                        "details" in out["service_error"]):
                         error_message = out["service_error"]["details"]
-                    raise CoprHdError(
-                        CoprHdError.VALUE_ERR,
-                        "Task: " +
-                        task_id +
-                        " is failed with error: " +
-                        error_message)
+                    raise common.CoprHdError(
+                        common.CoprHdError.VALUE_ERR,
+                        _("Task: %(task_id)s is failed with error: "
+                          "%(error_message)s"),
+                        {'task_id': task_id,
+                         '.error_message': error_message})
 
             if self.isTimeout:
                 self.isTimeout = False
-                raise CoprHdError(CoprHdError.TIME_OUT,
-                                  "Task did not complete in %d secs." +
-                                  "Operation timed out. Task in CoprHD " +
-                                  "will continue")
+                raise common.CoprHdError(common.CoprHdError.TIME_OUT,
+                                         _("Task did not complete in %d secs."
+                                           " Operation timed out. Task in"
+                                           " CoprHD will continue"))
         return
 
-    def storageResource_query(self,
-                              storageresType,
-                              volumeName,
-                              cgName,
-                              project,
-                              tenant):
+    def storage_resource_query(self,
+                               storageresType,
+                               volumeName,
+                               cgName,
+                               project,
+                               tenant):
         resourcepath = "/" + project + "/"
         if tenant is not None:
             resourcepath = tenant + resourcepath
@@ -205,7 +203,7 @@ class Snapshot(object):
     def snapshot_create(self, otype, typename, ouri,
                         snaplabel, inactive, sync,
                         readonly=False, synctimeout=0):
-        '''New snapshot is created, for a given volume
+        """New snapshot is created, for a given volume
 
         Parameters:
             otype       : block
@@ -221,25 +219,26 @@ class Snapshot(object):
                           If the task doesn't complete in synctimeout
                           secs, an exception is thrown
 
-        '''
+        """
 
         # check snapshot is already exist
         is_snapshot_exist = True
         try:
             self.snapshot_query(otype, typename, ouri, snaplabel)
-        except CoprHdError as e:
-            if e.err_code == CoprHdError.NOT_FOUND_ERR:
+        except common.CoprHdError as e:
+            if e.err_code == common.CoprHdError.NOT_FOUND_ERR:
                 is_snapshot_exist = False
             else:
-                raise e
+                raise
 
         if is_snapshot_exist:
-            raise CoprHdError(
-                CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
-                "Snapshot with name " +
-                snaplabel +
-                " already exists under " +
-                typename)
+            raise common.CoprHdError(
+                common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
+                _("Snapshot with name %(snaplabel)s"
+                  " already exists under %(typename)s"),
+                {'snaplabel': snaplabel,
+                 'typename': typename
+                 })
 
         parms = {
             'name': snaplabel,
@@ -271,7 +270,7 @@ class Snapshot(object):
             return o
 
     def snapshot_delete_uri(self, otype, resourceUri, suri, sync, synctimeout):
-        '''Delete a snapshot by uri
+        """Delete a snapshot by uri
 
         Parameters:
             otype : block
@@ -280,7 +279,7 @@ class Snapshot(object):
             synctimeout : Query for task status for "synctimeout" secs. If
                           the task doesn't complete in synctimeout secs, an
                           exception is thrown
-        '''
+        """
         s = None
         if resourceUri.find("Volume") > 0:
 

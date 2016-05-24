@@ -15,8 +15,6 @@
 
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
-    import CoprHdError
 
 
 class Project(object):
@@ -26,22 +24,22 @@ class Project(object):
     URI_PROJECT = '/projects/{0}'
 
     def __init__(self, ipAddr, port):
-        '''Constructor: takes IP address and port of the CoprHD instance
+        """Constructor: takes IP address and port of the CoprHD instance
 
         These are needed to make http requests for REST API
-        '''
+        """
         self.__ipAddr = ipAddr
         self.__port = port
 
     def project_query(self, name):
-        '''Retrieves UUID of project based on its name
+        """Retrieves UUID of project based on its name
 
         Parameters:
             name: name of project
         Returns: UUID of project
         Throws:
             CoprHdError - when project name is not found
-        '''
+        """
         if common.is_uri(name):
             return name
         (tenant_name, project_name) = common.get_parent_child_from_xpath(name)
@@ -49,35 +47,29 @@ class Project(object):
         from cinder.volume.drivers.emc.coprhd.helpers.tenant import Tenant
         tenant_obj = Tenant(self.__ipAddr, self.__port)
 
-        try:
-            tenant_uri = tenant_obj.tenant_query(tenant_name)
-            projects = self.project_list(tenant_uri)
-            if projects and len(projects) > 0:
-                for project in projects:
-                    if project:
-                        project_detail = self.project_show_by_uri(
-                            project['id'])
-                        if(project_detail and
-                           project_detail['name'] == project_name):
-                            return project_detail['id']
-            raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                              'Project: ' + project_name + ' not found')
-        except CoprHdError as e:
-            raise e
+        tenant_uri = tenant_obj.tenant_query(tenant_name)
+        projects = self.project_list(tenant_uri)
+        if projects and len(projects) > 0:
+            for project in projects:
+                if project:
+                    project_detail = self.project_show_by_uri(
+                        project['id'])
+                    if(project_detail and
+                       project_detail['name'] == project_name):
+                        return project_detail['id']
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, _(
+                                 "Project: " + project_name + " not found"))
 
     def project_list(self, tenant_name):
-        '''Makes REST API call and retrieves projects based on tenant UUID
+        """Makes REST API call and retrieves projects based on tenant UUID
 
         Parameters: None
         Returns:
             List of project UUIDs in JSON response payload
-        '''
+        """
         from cinder.volume.drivers.emc.coprhd.helpers.tenant import Tenant
         tenant_obj = Tenant(self.__ipAddr, self.__port)
-        try:
-            tenant_uri = tenant_obj.tenant_query(tenant_name)
-        except CoprHdError as e:
-            raise e
+        tenant_uri = tenant_obj.tenant_query(tenant_name)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
                                              Project.URI_PROJECT_LIST.format(
                                                  tenant_uri),
@@ -89,13 +81,13 @@ class Project(object):
         return []
 
     def project_show_by_uri(self, uri):
-        '''Makes REST API call and retrieves project derails based on UUID
+        """Makes REST API call and retrieves project derails based on UUID
 
         Parameters:
             uri: UUID of project
         Returns:
             Project details in JSON response payload
-        '''
+        """
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET",

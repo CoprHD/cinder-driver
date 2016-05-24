@@ -183,11 +183,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         properties[
             'serverPort'] = self.configuration.coprhd_scaleio_rest_gateway_port
         properties[
-            'serverUsername'] = \
-            self.configuration.coprhd_scaleio_rest_server_username
+            'serverUsername'] = (
+            self.configuration.coprhd_scaleio_rest_server_username)
         properties[
-            'serverPassword'] = \
-            self.configuration.coprhd_scaleio_rest_server_password
+            'serverPassword'] = (
+            self.configuration.coprhd_scaleio_rest_server_password)
         properties['iopsLimit'] = None
         properties['bandwidthLimit'] = None
         properties['serverToken'] = self.server_token
@@ -233,11 +233,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         properties[
             'serverPort'] = self.configuration.coprhd_scaleio_rest_gateway_port
         properties[
-            'serverUsername'] = \
-            self.configuration.coprhd_scaleio_rest_server_username
+            'serverUsername'] = (
+            self.configuration.coprhd_scaleio_rest_server_username)
         properties[
-            'serverPassword'] = \
-            self.configuration.coprhd_scaleio_rest_server_password
+            'serverPassword'] = (
+            self.configuration.coprhd_scaleio_rest_server_password)
         properties['serverToken'] = self.server_token
 
         initiatorPort = self._get_client_id(properties['serverIP'],
@@ -278,16 +278,17 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         cmd = ['drv_cfg']
         cmd += ["--query_version"]
 
-        LOG.info(_LI("ScaleIO sdc query version command: %s"), str(cmd))
+        LOG.info(_LI("ScaleIO sdc query version command: %s"),
+                 six.text_type(cmd))
 
         try:
             (out, err) = utils.execute(*cmd, run_as_root=True)
             LOG.info(_LI("Get ScaleIO version cmd=%(cmd)s:"
-                         "stdout=%(out)s strerr=%(err)s") %
+                         "stdout=%(out)s strerr=%(err)s"),
                      {'cmd': cmd,
                       'out': out, 'err': err})
         except processutils.ProcessExecutionError as e:
-            msg = ("Error querying sdc version: %s" % (e.stderr))
+            msg = _("Error querying sdc version: %s", (e.stderr))
             if('unrecognized option \'--query_version\'' in msg):
                 return 'R1_30'
             else:
@@ -295,7 +296,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                 raise exception.VolumeBackendAPIException(data=msg)
 
         version = out
-        msg = ("Current sdc version: %s" % (version))
+        msg = _LI("Current sdc version: %s", (version))
         LOG.info(msg)
         return version
 
@@ -303,11 +304,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                        server_password, sdc_ip):
         ip_encoded = urllib.parse.quote(sdc_ip, '')
         ip_double_encoded = urllib.parse.quote(ip_encoded, '')
-        request = "https://" + server_ip + ":" + server_port + \
-            "/api/types/Sdc/instances/getByIp::" + ip_double_encoded + "/"
+        request = ("https://" + server_ip + ":" + server_port +
+                   "/api/types/Sdc/instances/getByIp::" + ip_double_encoded + "/")
         LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
 
-        if(self.configuration.scaleio_verify_server_certificate == 'True'):
+        if self.configuration.scaleio_verify_server_certificate == 'True':
             verify_cert = self.scaleio_server_certificate_path
         else:
             verify_cert = False
@@ -328,11 +329,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
         sdc_id = r.json()
         if (sdc_id == '' or sdc_id is None):
-            msg = ("Client with ip %s wasn't found " % (sdc_ip))
+            msg = _("Client with ip %s wasn't found ", (sdc_ip))
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
         if (r.status_code != 200 and "errorCode" in sdc_id):
-            msg = ("Error getting sdc id from ip %s: %s " %
+            msg = _("Error getting sdc id from ip %s: %s ",
                    (sdc_ip, sdc_id['message']))
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)

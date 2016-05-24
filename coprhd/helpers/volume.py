@@ -16,10 +16,8 @@
 import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
-    import CoprHdError
 from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
-from cinder.volume.drivers.emc.coprhd.helpers.virtualarray import VirtualArray
+from cinder.volume.drivers.emc.coprhd.helpers import virtualarray
 
 
 class Volume(object):
@@ -37,17 +35,17 @@ class Volume(object):
     URI_VOLUME_CHANGE_VPOOL = URI_VOLUMES + "/vpool-change"
 
     # Protection REST APIs - clone
-    URI_VOLUME_PROTECTION_FULLCOPIES = \
-        '/block/volumes/{0}/protection/full-copies'
-    URI_SNAPSHOT_PROTECTION_FULLCOPIES = \
-        '/block/snapshots/{0}/protection/full-copies'
+    URI_VOLUME_PROTECTION_FULLCOPIES = (
+        '/block/volumes/{0}/protection/full-copies')
+    URI_SNAPSHOT_PROTECTION_FULLCOPIES = (
+        '/block/snapshots/{0}/protection/full-copies')
 
     URI_VOLUME_CLONE_DETACH = "/block/full-copies/{0}/detach"
 
     # New CG URIs
     URI_CG_CLONE = "/block/consistency-groups/{0}/protection/full-copies"
-    URI_CG_CLONE_DETACH = \
-        "/block/consistency-groups/{0}/protection/full-copies/{1}/detach"
+    URI_CG_CLONE_DETACH = (
+        "/block/consistency-groups/{0}/protection/full-copies/{1}/detach")
 
     VOLUMES = 'volumes'
     CG = 'consistency-groups'
@@ -58,22 +56,22 @@ class Volume(object):
     timeout = 300
 
     def __init__(self, ipAddr, port):
-        '''Constructor: takes IP address and port of the CoprHD instance.
+        """Constructor: takes IP address and port of the CoprHD instance.
 
         These are needed to make http requests for REST API
-        '''
+        """
         self.__ipAddr = ipAddr
         self.__port = port
 
     # Lists volumes in a project
     def list_volumes(self, project):
-        '''Makes REST API call to list volumes under a project
+        """Makes REST API call to list volumes under a project
 
         Parameters:
             project: name of project
         Returns:
             List of volumes uuids in JSON response payload
-        '''
+        """
 
         volume_uris = self.search_volumes(project)
         volumes = []
@@ -106,13 +104,13 @@ class Volume(object):
 
     # Shows volume information given its uri
     def show_by_uri(self, uri):
-        '''Makes REST API call and retrieves volume details based on UUID
+        """Makes REST API call and retrieves volume details based on UUID
 
         Parameters:
             uri: UUID of volume
         Returns:
             Volume details in JSON response payload
-        '''
+        """
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET",
@@ -127,7 +125,7 @@ class Volume(object):
     # Creates a volume given label, project, vpool and size
     def create(self, project, label, size, varray, vpool,
                sync, consistencygroup, synctimeout=0):
-        '''Makes REST API call to create volume under a project
+        """Makes REST API call to create volume under a project
 
         Parameters:
             project          : name of the project under which the volume will
@@ -143,7 +141,7 @@ class Volume(object):
                                secs, an exception is thrown
         Returns:
             Created task details in JSON response payload
-        '''
+        """
 
         from cinder.volume.drivers.emc.coprhd.helpers.project import Project
         proj_obj = Project(self.__ipAddr, self.__port)
@@ -154,7 +152,7 @@ class Volume(object):
         vpool_obj = VirtualPool(self.__ipAddr, self.__port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")
 
-        varray_obj = VirtualArray(self.__ipAddr, self.__port)
+        varray_obj = virtualarray.VirtualArray(self.__ipAddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
 
         request = {
@@ -181,9 +179,9 @@ class Volume(object):
                 task = o["task"][0]
                 return self.check_for_sync(task, sync, synctimeout)
             else:
-                raise CoprHdError(
-                    CoprHdError.SOS_FAILURE_ERR,
-                    "error: task list is empty, no task response found")
+                raise common.CoprHdError(
+                    common.CoprHdError.SOS_FAILURE_ERR,
+                    _("error: task list is empty, no task response found"))
         else:
             return o
 
@@ -198,35 +196,35 @@ class Volume(object):
                                                 self.__port, synctimeout)
                 )
             else:
-                raise CoprHdError(
-                    CoprHdError.SOS_FAILURE_ERR,
-                    "error: task list is empty, no task response found")
+                raise common.CoprHdError(
+                    common.CoprHdError.SOS_FAILURE_ERR,
+                    _("error: task list is empty, no task response found"))
         else:
             return result
 
     # Queries a volume given its name
     def volume_query(self, name):
-        '''Makes REST API call to query the volume by name
+        """Makes REST API call to query the volume by name
 
         Parameters:
             name: name of volume
         Returns:
             Volume details in JSON response payload
-        '''
+        """
         if common.is_uri(name):
             return name
 
         (pname, label) = common.get_parent_child_from_xpath(name)
         if not pname:
-            raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                              "Project name  not specified")
+            raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
+                                     _("Project name not specified"))
         uris = self.search_volumes(pname)
         for uri in uris:
             volume = self.show_by_uri(uri)
             if volume and 'name' in volume and volume['name'] == label:
                 return volume['id']
-        raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
-                          label + ": not found")
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, _("Volume"
+                                 "%s: not found"), label)
 
     def get_storageAttributes(self, volumeName, cgName, snapshotName=None):
         storageresType = None
@@ -286,7 +284,7 @@ class Volume(object):
     # Creates volume(s) from given source volume
     def clone(self, new_vol_name, resourceUri,
               sync, synctimeout=0):
-        '''Makes REST API call to clone volume
+        """Makes REST API call to clone volume
 
         Parameters:
             new_vol_name     : name of volume
@@ -298,7 +296,7 @@ class Volume(object):
 
         Returns:
             Created task details in JSON response payload
-        '''
+        """
 
         from cinder.volume.drivers.emc.coprhd.helpers.snapshot import Snapshot
         snap_obj = Snapshot(self.__ipAddr, self.__port)
@@ -360,10 +358,8 @@ class Volume(object):
             if(vol['protection']['full_copies']['replicaState'] ==
                'SYNCHRONIZED'):
                 return True
-            else:
-                return False
-        else:
             return False
+        return False
 
     def volume_clone_detach(self, resourceUri, name, sync, synctimeout=0):
 
@@ -392,7 +388,7 @@ class Volume(object):
 
     # Shows volume information given its name
     def show(self, name):
-        '''Retrieves volume details based on volume name
+        """Retrieves volume details based on volume name
 
         Parameters:
             name: name of the volume. If the volume is under a project,
@@ -401,13 +397,14 @@ class Volume(object):
             of volume is PROJ1/VOL1
         Returns:
             Volume details in JSON response payload
-        '''
+        """
         if common.is_uri(name):
             return name
         (pname, label) = common.get_parent_child_from_xpath(name)
         if pname is None:
-            raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
-                              str(name) + ": not found")
+            raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, 
+                                     _("Volume %s : not found"),
+                                     six.text_type(name))
 
         uris = self.search_volumes(pname)
 
@@ -415,8 +412,8 @@ class Volume(object):
             volume = self.show_by_uri(uri)
             if volume and 'name' in volume and volume['name'] == label:
                 return volume
-        raise CoprHdError(CoprHdError.NOT_FOUND_ERR, "Volume " +
-                          str(label) + ": not found")
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, _("Volume"
+                                 " %s : not found"), six.text_type(label))
 
     def expand(self, name, new_size, sync=False, synctimeout=0):
 
@@ -425,11 +422,12 @@ class Volume(object):
         new_size_in_gb = Decimal(Decimal(new_size) / (1024 * 1024 * 1024))
         current_size = Decimal(volume_detail["provisioned_capacity_gb"])
         if new_size_in_gb <= current_size:
-            raise CoprHdError(
-                CoprHdError.VALUE_ERR,
-                "error: Incorrect value of new size: " + str(new_size_in_gb) +
-                " GB\nNew size must be greater than current size: " +
-                str(current_size) + " GB")
+            raise common.CoprHdError(
+                common.CoprHdError.VALUE_ERR,
+                _("error: Incorrect value of new size: %(new_size_in_gb)s"
+                " GB\nNew size must be greater than current size: "
+                "%(current_size)s GB"), {'new_size_in_gb' : new_size_in_gb,
+                                         'current_size' : current_size})
 
         body = oslo_serialization.jsonutils.dumps({
             "new_size": new_size
@@ -451,7 +449,7 @@ class Volume(object):
     # Deletes a volume given a volume name
     def delete(self, name, sync=False,
                forceDelete=False, coprhdonly=False, synctimeout=0):
-        '''Deletes a volume based on volume name
+        """Deletes a volume based on volume name
 
         Parameters:
             name        : name of volume to be deleted
@@ -463,7 +461,7 @@ class Volume(object):
                           the task doesn't complete in synctimeout secs, an
                           exception is thrown
 
-        '''
+        """
         volume_uri = self.volume_query(name)
         return self.delete_by_uri(volume_uri, sync, forceDelete,
                                   coprhdonly, synctimeout)
@@ -471,11 +469,11 @@ class Volume(object):
     # Deletes a volume given a volume uri
     def delete_by_uri(self, uri, sync=False,
                       forceDelete=False, coprhdonly=False, synctimeout=0):
-        '''Deletes a volume based on volume uri
+        """Deletes a volume based on volume uri
 
         Parameters:
             uri: uri of volume
-        '''
+        """
 
         params = ''
         if forceDelete:
@@ -499,13 +497,13 @@ class Volume(object):
 
     # Gets the exports info given a volume uri
     def get_exports_by_uri(self, uri):
-        '''Makes REST API call to get exports info of a volume
+        """Makes REST API call to get exports info of a volume
 
         Parameters:
             uri: URI of the volume
         Returns:
             Exports details in JSON response payload
-        '''
+        """
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET",
                                              Volume.URI_VOLUME_EXPORTS.format(
@@ -516,14 +514,14 @@ class Volume(object):
     # Update a volume information
     # Changed the volume vpool
     def update(self, prefix_path, name, vpool):
-        '''Makes REST API call to update a volume information
+        """Makes REST API call to update a volume information
 
         Parameters:
             name: name of the volume to be updated
             vpool: name of vpool
         Returns
             Created task details in JSON response payload
-        '''
+        """
         namelist = []
 
         if type(name) is list:

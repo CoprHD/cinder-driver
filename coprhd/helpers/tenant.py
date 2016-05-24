@@ -15,8 +15,6 @@
 
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
-    import CoprHdError
 
 
 class Tenant(object):
@@ -27,18 +25,18 @@ class Tenant(object):
     URI_TENANTS_SUBTENANT = URI_TENANTS + '/subtenants'
 
     def __init__(self, ipAddr, port):
-        '''Constructor: takes IP address and port of the CoprHD instance
+        """Constructor: takes IP address and port of the CoprHD instance
 
         These are needed to make http requests for REST API
-        '''
+        """
         self.__ipAddr = ipAddr
         self.__port = port
 
     def tenant_query(self, label):
-        '''Returns the UID of the tenant specified by the hierarchical name
+        """Returns the UID of the tenant specified by the hierarchical name
 
         (ex tenant1/tenant2/tenant3)
-        '''
+        """
 
         if common.is_uri(label):
             return label
@@ -57,13 +55,13 @@ class Tenant(object):
                 if rslt:
                     return tenant['id']
 
-        raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                          "Tenant " + label + ": not found")
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
+                                 _("Tenant %s: not found"), label)
 
     def tenant_show(self, label):
-        '''Returns the details of the tenant based on its name
+        """Returns the details of the tenant based on its name
 
-        '''
+        """
         if label:
             tenant_id = self.tenant_query(label)
         else:
@@ -79,13 +77,13 @@ class Tenant(object):
         return o['id']
 
     def tenant_list(self, uri=None):
-        '''Returns all the tenants under a parent tenant
+        """Returns all the tenants under a parent tenant
 
         Parameters:
             parent: The parent tenant name
         Returns:
                 JSON payload of tenant list
-        '''
+        """
 
         if not uri:
             uri = self.tenant_getid()
@@ -105,9 +103,9 @@ class Tenant(object):
             return []
 
     def tenant_show_by_uri(self, uri):
-        '''Makes REST API call to retrieve tenant details based on its UUID
+        """Makes REST API call to retrieve tenant details based on its UUID
 
-        '''
+        """
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
                                              Tenant.URI_TENANTS.format(uri),
                                              None)
@@ -128,6 +126,6 @@ class Tenant(object):
             else:
                 uri = tenant
             if not uri:
-                raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                                  'Tenant ' + tenant + ': not found')
+                raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
+                                         _("Tenant %s: not found"), tenant)
         return uri

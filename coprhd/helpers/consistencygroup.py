@@ -16,9 +16,7 @@
 import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
-    import CoprHdError
-from cinder.volume.drivers.emc.coprhd.helpers.project import Project
+from cinder.volume.drivers.emc.coprhd.helpers import project
 
 
 class ConsistencyGroup(object):
@@ -35,24 +33,24 @@ class ConsistencyGroup(object):
         '/block/consistency-groups/{0}/tags'
 
     def __init__(self, ipAddr, port):
-        '''Constructor: takes IP address and port of the CoprHD instance
+        """Constructor: takes IP address and port of the CoprHD instance
 
         These are needed to make http requests for REST API
-        '''
+        """
         self.__ipAddr = ipAddr
         self.__port = port
 
     def list(self, project, tenant):
-        '''This function gives list of comma separated consistency group uris
+        """This function gives list of comma separated consistency group uris
 
         Parameters:
             project: Name of the project path
         return
             returns with list of consistency group ids separated by comma
-        '''
+        """
         if tenant is None:
             tenant = ""
-        projobj = Project(self.__ipAddr, self.__port)
+        projobj = project.Project(self.__ipAddr, self.__port)
         fullproj = tenant + "/" + project
         projuri = projobj.project_query(fullproj)
 
@@ -71,14 +69,14 @@ class ConsistencyGroup(object):
         return congroups
 
     def show(self, name, project, tenant):
-        '''This function will display the consistency group with details
+        """This function will display the consistency group with details
 
         Parameters:
            name : Name of the consistency group
            project: Name of the project
         return
             returns with details of consistency group
-        '''
+        """
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
@@ -89,13 +87,13 @@ class ConsistencyGroup(object):
         return o
 
     def consistencygroup_query(self, name, project, tenant):
-        '''This function will return consistency group id
+        """This function will return consistency group id
 
         Parameters:
            name : Name/id of the consistency group
         return
             return with id of the consistency group
-         '''
+        """
         if common.is_uri(name):
             return name
 
@@ -104,8 +102,8 @@ class ConsistencyGroup(object):
             congroup = self.show(uri, project, tenant)
             if congroup and congroup['name'] == name:
                 return congroup['id']
-        raise CoprHdError(CoprHdError.NOT_FOUND_ERR,
-                          "Consistency Group " + name + ": not found")
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
+                                 _("Consistency Group %s: not found"), name)
 
     # Blocks the operation until the task is complete/error out/timeout
     def check_for_sync(self, result, sync, synctimeout=0):
@@ -117,12 +115,12 @@ class ConsistencyGroup(object):
                                             self.__port, synctimeout)
             )
         else:
-            raise CoprHdError(
-                CoprHdError.SOS_FAILURE_ERR,
-                "error: task list is empty, no task response found")
+            raise common.CoprHdError(
+                common.CoprHdError.SOS_FAILURE_ERR,
+                _("error: task list is empty, no task response found"))
 
     def create(self, name, project, tenant):
-        '''This function will create the consistency group with the given name
+        """This function will create the consistency group with the given name
 
         Parameters:
            name : Name of the consistency group.
@@ -130,16 +128,16 @@ class ConsistencyGroup(object):
            tenant: Container tenant name.
         return
             returns with status of creation.
-        '''
+        """
         # check for existence of consistency group.
         try:
             status = self.show(name, project, tenant)
-        except CoprHdError as e:
-            if e.err_code == CoprHdError.NOT_FOUND_ERR:
+        except common.CoprHdError as e:
+            if e.err_code == common.CoprHdError.NOT_FOUND_ERR:
                 if tenant is None:
                     tenant = ""
                 fullproj = tenant + "/" + project
-                projobj = Project(self.__ipAddr, self.__port)
+                projobj = project.Project(self.__ipAddr, self.__port)
                 projuri = projobj.project_query(fullproj)
 
                 parms = {'name': name, 'project': projuri, }
@@ -152,15 +150,15 @@ class ConsistencyGroup(object):
                 o = common.json_decode(s)
                 return o
             else:
-                raise e
+                raise
         if status:
             common.format_err_msg_and_raise(
                 "create", "consistency group",
-                "consistency group with name: " + name + " already exists",
-                CoprHdError.ENTRY_ALREADY_EXISTS_ERR)
+                _("consistency group with name: %s already exists"), name,
+                common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR)
 
     def delete(self, name, project, tenant, coprhdonly=False):
-        '''This function marks a particular consistency group as delete
+        """This function marks a particular consistency group as delete
 
         Parameters:
            name : Name of the consistency group
@@ -168,7 +166,7 @@ class ConsistencyGroup(object):
         return
             return with status of the delete operation
             false incase it fails to do delete
-        '''
+        """
         params = ''
         if coprhdonly is True:
             params += "?type=" + 'CoprHD_ONLY'
@@ -182,7 +180,7 @@ class ConsistencyGroup(object):
 
     def update(self, uri, project, tenant, add_volumes, remove_volumes,
                sync, synctimeout=0):
-        '''Function used to add or remove volumes from consistency group
+        """Function used to add or remove volumes from consistency group
 
         It will update the consistency  group with given volumes
         Parameters:
@@ -197,7 +195,7 @@ class ConsistencyGroup(object):
                             exception is thrown
         return
             returns with status of creation
-        '''
+        """
         if tenant is None:
             tenant = ""
 

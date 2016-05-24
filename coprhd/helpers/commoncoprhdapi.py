@@ -13,23 +13,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-'''
+"""
 Contains some commonly used utility methods
-'''
+"""
 import cookielib
 import json
 import re
 import six
 import socket
 import sys
-from threading import Timer
+import threading
 
 import oslo_serialization
 import requests
-from requests.exceptions import ConnectionError
-from requests.exceptions import SSLError
-from requests.exceptions import Timeout
-from requests.exceptions import TooManyRedirects
+from requests import exceptions
 from urihelper import singletonURIHelperInstance
 
 
@@ -70,22 +67,20 @@ def _decode_dict(data):
 
 
 def json_decode(rsp):
-    '''Used to decode the JSON encoded response
-
-    '''
+    """Used to decode the JSON encoded response"""
 
     o = ""
     try:
         o = json.loads(rsp, object_hook=_decode_dict)
     except ValueError:
         raise CoprHdError(CoprHdError.VALUE_ERR,
-                          "Failed to recognize JSON payload:\n[" + rsp + "]")
+                          _("Failed to recognize JSON payload:\n[%s]"), rsp)
     return o
 
 
 def service_json_request(ip_addr, port, http_method, uri, body,
                          contenttype='application/json', customheaders=None):
-    '''Used to make an HTTP request and get the response
+    """Used to make an HTTP request and get the response
 
     The message body is encoded in JSON format
     Parameters:
@@ -98,7 +93,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
     Returns:
         a tuple of two elements: (response body, response headers)
     Throws: CoprHdError in case of HTTP errors with err_code 3
-    '''
+    """
 
     SEC_AUTHTOKEN_HEADER = 'X-SDS-AUTH-TOKEN'
 
@@ -133,11 +128,11 @@ def service_json_request(ip_addr, port, http_method, uri, body,
                                        cookies=cookiejar)
         else:
             raise CoprHdError(CoprHdError.HTTP_ERR,
-                              "Unknown/Unsupported HTTP method: " +
+                              _("Unknown/Unsupported HTTP method: %s"),
                               http_method)
 
-        if response.status_code == requests.codes['ok'] or \
-                response.status_code == 202:
+        if (response.status_code == requests.codes['ok'] or
+                response.status_code == 202):
             return (response.text, response.headers)
 
         error_msg = None
@@ -146,10 +141,10 @@ def service_json_request(ip_addr, port, http_method, uri, body,
             errorDetails = ""
             if 'details' in responseText:
                 errorDetails = responseText['details']
-            error_msg = "CoprHD internal server error. Error details: " + \
-                errorDetails
+            error_msg = _("CoprHD internal server error. Error details: " +
+                          errorDetails)
         elif response.status_code == 401:
-            error_msg = "Access forbidden: Authentication required"
+            error_msg = _("Access forbidden: Authentication required")
         elif response.status_code == 403:
             error_msg = ""
             errorDetails = ""
@@ -159,19 +154,20 @@ def service_json_request(ip_addr, port, http_method, uri, body,
 
             if 'details' in responseText:
                 errorDetails = responseText['details']
-                error_msg = error_msg + "Error details: " + errorDetails
+                error_msg = _(error_msg + "Error details: " + errorDetails)
             elif 'description' in responseText:
                 errorDescription = responseText['description']
-                error_msg = error_msg + "Error description: " + \
-                    errorDescription
+                error_msg = _(error_msg + "Error description: " +
+                              errorDescription)
             else:
-                error_msg = "Access forbidden: You don't have" + \
-                    " sufficient privileges to perform this operation"
+                error_msg = _("Access forbidden: You don't have"
+                              " sufficient privileges to perform this"
+                              " operation")
 
         elif response.status_code == 404:
             error_msg = "Requested resource not found"
         elif response.status_code == 405:
-            error_msg = str(response.text)
+            error_msg = six.text_type(response.text)
         elif response.status_code == 503:
             error_msg = ""
             errorDetails = ""
@@ -190,19 +186,27 @@ def service_json_request(ip_addr, port, http_method, uri, body,
                 errorDescription = responseText['description']
                 error_msg = error_msg + ": " + errorDescription
             else:
-                error_msg = "Service temporarily unavailable:" + \
-                            " The server is temporarily unable to " + \
-                            " service your request"
+                error_msg = _("Service temporarily unavailable:"
+                              " The server is temporarily unable to"
+                              " service your request")
         else:
             error_msg = response.text
             if isinstance(error_msg, unicode):
                 error_msg = error_msg.encode('utf-8')
-        raise CoprHdError(CoprHdError.HTTP_ERR, "HTTP code: " +
-                          str(response.status_code) +
-                          ", " + response.reason + " [" + error_msg + "]")
-
-    except (CoprHdError, socket.error, SSLError,
-            ConnectionError, TooManyRedirects, Timeout) as e:
+        raise CoprHdError(CoprHdError.HTTP_ERR,
+                          _("HTTP code: %(status_code)s"
+                            ", %(reason)s"
+                            " [%(error_msg)s]"), {
+                              'status_code':  six.text_type(
+                                  response.status_code),
+                              'reason':  six.text_type(
+                                  response.reason),
+                              'error_msg': six.text_type(
+                                  error_msg)
+                          })
+    except (CoprHdError, socket.error, exceptions.SSLError,
+            exceptions.ConnectionError, exceptions.TooManyRedirects,
+            exceptions.Timeout) as e:
         raise CoprHdError(CoprHdError.HTTP_ERR, six.text_type(e))
     # TODO(Ravi) : Either following exception should have proper message or
     # IOError should just be combined with the above statement
@@ -211,11 +215,11 @@ def service_json_request(ip_addr, port, http_method, uri, body,
 
 
 def is_uri(name):
-    '''Checks whether the name is a UUID or not
+    """Checks whether the name is a UUID or not
 
     Returns:
         True if name is UUID, False otherwise
-    '''
+    """
     try:
         (urn, prod, trailer) = name.split(':', 2)
         return (urn == 'urn' and prod == PROD_NAME)
@@ -224,20 +228,20 @@ def is_uri(name):
 
 
 def format_json_object(obj):
-    '''Formats JSON object to make it readable by proper indentation
+    """Formats JSON object to make it readable by proper indentation
 
     Parameters:
         obj - JSON object
     Returns:
         a string of  formatted JSON object
-    '''
+    """
     return oslo_serialization.jsonutils.dumps(obj, sort_keys=True, indent=3)
 
 
 def get_parent_child_from_xpath(name):
-    '''Returns the parent and child elements from XPath
+    """Returns the parent and child elements from XPath
 
-    '''
+    """
     if '/' in name:
         (pname, label) = name.rsplit('/', 1)
     else:
@@ -287,10 +291,10 @@ def to_bytes(in_str):
 
 
 def get_list(json_object, parent_node_name, child_node_name=None):
-    '''Returns a list of values from child_node_name
+    """Returns a list of values from child_node_name
 
     If child_node is not given, then it will retrieve list from parent node
-    '''
+    """
     if not json_object:
         return []
 
@@ -311,12 +315,12 @@ def get_list(json_object, parent_node_name, child_node_name=None):
 
 
 def get_node_value(json_object, parent_node_name, child_node_name=None):
-    '''Returns value of given child_node
+    """Returns value of given child_node
 
     If child_node is not given, then value of parent node is returned
     returns None: If json_object or parent_node is not given,
                   If child_node is not found under parent_node
-    '''
+    """
     if not json_object:
         return None
 
@@ -337,21 +341,20 @@ def get_node_value(json_object, parent_node_name, child_node_name=None):
     return return_value
 
 
-# This method defines the standard and consistent error message format
-# for all CLI error messages.
-#
-# Use it for any error message to be formatted
-'''
-@operationType create, update, add, etc
-@component storagesystem, filesystem, vpool, etc
-@errorCode Error code from the API call
-@errorMessage Detailed error message
-'''
-
-
 def format_err_msg_and_raise(operationType, component,
                              errorMessage, errorCode):
-    formatedErrMsg = "Error: Failed to " + operationType + " " + component
+    # This method defines the standard and consistent error message format
+    # for all the error messages.
+    #
+    # Use it for any error message to be formatted
+    """
+    @operationType create, update, add, etc
+    @component storagesystem, vpool, etc
+    @errorCode Error code from the API call
+    @errorMessage Detailed error message
+    """
+
+    formatedErrMsg = _("Error: Failed to " + operationType + " " + component)
     if errorMessage.startswith("\"\'") and errorMessage.endswith("\'\""):
         # stripping the first 2 and last 2 characters, which are quotes.
         errorMessage = errorMessage[2:len(errorMessage) - 2]
@@ -359,24 +362,23 @@ def format_err_msg_and_raise(operationType, component,
     formatedErrMsg = formatedErrMsg + "\nReason:" + errorMessage
     raise CoprHdError(errorCode, formatedErrMsg)
 
-'''Terminate the script execution with status code
-
-Ignoring the exit status code means the script execution completed successfully
-exit_status_code = 0, means success, its a default behavior
-exit_status_code = integer greater than zero, abnormal termination
-'''
-
 
 def exit_gracefully(exit_status_code):
+    """Terminate the script execution with status code
+
+    Ignoring the exit status code means the script execution completed successfully
+    exit_status_code = 0, means success, its a default behavior
+    exit_status_code = integer greater than zero, abnormal termination
+    """
     sys.exit(exit_status_code)
 
 
 def search_by_tag(resourceSearchUri, ipAddr, port):
-    '''Fetches the list of resources with a given tag
+    """Fetches the list of resources with a given tag
 
     Parameter resourceSearchUri : The tag based search uri
                               Example: '/block/volumes/search?tag=tagexample1'
-    '''
+    """
     # check if the URI passed has both project and name parameters
     strUri = str(resourceSearchUri)
     if strUri.__contains__("search") and strUri.__contains__("?tag="):
@@ -397,12 +399,13 @@ def search_by_tag(resourceSearchUri, ipAddr, port):
             resource_uris.append(resource["id"])
         return resource_uris
     else:
-        raise CoprHdError(CoprHdError.VALUE_ERR, "Search URI " + strUri +
-                          " is not in the expected format, it should end" +
-                          " with ?tag={0}")
-
+        raise CoprHdError(CoprHdError.VALUE_ERR, _("Search URI %s"
+                                                   " is not in the expected format, it should end"
+                                                   " with ?tag={0}"), strUri)
 
 # Timeout handler for synchronous operations
+
+
 def timeout_handler():
     global IS_TASK_TIMEOUT
     IS_TASK_TIMEOUT = True
@@ -418,10 +421,10 @@ def block_until_complete(componentType,
     global IS_TASK_TIMEOUT
     IS_TASK_TIMEOUT = False
     if synctimeout:
-        t = Timer(synctimeout, timeout_handler)
+        t = threading.Timer(synctimeout, timeout_handler)
     else:
         synctimeout = 300
-        t = Timer(300, timeout_handler)
+        t = threading.Timer(300, timeout_handler)
     t.start()
     while True:
         out = get_task_by_resourceuri_and_taskId(
@@ -442,24 +445,27 @@ def block_until_complete(componentType,
                 if "service_error" in out and \
                         "details" in out["service_error"]:
                     error_message = out["service_error"]["details"]
-                raise CoprHdError(CoprHdError.VALUE_ERR, "Task: " + task_id +
-                                  " is failed with error: " + error_message)
+                raise CoprHdError(CoprHdError.VALUE_ERR,
+                                  _("Task: %(task_id)s"
+                                    " is failed with"
+                                    " error: %(error_message)s"),
+                                  {'task_id': task_id,
+                                   'error_message': error_message
+                                   })
 
         if IS_TASK_TIMEOUT:
             IS_TASK_TIMEOUT = False
             raise CoprHdError(CoprHdError.TIME_OUT,
-                              "Task did not complete in %d secs." +
-                              "Operation timed out. Task in CoprHD " +
-                              "will continue")
+                              _("Task did not complete in %d secs."
+                                " Operation timed out. Task in CoprHD"
+                                " will continue"), synctimeout)
 
     return
 
 
 def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
                                        task_id, ipAddr, port):
-    '''Returns the single task details
-
-    '''
+    """Returns the single task details"""
 
     task_uri_constant = singletonURIHelperInstance.getUri(
         componentType, "task")
@@ -474,12 +480,12 @@ def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
 
 class CoprHdError(Exception):
 
-    '''Custom exception class used to report CLI logical errors
+    """Custom exception class used to report logical errors
 
     Attributes:
         err_code - String error code
         err_text - String text
-    '''
+    """
     SOS_FAILURE_ERR = 1
     CMD_LINE_ERR = 2
     HTTP_ERR = 3

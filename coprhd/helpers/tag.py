@@ -14,15 +14,13 @@
 #    under the License.
 
 
-'''
+"""
 Contains tagging related methods
-'''
+"""
 
 import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
-    import CoprHdError
 
 
 def tag_resource(ipaddr, port, uri, resourceid, add, remove):
@@ -42,7 +40,8 @@ def tag_resource(ipaddr, port, uri, resourceid, add, remove):
 def list_tags(ipaddr, port, resourceUri):
 
     if resourceUri.__contains__("tag") is False:
-        raise CoprHdError(CoprHdError.VALUE_ERR, "URI should end with /tag")
+        raise common.CoprHdError(
+            common.CoprHdError.VALUE_ERR, _("URI should end with /tag"))
 
     (s, h) = common.service_json_request(ipaddr,
                                          port,
@@ -50,10 +49,7 @@ def list_tags(ipaddr, port, resourceUri):
                                          resourceUri,
                                          None)
     allTags = []
-    try:
-        o = common.json_decode(s)
-        allTags = o['tag']
-    except CoprHdError as e:
-        raise e
+    o = common.json_decode(s)
+    allTags = o['tag']
 
     return allTags

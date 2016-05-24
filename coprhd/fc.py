@@ -21,25 +21,12 @@ Driver for EMC CoprHD FC volumes.
 
 import re
 
-try:
-    from oslo_log import log as logging
-except ImportError:
-    from cinder.openstack.common import log as logging
+from oslo_log import log as logging
 
 from cinder.volume import driver
 from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
-try:
-    # new utilities introduced in Juno
-    from cinder.zonemanager.utils import AddFCZone
-    from cinder.zonemanager.utils import RemoveFCZone
-except ImportError:
-    # AddFCZone or RemoveFCZone are not ready
-    # Define them for backward compatibility
-    def AddFCZone(func):
-        return func
-
-    def RemoveFCZone(func):
-        return func
+from cinder.zonemanager.utils import AddFCZone
+from cinder.zonemanager.utils import RemoveFCZone
 
 LOG = logging.getLogger(__name__)
 
@@ -218,8 +205,8 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
             # return empty data
             data = {'driver_volume_type': 'fibre_channel', 'data': {}}
         else:
-            target_wwns, initiator_target_map = \
-                self._build_initiator_target_map(itls, connector)
+            target_wwns, initiator_target_map = (
+                self._build_initiator_target_map(itls, connector))
             data = {
                 'driver_volume_type': 'fibre_channel',
                 'data': {

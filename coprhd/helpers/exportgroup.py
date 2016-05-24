@@ -16,12 +16,10 @@
 import oslo_serialization
 
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers.commoncoprhdapi \
-    import CoprHdError
-from cinder.volume.drivers.emc.coprhd.helpers.host import Host
-from cinder.volume.drivers.emc.coprhd.helpers.project import Project
-from cinder.volume.drivers.emc.coprhd.helpers.virtualarray import VirtualArray
-from cinder.volume.drivers.emc.coprhd.helpers.volume import Volume
+from cinder.volume.drivers.emc.coprhd.helpers import host
+from cinder.volume.drivers.emc.coprhd.helpers import project
+from cinder.volume.drivers.emc.coprhd.helpers import virtualarray
+from cinder.volume.drivers.emc.coprhd.helpers import volume
 
 
 class ExportGroup(object):
@@ -32,10 +30,10 @@ class ExportGroup(object):
     URI_EXPORT_GROUP_UPDATE = '/block/exports/{0}'
 
     def __init__(self, ipAddr, port):
-        '''Constructor: takes IP address and port of the CoprHD instance
+        """Constructor: takes IP address and port of the CoprHD instance
 
         These are needed to make http requests for REST API
-        '''
+        """
         self.__ipAddr = ipAddr
         self.__port = port
 
@@ -43,9 +41,8 @@ class ExportGroup(object):
                                           sync=False, tenantname=None,
                                           projectname=None,
                                           cg=None, synctimeout=0):
-        '''Remove volumes from the exportgroup, given the uris of volume
+        """Remove volumes from the exportgroup, given the uris of volume"""
 
-        '''
         volume_list = volumeIdList
         parms = {}
 
@@ -78,23 +75,23 @@ class ExportGroup(object):
                                                 self.__port, synctimeout)
                 )
             else:
-                raise CoprHdError(
-                    CoprHdError.SOS_FAILURE_ERR,
-                    "error: task list is empty, no task response found")
+                raise common.CoprHdError(
+                    common.CoprHdError.SOS_FAILURE_ERR, _(
+                        "error: task list is empty, no task response found"))
         else:
             return result
 
     def exportgroup_list(self, project, tenant):
-        '''This function gives us list of export group uris separated by comma
+        """This function gives us list of export group uris separated by comma
 
         Parameters:
             project: Name of the project path
         return
             returns with list of export group ids separated by comma
-        '''
+        """
         if tenant is None:
             tenant = ""
-        projobj = Project(self.__ipAddr, self.__port)
+        projobj = project.Project(self.__ipAddr, self.__port)
         fullproj = tenant + "/" + project
         projuri = projobj.project_query(fullproj)
 
@@ -119,17 +116,18 @@ class ExportGroup(object):
         return exportgroups
 
     def exportgroup_show(self, name, project, tenant, varray=None):
-        '''This function display the Export group with details
+        """This function display the Export group with details
 
         Parameters:
            name : Name of the export group
            project: Name of the project
         return
             returns with Details of export group
-        '''
+        """
         varrayuri = None
         if varray:
-            varrayObject = VirtualArray(self.__ipAddr, self.__port)
+            varrayObject = virtualarray.VirtualArray(
+                self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
         uri = self.exportgroup_query(name, project, tenant, varrayuri)
         (s, h) = common.service_json_request(
@@ -145,7 +143,7 @@ class ExportGroup(object):
 
     def exportgroup_create(self, name, project, tenant, varray,
                            exportgrouptype, export_destination=None):
-        '''This function creates the Export group with given name
+        """This function creates the Export group with given name
 
         Parameters:
            name : Name of the export group
@@ -153,20 +151,21 @@ class ExportGroup(object):
            tenant: Container tenant name
         return
             returns with status of creation
-        '''
+        """
         # check for existence of export group.
         try:
             status = self.exportgroup_show(name, project, tenant)
-        except CoprHdError as e:
-            if e.err_code == CoprHdError.NOT_FOUND_ERR:
+        except common.CoprHdError as e:
+            if e.err_code == common.CoprHdError.NOT_FOUND_ERR:
                 if tenant is None:
                     tenant = ""
 
                 fullproj = tenant + "/" + project
-                projObject = Project(self.__ipAddr, self.__port)
+                projObject = project.Project(self.__ipAddr, self.__port)
                 projuri = projObject.project_query(fullproj)
 
-                varrayObject = VirtualArray(self.__ipAddr, self.__port)
+                varrayObject = virtualarray.VirtualArray(
+                    self.__ipAddr, self.__port)
                 nhuri = varrayObject.varray_query(varray)
 
                 parms = {
@@ -177,12 +176,12 @@ class ExportGroup(object):
                 }
 
                 if exportgrouptype and export_destination:
-                    host_obj = Host(self.__ipAddr, self.__port)
+                    host_obj = host.Host(self.__ipAddr, self.__port)
                     try:
                         host_uri = host_obj.query_by_name(
                             export_destination)
-                    except CoprHdError as e:
-                        raise e
+                    except common.CoprHdError as ex:
+                        raise ex
                     parms['hosts'] = [host_uri]
 
                 body = oslo_serialization.jsonutils.dumps(parms)
@@ -194,22 +193,22 @@ class ExportGroup(object):
                 o = common.json_decode(s)
                 return o
             else:
-                raise e
+                raise
 
         if status:
-            raise CoprHdError(
-                CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
-                "Export group with name " + name +
-                " already exists")
+            raise common.CoprHdError(
+                common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR, _(
+                "Export group with name %s"
+                " already exists"), name)
 
     def exportgroup_query(self, name, project, tenant, varrayuri=None):
-        '''Makes REST API call to query the exportgroup by name
+        """Makes REST API call to query the exportgroup by name
 
         Parameters:
             name : Name/id of the export group.
         return
             return with id of the export group.
-        '''
+        """
         if common.is_uri(name):
             return name
 
@@ -225,15 +224,15 @@ class ExportGroup(object):
                         continue
                 else:
                     return exportgroup['id']
-        raise CoprHdError(
-            CoprHdError.NOT_FOUND_ERR,
-            "Export Group " + name + ": not found")
+        raise common.CoprHdError(
+            common.CoprHdError.NOT_FOUND_ERR,
+            _("Export Group " + name + ": not found"))
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
                                 projectname, volumenames,
                                 cg=None, synctimeout=0, varray=None):
-        '''Add volume to export group
+        """Add volume to export group
 
         Parameters:
            sync              : synchronous request
@@ -253,10 +252,11 @@ class ExportGroup(object):
 
         return
             return action result
-        '''
+        """
         varrayuri = None
         if varray:
-            varrayObject = VirtualArray(self.__ipAddr, self.__port)
+            varrayObject = virtualarray.VirtualArray(
+                self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
@@ -265,7 +265,7 @@ class ExportGroup(object):
                                                  varrayuri)
 
         # get volume uri
-        if(tenantname is None):
+        if tenantname is None:
             tenantname = ""
         # List of volumes
         volume_list = []
@@ -297,28 +297,28 @@ class ExportGroup(object):
 
     def _get_resource_lun_tuple(self, resources, resType, baseResUri,
                                 tenantname, projectname, blockTypeName):
-        '''Function to validate input volumes and return list of ids and luns
+        """Function to validate input volumes and return list of ids and luns
 
         input
             list of volumes in the format name:lun
-        '''
+        """
 
         copyEntries = []
-        volumeObject = Volume(self.__ipAddr, self.__port)
+        volumeObject = volume.Volume(self.__ipAddr, self.__port)
         for copy in resources:
             copyParam = []
             try:
                 copyParam = copy.split(":")
             except Exception:
-                raise CoprHdError(
-                    CoprHdError.CMD_LINE_ERR,
-                    "Please provide valid format volume: lun for parameter " +
+                raise common.CoprHdError(
+                    common.CoprHdError.CMD_LINE_ERR,
+                    _("Please provide valid format volume: lun for parameter %s"),
                     resType)
             copy = dict()
             if not len(copyParam):
-                raise CoprHdError(
-                    CoprHdError.CMD_LINE_ERR,
-                    "Please provide atleast volume for parameter " + resType)
+                raise common.CoprHdError(
+                    common.CoprHdError.CMD_LINE_ERR,
+                    _("Please provide atleast volume for parameter %s"), resType)
             if resType == "volumes":
                 fullvolname = tenantname + "/" + projectname + "/"
                 fullvolname += copyParam[0]
