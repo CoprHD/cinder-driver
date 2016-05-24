@@ -15,6 +15,7 @@
 
 import oslo_serialization
 
+from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers import host
 from cinder.volume.drivers.emc.coprhd.helpers import project
@@ -81,18 +82,18 @@ class ExportGroup(object):
         else:
             return result
 
-    def exportgroup_list(self, project, tenant):
+    def exportgroup_list(self, project_name, tenant):
         """This function gives us list of export group uris separated by comma
 
         Parameters:
-            project: Name of the project path
+            project_name: Name of the project path
         return
             returns with list of export group ids separated by comma
         """
         if tenant is None:
             tenant = ""
         projobj = project.Project(self.__ipAddr, self.__port)
-        fullproj = tenant + "/" + project
+        fullproj = tenant + "/" + project_name
         projuri = projobj.project_query(fullproj)
 
         uri = self.URI_EXPORT_GROUP_SEARCH
@@ -198,8 +199,8 @@ class ExportGroup(object):
         if status:
             raise common.CoprHdError(
                 common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR, _(
-                "Export group with name %s"
-                " already exists"), name)
+                    "Export group with name %s"
+                    " already exists"), name)
 
     def exportgroup_query(self, name, project, tenant, varrayuri=None):
         """Makes REST API call to query the exportgroup by name
@@ -226,7 +227,7 @@ class ExportGroup(object):
                     return exportgroup['id']
         raise common.CoprHdError(
             common.CoprHdError.NOT_FOUND_ERR,
-            _("Export Group " + name + ": not found"))
+            _("Export Group %s: not found"), name)
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
@@ -312,13 +313,15 @@ class ExportGroup(object):
             except Exception:
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
-                    _("Please provide valid format volume: lun for parameter %s"),
+                    _("Please provide valid format volume:"
+                      " lun for parameter %s"),
                     resType)
             copy = dict()
             if not len(copyParam):
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
-                    _("Please provide atleast volume for parameter %s"), resType)
+                    _("Please provide atleast volume for parameter %s"),
+                    resType)
             if resType == "volumes":
                 fullvolname = tenantname + "/" + projectname + "/"
                 fullvolname += copyParam[0]

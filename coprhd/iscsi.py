@@ -14,10 +14,7 @@
 #    under the License.
 
 
-"""
-Driver for EMC CoprHD iSCSI volumes.
-
-"""
+"""Driver for EMC CoprHD iSCSI volumes"""
 
 from oslo_log import log as logging
 
@@ -91,9 +88,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         pass
 
     def remove_export(self, context, volume):
-        """Driver exntry point to remove an export for a volume
-
-        """
+        """Driver exntry point to remove an export for a volume"""
         pass
 
     def create_consistencygroup(self, context, group):

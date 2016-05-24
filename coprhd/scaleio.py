@@ -14,18 +14,17 @@
 #    under the License.
 
 
-"""
-Driver for EMC CoprHD ScaleIO volumes.
-
-"""
+"""Driver for EMC CoprHD ScaleIO volumes"""
 
 import requests
+import six
 from six.moves import urllib
 
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 
 from cinder import exception
+from cinder.i18n import _
 from cinder.i18n import _LI
 from cinder import utils
 from cinder.volume import driver
@@ -101,7 +100,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                                    lun)
 
     def ensure_export(self, context, volume):
-        """Driver entry point to get the export info for an existing volume."""
+        """Driver entry point to get the export info for an existing volume"""
         pass
 
     def create_export(self, context, volume, connector=None):
@@ -109,9 +108,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         pass
 
     def remove_export(self, context, volume):
-        """Driver exntry point to remove an export for a volume
-
-        """
+        """Driver exntry point to remove an export for a volume"""
         pass
 
     def create_consistencygroup(self, context, group):
@@ -288,7 +285,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                      {'cmd': cmd,
                       'out': out, 'err': err})
         except processutils.ProcessExecutionError as e:
-            msg = _("Error querying sdc version: %s", (e.stderr))
+            msg = (_("Error querying sdc version: %s"), e.stderr)
             if('unrecognized option \'--query_version\'' in msg):
                 return 'R1_30'
             else:
@@ -296,7 +293,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                 raise exception.VolumeBackendAPIException(data=msg)
 
         version = out
-        msg = _LI("Current sdc version: %s", (version))
+        msg = (_LI("Current sdc version: %s"), version)
         LOG.info(msg)
         return version
 
@@ -305,7 +302,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         ip_encoded = urllib.parse.quote(sdc_ip, '')
         ip_double_encoded = urllib.parse.quote(ip_encoded, '')
         request = ("https://" + server_ip + ":" + server_port +
-                   "/api/types/Sdc/instances/getByIp::" + ip_double_encoded + "/")
+                   "/api/types/Sdc/instances/getByIp::" +
+                   ip_double_encoded + "/")
         LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
 
         if self.configuration.scaleio_verify_server_certificate == 'True':
@@ -325,16 +323,19 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                 server_username, server_password)
         else:
             r = requests.get(
-                request, auth=(server_username, server_password), verify=False)
+                request, auth=(server_username, server_password),
+                verify=False)
 
         sdc_id = r.json()
         if (sdc_id == '' or sdc_id is None):
-            msg = _("Client with ip %s wasn't found ", (sdc_ip))
+            msg = (_("Client with ip %s wasn't found "), sdc_ip)
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
         if (r.status_code != 200 and "errorCode" in sdc_id):
-            msg = _("Error getting sdc id from ip %s: %s ",
-                   (sdc_ip, sdc_id['message']))
+            msg = _("Error getting sdc id from ip %(sdc_ip)s:"
+                    " %(sdc_id_message)s"), {'sdc_ip': sdc_ip,
+                                             'sdc_id_message': sdc_id[
+                                                 'message']}
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
         LOG.info(_LI("ScaleIO sdc id is %s"), sdc_id)

@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 
 
@@ -59,9 +59,7 @@ class Tenant(object):
                                  _("Tenant %s: not found"), label)
 
     def tenant_show(self, label):
-        """Returns the details of the tenant based on its name
-
-        """
+        """Returns the details of the tenant based on its name"""
         if label:
             tenant_id = self.tenant_query(label)
         else:
@@ -103,9 +101,7 @@ class Tenant(object):
             return []
 
     def tenant_show_by_uri(self, uri):
-        """Makes REST API call to retrieve tenant details based on its UUID
-
-        """
+        """Makes REST API call to retrieve tenant details based on its UUID"""
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
                                              Tenant.URI_TENANTS.format(uri),
                                              None)

@@ -14,7 +14,9 @@
 #    under the License.
 
 import oslo_serialization
+import six
 
+from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
 from cinder.volume.drivers.emc.coprhd.helpers import virtualarray
@@ -223,8 +225,9 @@ class Volume(object):
             volume = self.show_by_uri(uri)
             if volume and 'name' in volume and volume['name'] == label:
                 return volume['id']
-        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, _("Volume"
-                                 "%s: not found"), label)
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
+                                 _("Volume"
+                                   "%s: not found"), label)
 
     def get_storageAttributes(self, volumeName, cgName, snapshotName=None):
         storageresType = None
@@ -402,7 +405,7 @@ class Volume(object):
             return name
         (pname, label) = common.get_parent_child_from_xpath(name)
         if pname is None:
-            raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, 
+            raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
                                      _("Volume %s : not found"),
                                      six.text_type(name))
 
@@ -412,8 +415,9 @@ class Volume(object):
             volume = self.show_by_uri(uri)
             if volume and 'name' in volume and volume['name'] == label:
                 return volume
-        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, _("Volume"
-                                 " %s : not found"), six.text_type(label))
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
+                                 _("Volume"
+                                   " %s : not found"), six.text_type(label))
 
     def expand(self, name, new_size, sync=False, synctimeout=0):
 
@@ -425,9 +429,9 @@ class Volume(object):
             raise common.CoprHdError(
                 common.CoprHdError.VALUE_ERR,
                 _("error: Incorrect value of new size: %(new_size_in_gb)s"
-                " GB\nNew size must be greater than current size: "
-                "%(current_size)s GB"), {'new_size_in_gb' : new_size_in_gb,
-                                         'current_size' : current_size})
+                  " GB\nNew size must be greater than current size: "
+                  "%(current_size)s GB"), {'new_size_in_gb': new_size_in_gb,
+                                           'current_size': current_size})
 
         body = oslo_serialization.jsonutils.dumps({
             "new_size": new_size

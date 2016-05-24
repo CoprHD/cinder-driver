@@ -21,6 +21,7 @@ import socket
 import requests
 from requests import exceptions
 
+from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 
 
@@ -130,7 +131,8 @@ class Authentication(object):
                             common.CoprHdError.HTTP_ERR, _(
                                 "Login failure code: "
                                 "%(statuscode)s Error: %(responsetext)s"),
-                            {'statuscode': six.text_type(login_response.status_code),
+                            {'statuscode': six.text_type(
+                                login_response.status_code),
                              'responsetext': login_response.text})
             elif self.__port == LB_API_PORT:
                 login_response = requests.get(
@@ -187,9 +189,9 @@ class Authentication(object):
                                          _("HTTP code: %(status_code)s"
                                            ", response: %(reason)s"
                                            " [%(error_msg)s]"), {
-                                             'status_code':  six.text_type(
+                                             'status_code': six.text_type(
                                                  login_response.status_code),
-                                             'reason':  six.text_type(
+                                             'reason': six.text_type(
                                                  login_response.reason),
                                              'error_msg': six.text_type(
                                                  error_msg)

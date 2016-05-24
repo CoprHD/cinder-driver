@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 
 
@@ -33,9 +33,7 @@ class VirtualArray(object):
         self.__port = port
 
     def varray_query(self, name):
-        """Returns the UID of the varray specified by the name
-
-        """
+        """Returns the UID of the varray specified by the name"""
         if common.is_uri(name):
             return name
 
@@ -75,9 +73,7 @@ class VirtualArray(object):
         return returnlst
 
     def varray_show(self, label):
-        """Makes REST API call to retrieve varray details based on its name
-
-        """
+        """Makes REST API call to retrieve varray details based on its name"""
         uri = self.varray_query(label)
 
         (s, h) = common.service_json_request(

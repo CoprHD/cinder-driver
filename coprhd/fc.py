@@ -14,10 +14,7 @@
 #    under the License.
 
 
-"""
-Driver for EMC CoprHD FC volumes.
-
-"""
+"""Driver for EMC CoprHD FC volumes"""
 
 import re
 

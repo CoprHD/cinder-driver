@@ -674,7 +674,7 @@ class EMCCoprHDDriverCommon(object):
 
     @retry_wrapper
     def create_cloned_volume(self, vol, src_vref):
-        """Creates a clone of the specified volume."""
+        """Creates a clone of the specified volume"""
         self.authenticate_user()
         name = self._get_volume_name(vol)
         srcname = self._get_coprhd_volume_name(src_vref)
@@ -709,9 +709,8 @@ class EMCCoprHDDriverCommon(object):
             clone_vol_path = self.configuration.coprhd_tenant + \
                 "/" + self.configuration.coprhd_project + "/" + name
             detachable = self.volume_obj.is_volume_detachable(clone_vol_path)
-            str_detachable = str(detachable)
             LOG.info(_LI("Is volume detachable : %s"),
-                     str_detachable)
+                     six.text_type(detachable))
 
             # detach it from the source volume immediately after creation
             if detachable:
@@ -732,7 +731,7 @@ class EMCCoprHDDriverCommon(object):
 
     @retry_wrapper
     def expand_volume(self, vol, new_size):
-        """expands the volume to new_size specified."""
+        """expands the volume to new_size specified"""
         self.authenticate_user()
         volume_name = self._get_coprhd_volume_name(vol)
         size_in_bytes = CoprHD_utils.to_bytes(six.text_type(new_size) + "G")
@@ -760,7 +759,7 @@ class EMCCoprHDDriverCommon(object):
 
     @retry_wrapper
     def create_volume_from_snapshot(self, snapshot, volume, volume_db):
-        """Creates volume from given snapshot ( snapshot clone to volume )."""
+        """Creates volume from given snapshot ( snapshot clone to volume )"""
         self.authenticate_user()
 
         if self.configuration.coprhd_emulate_snapshot == 'True':
@@ -1390,7 +1389,7 @@ class EMCCoprHDDriverCommon(object):
 
     @retry_wrapper
     def _find_host(self, initiator_port):
-        """Find the host, if exists, to which the given initiator belong."""
+        """Find the host, if exists, to which the given initiator belong"""
         foundhostname = None
         hosts = self.host_obj.list_all(self.configuration.coprhd_tenant)
         for host in hosts:
@@ -1442,7 +1441,7 @@ class EMCCoprHDDriverCommon(object):
 
     @retry_wrapper
     def update_volume_stats(self):
-        """Retrieve stats info."""
+        """Retrieve stats info"""
         LOG.debug("Updating volume stats")
         self.authenticate_user()
 

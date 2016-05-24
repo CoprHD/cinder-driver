@@ -17,6 +17,7 @@ import threading
 
 import oslo_serialization
 
+from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
 from cinder.volume.drivers.emc.coprhd.helpers import volume
@@ -117,9 +118,8 @@ class Snapshot(object):
 
         raise common.CoprHdError(
             common.CoprHdError.SOS_FAILURE_ERR,
-            _("snapshot with the name: " +
-              snapshotName +
-              " Not Found"))
+            _("snapshot with the name: "
+              "%s Not Found"), snapshotName)
 
     def snapshot_show_task_opid(self, otype, snap, taskid):
         (s, h) = common.service_json_request(

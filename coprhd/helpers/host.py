@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers import tenant
 
@@ -34,12 +34,12 @@ class Host(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def query_by_name(self, hostName, tenant=None):
-        """Search host matching the hostName and tenant if tenant is provided
+    def query_by_name(self, hostName, tenant_name=None):
+        """Search host matching the hostName and tenant if tenant_name is provided
 
-        tenant is optional
+        tenant_name is optional
         """
-        hostList = self.list_all(tenant)
+        hostList = self.list_all(tenant_name)
         for host in hostList:
             hostUri = host['id']
             hostDetails = self.show_by_uri(hostUri)
@@ -47,8 +47,8 @@ class Host(object):
                 if hostDetails['name'] == hostName:
                     return hostUri
 
-        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,_(
-                                 "Host with name '" + hostName + "' not found"))
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, _(
+                                 "Host with name: %s not found"), hostName)
 
     def list_initiators(self, hostName):
         """Lists all initiators for the given host
@@ -72,16 +72,14 @@ class Host(object):
 
         return common.get_node_value(o, 'initiator')
 
-    def list_all(self, tenant):
-        """Gets the ids and self links for all compute elements
-
-        """
+    def list_all(self, tenant_name):
+        """Gets the ids and self links for all compute elements"""
         restapi = self.URI_COMPUTE_HOST
         tenant_obj = tenant.Tenant(self.__ipAddr, self.__port)
-        if tenant is None:
+        if tenant_name is None:
             tenant_uri = tenant_obj.tenant_getid()
         else:
-            tenant_uri = tenant_obj.tenant_query(tenant)
+            tenant_uri = tenant_obj.tenant_query(tenant_name)
         restapi = restapi + "?tenant=" + tenant_uri
 
         (s, h) = common.service_json_request(
@@ -93,9 +91,7 @@ class Host(object):
         return o['host']
 
     def show_by_uri(self, uri):
-        """Makes REST API call to retrieve Host details based on its UUID
-
-        """
+        """Makes REST API call to retrieve Host details based on its UUID"""
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
                                              Host.URI_HOST_DETAILS.format(uri),
                                              None)
@@ -107,9 +103,7 @@ class Host(object):
         return o
 
     def search_by_name(self, host_name):
-        """Search host by its name
-
-        """
+        """Search host by its name"""
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
             self.URI_HOSTS_SEARCH_BY_NAME.format(host_name), None)

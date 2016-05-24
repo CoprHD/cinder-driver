@@ -15,6 +15,7 @@
 
 import oslo_serialization
 
+from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers import project
 
@@ -40,18 +41,18 @@ class ConsistencyGroup(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def list(self, project, tenant):
+    def list(self, project_name, tenant):
         """This function gives list of comma separated consistency group uris
 
         Parameters:
-            project: Name of the project path
+            project_name: Name of the project path
         return
             returns with list of consistency group ids separated by comma
         """
         if tenant is None:
             tenant = ""
         projobj = project.Project(self.__ipAddr, self.__port)
-        fullproj = tenant + "/" + project
+        fullproj = tenant + "/" + project_name
         projuri = projobj.project_query(fullproj)
 
         (s, h) = common.service_json_request(
@@ -119,24 +120,24 @@ class ConsistencyGroup(object):
                 common.CoprHdError.SOS_FAILURE_ERR,
                 _("error: task list is empty, no task response found"))
 
-    def create(self, name, project, tenant):
+    def create(self, name, project_name, tenant):
         """This function will create the consistency group with the given name
 
         Parameters:
            name : Name of the consistency group.
-           project: Name of the project path.
+           project_name: Name of the project path.
            tenant: Container tenant name.
         return
             returns with status of creation.
         """
         # check for existence of consistency group.
         try:
-            status = self.show(name, project, tenant)
+            status = self.show(name, project_name, tenant)
         except common.CoprHdError as e:
             if e.err_code == common.CoprHdError.NOT_FOUND_ERR:
                 if tenant is None:
                     tenant = ""
-                fullproj = tenant + "/" + project
+                fullproj = tenant + "/" + project_name
                 projobj = project.Project(self.__ipAddr, self.__port)
                 projuri = projobj.project_query(fullproj)
 
@@ -154,7 +155,7 @@ class ConsistencyGroup(object):
         if status:
             common.format_err_msg_and_raise(
                 "create", "consistency group",
-                _("consistency group with name: %s already exists"), name,
+                (_("consistency group with name: %s already exists"), name),
                 common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR)
 
     def delete(self, name, project, tenant, coprhdonly=False):

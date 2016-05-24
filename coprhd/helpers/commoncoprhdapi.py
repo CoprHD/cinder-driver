@@ -13,9 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""
-Contains some commonly used utility methods
-"""
+"""Contains some commonly used utility methods"""
 import cookielib
 import json
 import re
@@ -28,6 +26,8 @@ import oslo_serialization
 import requests
 from requests import exceptions
 from urihelper import singletonURIHelperInstance
+
+from cinder.i18n import _
 
 
 PROD_NAME = 'storageos'
@@ -141,8 +141,8 @@ def service_json_request(ip_addr, port, http_method, uri, body,
             errorDetails = ""
             if 'details' in responseText:
                 errorDetails = responseText['details']
-            error_msg = _("CoprHD internal server error. Error details: " +
-                          errorDetails)
+            error_msg = (_("CoprHD internal server error. Error details: %s"),
+                         errorDetails)
         elif response.status_code == 401:
             error_msg = _("Access forbidden: Authentication required")
         elif response.status_code == 403:
@@ -154,11 +154,18 @@ def service_json_request(ip_addr, port, http_method, uri, body,
 
             if 'details' in responseText:
                 errorDetails = responseText['details']
-                error_msg = _(error_msg + "Error details: " + errorDetails)
+                error_msg = (_("%(error_msg)s Error details:"
+                               " %(errorDetails)s"),
+                             {'error_msg': error_msg,
+                              'errorDetails': errorDetails
+                              })
             elif 'description' in responseText:
                 errorDescription = responseText['description']
-                error_msg = _(error_msg + "Error description: " +
-                              errorDescription)
+                error_msg = (_("%(error_msg)s Error description:"
+                               " %(errorDescription)s"),
+                             {'error_msg': error_msg,
+                              'errorDescription': errorDescription
+                              })
             else:
                 error_msg = _("Access forbidden: You don't have"
                               " sufficient privileges to perform this"
@@ -197,9 +204,9 @@ def service_json_request(ip_addr, port, http_method, uri, body,
                           _("HTTP code: %(status_code)s"
                             ", %(reason)s"
                             " [%(error_msg)s]"), {
-                              'status_code':  six.text_type(
+                              'status_code': six.text_type(
                                   response.status_code),
-                              'reason':  six.text_type(
+                              'reason': six.text_type(
                                   response.reason),
                               'error_msg': six.text_type(
                                   error_msg)
@@ -239,9 +246,7 @@ def format_json_object(obj):
 
 
 def get_parent_child_from_xpath(name):
-    """Returns the parent and child elements from XPath
-
-    """
+    """Returns the parent and child elements from XPath"""
     if '/' in name:
         (pname, label) = name.rsplit('/', 1)
     else:
@@ -343,18 +348,18 @@ def get_node_value(json_object, parent_node_name, child_node_name=None):
 
 def format_err_msg_and_raise(operationType, component,
                              errorMessage, errorCode):
-    # This method defines the standard and consistent error message format
-    # for all the error messages.
-    #
-    # Use it for any error message to be formatted
-    """
+    """Method to format error message
+
     @operationType create, update, add, etc
     @component storagesystem, vpool, etc
     @errorCode Error code from the API call
     @errorMessage Detailed error message
     """
 
-    formatedErrMsg = _("Error: Failed to " + operationType + " " + component)
+    formatedErrMsg = _("Error: Failed to %(operationType)s %(component)s"),
+    {'operationType': operationType,
+     'component': component
+     }
     if errorMessage.startswith("\"\'") and errorMessage.endswith("\'\""):
         # stripping the first 2 and last 2 characters, which are quotes.
         errorMessage = errorMessage[2:len(errorMessage) - 2]
@@ -366,8 +371,8 @@ def format_err_msg_and_raise(operationType, component,
 def exit_gracefully(exit_status_code):
     """Terminate the script execution with status code
 
-    Ignoring the exit status code means the script execution completed successfully
-    exit_status_code = 0, means success, its a default behavior
+    Ignoring the exit status code means the script execution completed
+    successfully exit_status_code = 0, means success, its a default behavior
     exit_status_code = integer greater than zero, abnormal termination
     """
     sys.exit(exit_status_code)
@@ -400,7 +405,8 @@ def search_by_tag(resourceSearchUri, ipAddr, port):
         return resource_uris
     else:
         raise CoprHdError(CoprHdError.VALUE_ERR, _("Search URI %s"
-                                                   " is not in the expected format, it should end"
+                                                   " is not in the expected"
+                                                   " format, it should end"
                                                    " with ?tag={0}"), strUri)
 
 # Timeout handler for synchronous operations
