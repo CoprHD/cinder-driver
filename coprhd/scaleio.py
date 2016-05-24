@@ -347,8 +347,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         if (response.status_code == 401 or response.status_code == 403):
             LOG.info(
                 _LI("Token is invalid, going to re-login and get a new one"))
-            login_request = "https://" + server_ip + \
-                ":" + server_port + "/api/login"
+            login_request = ("https://" + server_ip +
+                             ":" + server_port + "/api/login")
             if(self.configuration.scaleio_verify_server_certificate == 'True'):
                 verify_cert = self.scaleio_server_certificate_path
             else:

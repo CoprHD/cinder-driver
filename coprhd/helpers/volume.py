@@ -149,8 +149,8 @@ class Volume(object):
         proj_obj = Project(self.__ipAddr, self.__port)
         project_uri = proj_obj.project_query(project)
 
-        from cinder.volume.drivers.emc.coprhd.helpers.virtualpool \
-            import VirtualPool
+        from cinder.volume.drivers.emc.coprhd.helpers.virtualpool import (
+            VirtualPool)
         vpool_obj = VirtualPool(self.__ipAddr, self.__port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")
 
@@ -265,8 +265,8 @@ class Volume(object):
             resUri = self.volume_query(resourcepath + volumeName)
             if snapshotName is not None:
 
-                from cinder.volume.drivers.emc.coprhd.helpers.snapshot \
-                    import Snapshot
+                from cinder.volume.drivers.emc.coprhd.helpers.snapshot import (
+                    Snapshot)
                 snapobj = Snapshot(self.__ipAddr, self.__port)
                 resUri = snapobj.snapshot_query(storageresType,
                                                 Volume.VOLUMES, resUri,
@@ -311,11 +311,11 @@ class Volume(object):
             clone_full_uri = Volume.URI_CG_CLONE.format(resourceUri)
         elif resourceUri.find("BlockSnapshot") > 0:
             is_snapshot_clone = True
-            clone_full_uri = \
-                Volume.URI_SNAPSHOT_PROTECTION_FULLCOPIES.format(resourceUri)
+            clone_full_uri = (
+                Volume.URI_SNAPSHOT_PROTECTION_FULLCOPIES.format(resourceUri))
         else:
-            clone_full_uri = \
-                Volume.URI_VOLUME_PROTECTION_FULLCOPIES.format(resourceUri)
+            clone_full_uri = (
+                Volume.URI_VOLUME_PROTECTION_FULLCOPIES.format(resourceUri))
 
         request = {
             'name': new_vol_name,
@@ -539,8 +539,8 @@ class Volume(object):
             volume_uri = self.volume_query(prefix_path + "/" + item)
             volumeurilist.append(volume_uri)
 
-        from cinder.volume.drivers.emc.coprhd.helpers.virtualpool \
-            import VirtualPool
+        from cinder.volume.drivers.emc.coprhd.helpers.virtualpool import (
+            VirtualPool)
 
         vpool_obj = VirtualPool(self.__ipAddr, self.__port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")

@@ -29,19 +29,19 @@ from cinder import exception
 from cinder.i18n import _
 from cinder.i18n import _LE
 from cinder.i18n import _LI
-from cinder.volume.drivers.emc.coprhd.helpers \
-    import authentication as CoprHD_auth
-from cinder.volume.drivers.emc.coprhd.helpers \
-    import commoncoprhdapi as CoprHD_utils
-from cinder.volume.drivers.emc.coprhd.helpers \
-    import consistencygroup as CoprHD_cg
+from cinder.volume.drivers.emc.coprhd.helpers import (
+    authentication as CoprHD_auth)
+from cinder.volume.drivers.emc.coprhd.helpers import (
+    commoncoprhdapi as CoprHD_utils)
+from cinder.volume.drivers.emc.coprhd.helpers import (
+    consistencygroup as CoprHD_cg)
 from cinder.volume.drivers.emc.coprhd.helpers import exportgroup as CoprHD_eg
 from cinder.volume.drivers.emc.coprhd.helpers import host as CoprHD_host
 from cinder.volume.drivers.emc.coprhd.helpers import snapshot as CoprHD_snap
 from cinder.volume.drivers.emc.coprhd.helpers import tag as CoprHD_tag
 
-from cinder.volume.drivers.emc.coprhd.helpers \
-    import virtualarray as CoprHD_varray
+from cinder.volume.drivers.emc.coprhd.helpers import (
+    virtualarray as CoprHD_varray)
 from cinder.volume.drivers.emc.coprhd.helpers import volume as CoprHD_vol
 from cinder.volume import volume_types
 
@@ -120,13 +120,17 @@ def retry_wrapper(func):
                 retry = True
                 EMCCoprHDDriverCommon.AUTHENTICATED = False
             else:
-                exception_message = "\nCoprHD Exception: %s\nStack Trace:\n%s" \
-                    % (e.err_text, traceback.format_exc())
+                exception_message = (_("\nCoprHD Exception: %(err_text)s\n"
+                                       " Stack Trace:\n%(traceback)s"),
+                                     {'err_text': e.err_text,
+                                      'traceback': traceback.format_exc()})
                 raise exception.VolumeBackendAPIException(
                     data=exception_message)
         except Exception:
-            exception_message = "\nGeneral Exception: %s\nStack Trace:\n%s" \
-                % (sys.exc_info()[0], traceback.format_exc())
+            exception_message = (_("\nGeneral Exception: %(exec_info)s\nStack"
+                                   " Trace:\n%(traceback_format)s"),
+                                 {'exec_info': sys.exc_info()[0],
+                                  'traceback_format': traceback.format_exc()})
             raise exception.VolumeBackendAPIException(
                 data=exception_message)
 

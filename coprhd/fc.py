@@ -165,8 +165,8 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
                                                  hostname)
         if itls:
             properties['target_lun'] = itls[0]['hlu']
-            target_wwns, initiator_target_map = \
-                self._build_initiator_target_map(itls, connector)
+            target_wwns, initiator_target_map = (
+                self._build_initiator_target_map(itls, connector))
 
         properties['target_wwn'] = target_wwns
         properties['initiator_target_map'] = initiator_target_map

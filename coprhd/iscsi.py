@@ -165,8 +165,8 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         properties['volume_id'] = volume['id']
         if itls:
             properties['target_iqn'] = itls[0]['target']['port']
-            properties['target_portal'] = itls[0]['target']['ip_address'] + \
-                ':' + itls[0]['target']['tcp_port']
+            properties['target_portal'] = (itls[0]['target']['ip_address'] +
+                                           ':' + itls[0]['target']['tcp_port'])
             properties['target_lun'] = itls[0]['hlu']
         auth = volume['provider_auth']
         if auth:

@@ -24,14 +24,14 @@ class ConsistencyGroup(object):
 
     URI_CONSISTENCY_GROUP = "/block/consistency-groups"
     URI_CONSISTENCY_GROUPS_INSTANCE = URI_CONSISTENCY_GROUP + "/{0}"
-    URI_CONSISTENCY_GROUPS_DEACTIVATE = URI_CONSISTENCY_GROUPS_INSTANCE + \
-        "/deactivate"
-    URI_CONSISTENCY_GROUPS_SEARCH = \
-        '/block/consistency-groups/search?project={0}'
-    URI_SEARCH_CONSISTENCY_GROUPS_BY_TAG = \
-        '/block/consistency-groups/search?tag={0}'
-    URI_CONSISTENCY_GROUP_TAGS = \
-        '/block/consistency-groups/{0}/tags'
+    URI_CONSISTENCY_GROUPS_DEACTIVATE = (URI_CONSISTENCY_GROUPS_INSTANCE +
+                                         "/deactivate")
+    URI_CONSISTENCY_GROUPS_SEARCH = (
+        '/block/consistency-groups/search?project={0}')
+    URI_SEARCH_CONSISTENCY_GROUPS_BY_TAG = (
+        '/block/consistency-groups/search?tag={0}')
+    URI_CONSISTENCY_GROUP_TAGS = (
+        '/block/consistency-groups/{0}/tags')
 
     def __init__(self, ipAddr, port):
         """Constructor: takes IP address and port of the CoprHD instance

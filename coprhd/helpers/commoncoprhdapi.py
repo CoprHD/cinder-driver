@@ -448,8 +448,8 @@ def block_until_complete(componentType,
             if out["state"] == "error":
                 # cancel the timer
                 t.cancel()
-                if "service_error" in out and \
-                        "details" in out["service_error"]:
+                if ("service_error" in out and
+                        "details" in out["service_error"]):
                     error_message = out["service_error"]["details"]
                 raise CoprHdError(CoprHdError.VALUE_ERR,
                                   _("Task: %(task_id)s"
