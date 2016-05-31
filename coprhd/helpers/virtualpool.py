@@ -80,7 +80,7 @@ class VirtualPool(object):
         # Raise not found exception. as we did not find any active vpool.
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
                                  (_("VPool %(name)s ( %(vpooltype)s ) :"
-                                   " not found"),
-                                 {'name': name,
-                                  'vpooltype': vpooltype
-                                  }))
+                                    " not found"),
+                                  {'name': name,
+                                   'vpooltype': vpooltype
+                                   }))

@@ -27,6 +27,7 @@ import requests
 from requests import exceptions
 from urihelper import singletonURIHelperInstance
 
+from cinder import exception
 from cinder.i18n import _
 
 
@@ -129,7 +130,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
         else:
             raise CoprHdError(CoprHdError.HTTP_ERR,
                               (_("Unknown/Unsupported HTTP method: %s"),
-                              http_method))
+                               http_method))
 
         if (response.status_code == requests.codes['ok'] or
                 response.status_code == 202):
@@ -202,8 +203,8 @@ def service_json_request(ip_addr, port, http_method, uri, body,
                 error_msg = error_msg.encode('utf-8')
         raise CoprHdError(CoprHdError.HTTP_ERR,
                           (_("HTTP code: %(status_code)s"
-                            ", %(reason)s"
-                            " [%(error_msg)s]"), {
+                             ", %(reason)s"
+                             " [%(error_msg)s]"), {
                               'status_code': six.text_type(
                                   response.status_code),
                               'reason': six.text_type(
@@ -357,9 +358,9 @@ def format_err_msg_and_raise(operationType, component,
     """
 
     formatedErrMsg = (_("Error: Failed to %(operationType)s %(component)s"),
-    {'operationType': operationType,
-     'component': component
-     })
+                      {'operationType': operationType,
+                       'component': component
+                       })
     if errorMessage.startswith("\"\'") and errorMessage.endswith("\'\""):
         # stripping the first 2 and last 2 characters, which are quotes.
         errorMessage = errorMessage[2:len(errorMessage) - 2]
@@ -405,9 +406,9 @@ def search_by_tag(resourceSearchUri, ipAddr, port):
         return resource_uris
     else:
         raise CoprHdError(CoprHdError.VALUE_ERR, (_("Search URI %s"
-                                                   " is not in the expected"
-                                                   " format, it should end"
-                                                   " with ?tag={0}"), strUri))
+                                                    " is not in the expected"
+                                                    " format, it should end"
+                                                    " with ?tag={0}"), strUri))
 
 # Timeout handler for synchronous operations
 
@@ -453,18 +454,18 @@ def block_until_complete(componentType,
                     error_message = out["service_error"]["details"]
                 raise CoprHdError(CoprHdError.VALUE_ERR,
                                   (_("Task: %(task_id)s"
-                                    " is failed with"
-                                    " error: %(error_message)s"),
-                                  {'task_id': task_id,
-                                   'error_message': error_message
-                                   }))
+                                     " is failed with"
+                                     " error: %(error_message)s"),
+                                   {'task_id': task_id,
+                                    'error_message': error_message
+                                    }))
 
         if IS_TASK_TIMEOUT:
             IS_TASK_TIMEOUT = False
             raise CoprHdError(CoprHdError.TIME_OUT,
                               (_("Task did not complete in %d secs."
-                                " Operation timed out. Task in CoprHD"
-                                " will continue"), synctimeout))
+                                 " Operation timed out. Task in CoprHD"
+                                 " will continue"), synctimeout))
 
     return
 
@@ -484,7 +485,7 @@ def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
     return o
 
 
-class CoprHdError(Cinder.exception.VolumeBackendAPIException):
+class CoprHdError(exception.VolumeBackendAPIException):
 
     """Custom exception class used to report logical errors
 

@@ -314,14 +314,14 @@ class ExportGroup(object):
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
                     (_("Please provide valid format volume:"
-                      " lun for parameter %s"),
-                    resType))
+                       " lun for parameter %s"),
+                     resType))
             copy = dict()
             if not len(copyParam):
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
                     (_("Please provide at least volume for parameter %s"),
-                    resType))
+                     resType))
             if resType == "volumes":
                 fullvolname = tenantname + "/" + projectname + "/"
                 fullvolname += copyParam[0]

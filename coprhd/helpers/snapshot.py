@@ -119,7 +119,7 @@ class Snapshot(object):
         raise common.CoprHdError(
             common.CoprHdError.SOS_FAILURE_ERR,
             (_("snapshot with the name: "
-              "%s Not Found"), snapshotName))
+               "%s Not Found"), snapshotName))
 
     def snapshot_show_task_opid(self, otype, snap, taskid):
         (s, h) = common.service_json_request(
@@ -161,16 +161,17 @@ class Snapshot(object):
                     raise common.CoprHdError(
                         common.CoprHdError.VALUE_ERR,
                         (_("Task: %(task_id)s is failed with error: "
-                          "%(error_message)s"),
-                        {'task_id': task_id,
-                         '.error_message': error_message}))
+                           "%(error_message)s"),
+                         {'task_id': task_id,
+                          '.error_message': error_message}))
 
             if self.isTimeout:
                 self.isTimeout = False
                 raise common.CoprHdError(common.CoprHdError.TIME_OUT,
                                          (_("Task did not complete in %d secs."
-                                           " Operation timed out. Task in"
-                                           " CoprHD will continue"), synctimeout))
+                                            " Operation timed out. Task in"
+                                            " CoprHD will continue"),
+                                          synctimeout))
         return
 
     def storage_resource_query(self,
@@ -236,10 +237,10 @@ class Snapshot(object):
             raise common.CoprHdError(
                 common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
                 (_("Snapshot with name %(snaplabel)s"
-                  " already exists under %(typename)s"),
-                {'snaplabel': snaplabel,
-                 'typename': typename
-                 }))
+                   " already exists under %(typename)s"),
+                 {'snaplabel': snaplabel,
+                  'typename': typename
+                  }))
 
         parms = {
             'name': snaplabel,
@@ -270,7 +271,8 @@ class Snapshot(object):
         else:
             return o
 
-    def snapshot_delete_uri(self, otype, resourceUri, suri, sync, synctimeout=0):
+    def snapshot_delete_uri(self, otype, resourceUri,
+                            suri, sync, synctimeout=0):
         """Delete a snapshot by uri
 
         Parameters:

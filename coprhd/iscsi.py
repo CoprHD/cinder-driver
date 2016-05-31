@@ -193,7 +193,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver,
         hostname = connector['host']
         initPorts = []
         initNodes = []
-        initNodes.append(initiatorNode)
+        initPorts.append(initiatorPort)
         self.common.terminate_connection(volume,
                                          protocol,
                                          initNodes,
