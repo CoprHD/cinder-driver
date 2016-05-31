@@ -226,8 +226,8 @@ class Volume(object):
             if volume and 'name' in volume and volume['name'] == label:
                 return volume['id']
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                 _("Volume"
-                                   "%s: not found"), label)
+                                 (_("Volume"
+                                   "%s: not found"), label))
 
     def get_storageAttributes(self, volumeName, cgName, snapshotName=None):
         storageresType = None
@@ -406,8 +406,8 @@ class Volume(object):
         (pname, label) = common.get_parent_child_from_xpath(name)
         if pname is None:
             raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                     _("Volume %s : not found"),
-                                     six.text_type(name))
+                                     (_("Volume %s : not found"),
+                                     six.text_type(name)))
 
         uris = self.search_volumes(pname)
 
@@ -416,8 +416,8 @@ class Volume(object):
             if volume and 'name' in volume and volume['name'] == label:
                 return volume
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                 _("Volume"
-                                   " %s : not found"), six.text_type(label))
+                                 (_("Volume"
+                                   " %s : not found"), six.text_type(label)))
 
     def expand(self, name, new_size, sync=False, synctimeout=0):
 
@@ -428,10 +428,10 @@ class Volume(object):
         if new_size_in_gb <= current_size:
             raise common.CoprHdError(
                 common.CoprHdError.VALUE_ERR,
-                _("error: Incorrect value of new size: %(new_size_in_gb)s"
+                (_("error: Incorrect value of new size: %(new_size_in_gb)s"
                   " GB\nNew size must be greater than current size: "
                   "%(current_size)s GB"), {'new_size_in_gb': new_size_in_gb,
-                                           'current_size': current_size})
+                                           'current_size': current_size}))
 
         body = oslo_serialization.jsonutils.dumps({
             "new_size": new_size

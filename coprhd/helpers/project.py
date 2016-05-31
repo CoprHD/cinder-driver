@@ -58,8 +58,8 @@ class Project(object):
                     if(project_detail and
                        project_detail['name'] == project_name):
                         return project_detail['id']
-        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, _(
-                                 "Project: %s not found"), project_name)
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, (_(
+                                 "Project: %s not found"), project_name))
 
     def project_list(self, tenant_name):
         """Makes REST API call and retrieves projects based on tenant UUID

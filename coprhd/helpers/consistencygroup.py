@@ -75,6 +75,7 @@ class ConsistencyGroup(object):
         Parameters:
            name : Name of the consistency group
            project: Name of the project
+           tenant: Name of the tenant
         return
             returns with details of consistency group
         """
@@ -104,7 +105,7 @@ class ConsistencyGroup(object):
             if congroup and congroup['name'] == name:
                 return congroup['id']
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                 _("Consistency Group %s: not found"), name)
+                                 (_("Consistency Group %s: not found"), name))
 
     # Blocks the operation until the task is complete/error out/timeout
     def check_for_sync(self, result, sync, synctimeout=0):
@@ -185,7 +186,7 @@ class ConsistencyGroup(object):
 
         It will update the consistency  group with given volumes
         Parameters:
-           name           : Name of the consistency group
+           uri           : URI of the consistency group
            project        : Name of the project path
            tenant         : Container tenant name
            add_volumes    : volumes to be added to the consistency group

@@ -47,8 +47,8 @@ class Host(object):
                 if hostDetails['name'] == hostName:
                     return hostUri
 
-        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, _(
-                                 "Host with name: %s not found"), hostName)
+        raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, (_(
+                                 "Host with name: %s not found"), hostName))
 
     def list_initiators(self, hostName):
         """Lists all initiators for the given host

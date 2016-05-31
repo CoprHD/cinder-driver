@@ -74,7 +74,7 @@ def json_decode(rsp):
         o = json.loads(rsp, object_hook=_decode_dict)
     except ValueError:
         raise CoprHdError(CoprHdError.VALUE_ERR,
-                          _("Failed to recognize JSON payload:\n[%s]"), rsp)
+                          (_("Failed to recognize JSON payload:\n[%s]"), rsp))
     return o
 
 
@@ -128,8 +128,8 @@ def service_json_request(ip_addr, port, http_method, uri, body,
                                        cookies=cookiejar)
         else:
             raise CoprHdError(CoprHdError.HTTP_ERR,
-                              _("Unknown/Unsupported HTTP method: %s"),
-                              http_method)
+                              (_("Unknown/Unsupported HTTP method: %s"),
+                              http_method))
 
         if (response.status_code == requests.codes['ok'] or
                 response.status_code == 202):
@@ -201,7 +201,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
             if isinstance(error_msg, unicode):
                 error_msg = error_msg.encode('utf-8')
         raise CoprHdError(CoprHdError.HTTP_ERR,
-                          _("HTTP code: %(status_code)s"
+                          (_("HTTP code: %(status_code)s"
                             ", %(reason)s"
                             " [%(error_msg)s]"), {
                               'status_code': six.text_type(
@@ -210,7 +210,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
                                   response.reason),
                               'error_msg': six.text_type(
                                   error_msg)
-                          })
+                          }))
     except (CoprHdError, socket.error, exceptions.SSLError,
             exceptions.ConnectionError, exceptions.TooManyRedirects,
             exceptions.Timeout) as e:
@@ -222,10 +222,10 @@ def service_json_request(ip_addr, port, http_method, uri, body,
 
 
 def is_uri(name):
-    """Checks whether the name is a UUID or not
+    """Checks whether the name is a URI or not
 
     Returns:
-        True if name is UUID, False otherwise
+        True if name is URI, False otherwise
     """
     try:
         (urn, prod, trailer) = name.split(':', 2)
@@ -356,10 +356,10 @@ def format_err_msg_and_raise(operationType, component,
     @errorMessage Detailed error message
     """
 
-    formatedErrMsg = _("Error: Failed to %(operationType)s %(component)s"),
+    formatedErrMsg = (_("Error: Failed to %(operationType)s %(component)s"),
     {'operationType': operationType,
      'component': component
-     }
+     })
     if errorMessage.startswith("\"\'") and errorMessage.endswith("\'\""):
         # stripping the first 2 and last 2 characters, which are quotes.
         errorMessage = errorMessage[2:len(errorMessage) - 2]
@@ -404,10 +404,10 @@ def search_by_tag(resourceSearchUri, ipAddr, port):
             resource_uris.append(resource["id"])
         return resource_uris
     else:
-        raise CoprHdError(CoprHdError.VALUE_ERR, _("Search URI %s"
+        raise CoprHdError(CoprHdError.VALUE_ERR, (_("Search URI %s"
                                                    " is not in the expected"
                                                    " format, it should end"
-                                                   " with ?tag={0}"), strUri)
+                                                   " with ?tag={0}"), strUri))
 
 # Timeout handler for synchronous operations
 
@@ -452,19 +452,19 @@ def block_until_complete(componentType,
                         "details" in out["service_error"]):
                     error_message = out["service_error"]["details"]
                 raise CoprHdError(CoprHdError.VALUE_ERR,
-                                  _("Task: %(task_id)s"
+                                  (_("Task: %(task_id)s"
                                     " is failed with"
                                     " error: %(error_message)s"),
                                   {'task_id': task_id,
                                    'error_message': error_message
-                                   })
+                                   }))
 
         if IS_TASK_TIMEOUT:
             IS_TASK_TIMEOUT = False
             raise CoprHdError(CoprHdError.TIME_OUT,
-                              _("Task did not complete in %d secs."
+                              (_("Task did not complete in %d secs."
                                 " Operation timed out. Task in CoprHD"
-                                " will continue"), synctimeout)
+                                " will continue"), synctimeout))
 
     return
 
@@ -484,7 +484,7 @@ def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
     return o
 
 
-class CoprHdError(Exception):
+class CoprHdError(Cinder.exception.VolumeBackendAPIException):
 
     """Custom exception class used to report logical errors
 

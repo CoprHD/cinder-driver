@@ -34,7 +34,11 @@ from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 LOG = logging.getLogger(__name__)
 
 
-class EMCCoprHDScaleIODriver(driver.VolumeDriver):
+class EMCCoprHDScaleIODriver(driver.VolumeDriver,
+                             driver.BaseVD,
+                             driver.SnapshotVD,
+                             driver.ExtendVD,
+                             driver.ConsistencyGroupVD):
     """CoprHD ScaleIO Driver"""
     server_token = None
 
@@ -91,13 +95,6 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     def delete_snapshot(self, snapshot):
         """Deletes a snapshot."""
         self.common.delete_snapshot(snapshot)
-
-    def _scaleio_location(self, ip, target, iqn, lun=None):
-        return "%s:%s,%s %s %s" % (ip,
-                                   self.configuration.scaleio_port,
-                                   target,
-                                   iqn,
-                                   lun)
 
     def ensure_export(self, context, volume):
         """Driver entry point to get the export info for an existing volume"""
@@ -332,10 +329,10 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
         if (r.status_code != 200 and "errorCode" in sdc_id):
-            msg = _("Error getting sdc id from ip %(sdc_ip)s:"
-                    " %(sdc_id_message)s"), {'sdc_ip': sdc_ip,
-                                             'sdc_id_message': sdc_id[
-                                                 'message']}
+            msg = (_("Error getting sdc id from ip %(sdc_ip)s:"
+                     " %(sdc_id_message)s"), {'sdc_ip': sdc_ip,
+                                              'sdc_id_message': sdc_id[
+                                                  'message']})
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
         LOG.info(_LI("ScaleIO sdc id is %s"), sdc_id)

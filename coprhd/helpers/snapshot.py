@@ -118,8 +118,8 @@ class Snapshot(object):
 
         raise common.CoprHdError(
             common.CoprHdError.SOS_FAILURE_ERR,
-            _("snapshot with the name: "
-              "%s Not Found"), snapshotName)
+            (_("snapshot with the name: "
+              "%s Not Found"), snapshotName))
 
     def snapshot_show_task_opid(self, otype, snap, taskid):
         (s, h) = common.service_json_request(
@@ -138,7 +138,8 @@ class Snapshot(object):
         if synctimeout:
             t = threading.Timer(synctimeout, common.timeout_handler)
         else:
-            t = threading.Timer(self.timeout, common.timeout_handler)
+            synctimeout = 300
+            t = threading.Timer(synctimeout, common.timeout_handler)
         t.start()
         while True:
             out = self.snapshot_show_task_opid(storageresType, resuri, task_id)
@@ -159,17 +160,17 @@ class Snapshot(object):
                         error_message = out["service_error"]["details"]
                     raise common.CoprHdError(
                         common.CoprHdError.VALUE_ERR,
-                        _("Task: %(task_id)s is failed with error: "
+                        (_("Task: %(task_id)s is failed with error: "
                           "%(error_message)s"),
                         {'task_id': task_id,
-                         '.error_message': error_message})
+                         '.error_message': error_message}))
 
             if self.isTimeout:
                 self.isTimeout = False
                 raise common.CoprHdError(common.CoprHdError.TIME_OUT,
-                                         _("Task did not complete in %d secs."
+                                         (_("Task did not complete in %d secs."
                                            " Operation timed out. Task in"
-                                           " CoprHD will continue"))
+                                           " CoprHD will continue"), synctimeout))
         return
 
     def storage_resource_query(self,
@@ -234,11 +235,11 @@ class Snapshot(object):
         if is_snapshot_exist:
             raise common.CoprHdError(
                 common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
-                _("Snapshot with name %(snaplabel)s"
+                (_("Snapshot with name %(snaplabel)s"
                   " already exists under %(typename)s"),
                 {'snaplabel': snaplabel,
                  'typename': typename
-                 })
+                 }))
 
         parms = {
             'name': snaplabel,
@@ -269,7 +270,7 @@ class Snapshot(object):
         else:
             return o
 
-    def snapshot_delete_uri(self, otype, resourceUri, suri, sync, synctimeout):
+    def snapshot_delete_uri(self, otype, resourceUri, suri, sync, synctimeout=0):
         """Delete a snapshot by uri
 
         Parameters:

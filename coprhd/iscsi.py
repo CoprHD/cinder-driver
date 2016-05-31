@@ -25,7 +25,11 @@ from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 LOG = logging.getLogger(__name__)
 
 
-class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
+class EMCCoprHDISCSIDriver(driver.ISCSIDriver,
+                           driver.BaseVD,
+                           driver.SnapshotVD,
+                           driver.ExtendVD,
+                           driver.ConsistencyGroupVD):
     """CoprHD iSCSI Driver"""
 
     def __init__(self, *args, **kwargs):
@@ -184,13 +188,11 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
 
     def terminate_connection(self, volume, connector, **kwargs):
         """Disallow connection from connector"""
-        initiatorNode = connector['initiator']
         initiatorPort = connector['initiator']
         protocol = 'iSCSI'
         hostname = connector['host']
         initPorts = []
         initNodes = []
-        initPorts.append(initiatorPort)
         initNodes.append(initiatorNode)
         self.common.terminate_connection(volume,
                                          protocol,

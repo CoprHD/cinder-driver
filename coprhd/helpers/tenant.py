@@ -56,7 +56,7 @@ class Tenant(object):
                     return tenant['id']
 
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                 _("Tenant %s: not found"), label)
+                                 (_("Tenant %s: not found"), label))
 
     def tenant_show(self, label):
         """Returns the details of the tenant based on its name"""
@@ -123,5 +123,5 @@ class Tenant(object):
                 uri = tenant
             if not uri:
                 raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                         _("Tenant %s: not found"), tenant)
+                                         (_("Tenant %s: not found"), tenant))
         return uri

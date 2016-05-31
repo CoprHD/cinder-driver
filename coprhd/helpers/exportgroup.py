@@ -198,9 +198,9 @@ class ExportGroup(object):
 
         if status:
             raise common.CoprHdError(
-                common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR, _(
+                common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR, (_(
                     "Export group with name %s"
-                    " already exists"), name)
+                    " already exists"), name))
 
     def exportgroup_query(self, name, project, tenant, varrayuri=None):
         """Makes REST API call to query the exportgroup by name
@@ -227,7 +227,7 @@ class ExportGroup(object):
                     return exportgroup['id']
         raise common.CoprHdError(
             common.CoprHdError.NOT_FOUND_ERR,
-            _("Export Group %s: not found"), name)
+            (_("Export Group %s: not found"), name))
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
@@ -313,15 +313,15 @@ class ExportGroup(object):
             except Exception:
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
-                    _("Please provide valid format volume:"
+                    (_("Please provide valid format volume:"
                       " lun for parameter %s"),
-                    resType)
+                    resType))
             copy = dict()
             if not len(copyParam):
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
-                    _("Please provide atleast volume for parameter %s"),
-                    resType)
+                    (_("Please provide at least volume for parameter %s"),
+                    resType))
             if resType == "volumes":
                 fullvolname = tenantname + "/" + projectname + "/"
                 fullvolname += copyParam[0]

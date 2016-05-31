@@ -28,7 +28,11 @@ from cinder.zonemanager.utils import RemoveFCZone
 LOG = logging.getLogger(__name__)
 
 
-class EMCCoprHDFCDriver(driver.FibreChannelDriver):
+class EMCCoprHDFCDriver(driver.FibreChannelDriver,
+                        driver.BaseVD,
+                        driver.SnapshotVD,
+                        driver.ExtendVD,
+                        driver.ConsistencyGroupVD):
     """CoprHD FC Driver"""
 
     def __init__(self, *args, **kwargs):

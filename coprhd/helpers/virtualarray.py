@@ -45,12 +45,13 @@ class VirtualArray(object):
                 return varray['id']
 
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                 _("varray %s: not found"), name)
+                                 (_("varray %s: not found"), name))
 
     def varray_list(self, vdcname=None):
         """Returns all the varrays in a vdc
 
         Parameters:
+        vdcname : Name of the Virtual Data Center
         Returns:
                 JSON payload of varray list
         """

@@ -49,10 +49,10 @@ from cinder.volume import volume_types
 LOG = logging.getLogger(__name__)
 
 volume_opts = [
-    cfg.StrOpt('hostname',
+    cfg.StrOpt('coprhd_hostname',
                default=None,
                help='Hostname for the CoprHD Instance'),
-    cfg.IntOpt('coprhd_port',
+    cfg.PortOpt('coprhd_port',
                default=4443,
                help='Port for the CoprHD Instance'),
     cfg.StrOpt('coprhd_username',
@@ -60,7 +60,8 @@ volume_opts = [
                help='Username for accessing the CoprHD Instance'),
     cfg.StrOpt('coprhd_password',
                default=None,
-               help='Password for accessing the CoprHD Instance'),
+               help='Password for accessing the CoprHD Instance',
+               secret=True),
     cfg.StrOpt('coprhd_tenant',
                default=None,
                help='Tenant to utilize within the CoprHD Instance'),
@@ -73,7 +74,7 @@ volume_opts = [
     cfg.StrOpt('coprhd_scaleio_rest_gateway_ip',
                default='None',
                help='Rest Gateway for Scaleio'),
-    cfg.StrOpt('coprhd_scaleio_rest_gateway_port',
+    cfg.PortOpt('coprhd_scaleio_rest_gateway_port',
                default='None',
                help='Rest Gateway Port for Scaleio'),
     cfg.StrOpt('coprhd_scaleio_rest_server_username',
@@ -81,7 +82,8 @@ volume_opts = [
                help='Username for Rest Gateway'),
     cfg.StrOpt('coprhd_scaleio_rest_server_password',
                default=None,
-               help='Rest Gateway Password'),
+               help='Rest Gateway Password',
+               secret=True),
     cfg.StrOpt('scaleio_verify_server_certificate',
                default='False',
                help='verify server certificate'),
@@ -168,33 +170,33 @@ class EMCCoprHDDriverCommon(object):
 
         # instantiate a few coprhd api objects for later use
         self.volume_obj = CoprHD_vol.Volume(
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
         self.exportgroup_obj = CoprHD_eg.ExportGroup(
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
         self.host_obj = CoprHD_host.Host(
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
         self.varray_obj = CoprHD_varray.VirtualArray(
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
         self.snapshot_obj = CoprHD_snap.Snapshot(
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
         self.consistencygroup_obj = CoprHD_cg.ConsistencyGroup(
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
     def check_for_setup_error(self):
         # validate all of the coprhd_* configuration values
-        if self.configuration.hostname is None:
-            message = _("hostname is not set in cinder configuration")
+        if self.configuration.coprhd_hostname is None:
+            message = _("coprhd_hostname is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
 
         if self.configuration.coprhd_port is None:
@@ -226,7 +228,7 @@ class EMCCoprHDDriverCommon(object):
         # doing it again
         if EMCCoprHDDriverCommon.AUTHENTICATED is False:
             obj = CoprHD_auth.Authentication(
-                self.configuration.hostname,
+                self.configuration.coprhd_hostname,
                 self.configuration.coprhd_port)
 
             username = None
@@ -256,7 +258,7 @@ class EMCCoprHDDriverCommon(object):
     def create_volume(self, vol, driver):
         self.authenticate_user()
         name = self._get_volume_name(vol)
-        size = int(vol['size']) * 1073741824
+        size = int(vol['size']) * units.Gi
 
         vpool = self._get_vpool(vol)
         self.vpool = vpool['CoprHD:VPOOL']
@@ -284,8 +286,8 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Volume %(name)s: create failed\n%(err)s"),
-                    {'name': name, 'err': six.text_type(e.err_text)})
+                    (_("Volume %(name)s: create failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : %s creation failed"), name)
@@ -314,8 +316,8 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Consistency Group %(name)s: create failed\n%(err)s"),
-                    {'name': name, 'err': six.text_type(e.err_text)})
+                    (_("Consistency Group %(name)s: create failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE
@@ -354,8 +356,8 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Consistency Group %(cg_uri)s: update failed\n%(err)s"),
-                    {'cg_uri': cg_uri, 'err': six.text_type(e.err_text)})
+                    (_("Consistency Group %(cg_uri)s: update failed\n%(err)s"),
+                    {'cg_uri': cg_uri, 'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE
@@ -399,8 +401,8 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Consistency Group %(name)s: delete failed\n%(err)s"),
-                    {'name': name, 'err': six.text_type(e.err_text)})
+                    (_("Consistency Group %(name)s: delete failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE
@@ -446,7 +448,7 @@ class EMCCoprHDDriverCommon(object):
                 rslt = CoprHD_utils.search_by_tag(
                     CoprHD_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(
                         tagname),
-                    self.configuration.hostname,
+                    self.configuration.coprhd_hostname,
                     self.configuration.coprhd_port)
 
                 if not rslt:
@@ -510,9 +512,9 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Snapshot for Consistency Group %(cg_name)s:"
-                      "create failed\n%(err)s"),
-                    {'cg_name': cg_name, 'err': six.text_type(e.err_text)})
+                    (_("Snapshot for Consistency Group %(cg_name)s:"
+                      " create failed\n%(err)s"),
+                    {'cg_name': cg_name, 'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Snapshot %(name)s for Consistency"
@@ -568,10 +570,10 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Snapshot %(cgsnapshot_id)s: for Consistency Group "
+                    (_("Snapshot %(cgsnapshot_id)s: for Consistency Group "
                       "%(cg_name)s: delete failed\n%(err)s"),
                     {'cgsnapshot_id': cgsnapshot_id, 'cg_name': cg_name,
-                     'err': six.text_type(e.err_text)})
+                     'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Snapshot %(name)s for Consistency"
@@ -608,7 +610,7 @@ class EMCCoprHDDriverCommon(object):
         # eyecatcher
         formattedUri = uri.format(resourceId)
         remove_tags = []
-        currentTags = CoprHD_tag.list_tags(self.configuration.hostname,
+        currentTags = CoprHD_tag.list_tags(self.configuration.coprhd_hostname,
                                            self.configuration.coprhd_port,
                                            formattedUri)
         for cTag in currentTags:
@@ -618,7 +620,7 @@ class EMCCoprHDDriverCommon(object):
         try:
             if len(remove_tags) > 0:
                 CoprHD_tag.tag_resource(
-                    self.configuration.hostname,
+                    self.configuration.coprhd_hostname,
                     self.configuration.coprhd_port,
                     uri,
                     resourceId,
@@ -660,7 +662,7 @@ class EMCCoprHDDriverCommon(object):
 
         try:
             CoprHD_tag.tag_resource(
-                self.configuration.hostname,
+                self.configuration.coprhd_hostname,
                 self.configuration.coprhd_port,
                 uri,
                 resourceId,
@@ -672,7 +674,7 @@ class EMCCoprHDDriverCommon(object):
                     "CoprHdError adding the tag: %s",
                     six.text_type(e.err_text))
 
-        return CoprHD_tag.list_tags(self.configuration.hostname,
+        return CoprHD_tag.list_tags(self.configuration.coprhd_hostname,
                                     self.configuration.coprhd_port,
                                     formattedUri)
 
@@ -713,7 +715,7 @@ class EMCCoprHDDriverCommon(object):
             clone_vol_path = self.configuration.coprhd_tenant + \
                 "/" + self.configuration.coprhd_project + "/" + name
             detachable = self.volume_obj.is_volume_detachable(clone_vol_path)
-            LOG.info(_LI("Is volume detachable : %s"),
+            LOG.debug("Is volume detachable : %s",
                      six.text_type(detachable))
 
             # detach it from the source volume immediately after creation
@@ -727,8 +729,8 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Volume %(name)s: clone failed\n%(err)s"),
-                    {'name': name, 'err': six.text_type(e.err_text)})
+                    (_("Volume %(name)s: clone failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : {%s} clone failed"), name)
@@ -753,9 +755,9 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Volume %(volume_name)s: expand failed\n%(err)s"),
+                    (_("Volume %(volume_name)s: expand failed\n%(err)s"),
                     {'volume_name': volume_name,
-                     'err': six.text_type(e.err_text)})
+                     'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : %s expand failed"),
@@ -803,9 +805,9 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Snapshot %(src_snapshot_name)s: clone failed\n%(err)s"),
+                    (_("Snapshot %(src_snapshot_name)s: clone failed\n%(err)s"),
                     {'src_snapshot_name': src_snapshot_name,
-                     'err': six.text_type(e.err_text)})
+                     'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE
@@ -833,8 +835,8 @@ class EMCCoprHDDriverCommon(object):
             elif e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Volume %(name)s: delete failed\n%(err)s"),
-                    {'name': name, 'err': six.text_type(e.err_text)})
+                    (_("Volume %(name)s: delete failed\n%(err)s"),
+                    {'name': name, 'err': six.text_type(e.err_text)}))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : %s delete failed"), name)
@@ -919,9 +921,9 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Snapshot: %(snapshotname)s, create failed\n%(err)s"),
+                    (_("Snapshot: %(snapshotname)s, create failed\n%(err)s"),
                     {'snapshotname': snapshotname,
-                     'err': six.text_type(e.err_text)}
+                     'err': six.text_type(e.err_text)})
                 )
             else:
                 with excutils.save_and_reraise_exception():
@@ -980,7 +982,7 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Snapshot %s : Delete Failed\n"), snapshotname)
+                    (_("Snapshot %s : Delete Failed\n"), snapshotname))
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(
@@ -1080,14 +1082,14 @@ class EMCCoprHDDriverCommon(object):
                     if (try_id >= EXPORT_RETRY_COUNT):
                         raise CoprHD_utils.CoprHdError(
                             CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                            _("Attach volume (%(name)s) to host"
+                            (_("Attach volume (%(name)s) to host"
                               " (%(hostname)s) initiator (%(initiatorport)s)"
                               " failed:\n%(ex)s"),
                             {'name': self._get_coprhd_volume_name(
                                 volume),
                                 'hostname': hostname,
                                 'initiatorport': initiatorPorts[0],
-                                'ex': six.text_type(ex.err_text)}
+                                'ex': six.text_type(ex.err_text)})
                         )
                     else:
                         LOG.exception(_LE("Export volume with LUN: %s"
@@ -1101,14 +1103,14 @@ class EMCCoprHDDriverCommon(object):
         except CoprHD_utils.CoprHdError as e:
             raise CoprHD_utils.CoprHdError(
                 CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                _("Attach volume (%(name)s) to host"
+                (_("Attach volume (%(name)s) to host"
                   " (%(hostname)s) initiator (%(initiatorport)s)"
                   " failed:\n%(err)s"),
                 {'name': self._get_coprhd_volume_name(
                     volume),
                  'hostname': hostname,
                  'initiatorport': initiatorPorts[0],
-                 'err': six.text_type(e.err_text)}
+                 'err': six.text_type(e.err_text)})
             )
 
     @retry_wrapper
@@ -1154,11 +1156,11 @@ class EMCCoprHDDriverCommon(object):
         except CoprHD_utils.CoprHdError as e:
             raise CoprHD_utils.CoprHdError(
                 CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                _("Detaching volume %(volumename)s from host"
+                (_("Detaching volume %(volumename)s from host"
                   " %(hostname)s failed: %(err)s"),
                 {'volumename': volumename,
                  'hostname': hostname,
-                 'err': six.text_type(e.err_text)}
+                 'err': six.text_type(e.err_text)})
             )
 
     @retry_wrapper
@@ -1236,7 +1238,7 @@ class EMCCoprHDDriverCommon(object):
         rslt = CoprHD_utils.search_by_tag(
             CoprHD_cg.ConsistencyGroup.URI_SEARCH_CONSISTENCY_GROUPS_BY_TAG.
             format(tagname),
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
         if rslt is None or len(rslt) == 0:
@@ -1245,7 +1247,7 @@ class EMCCoprHDDriverCommon(object):
                 CoprHD_cg.ConsistencyGroup
                 .URI_SEARCH_CONSISTENCY_GROUPS_BY_TAG.
                 format(tagname),
-                self.configuration.hostname,
+                self.configuration.coprhd_hostname,
                 self.configuration.coprhd_port)
 
         if len(rslt) > 0:
@@ -1257,7 +1259,7 @@ class EMCCoprHDDriverCommon(object):
         else:
             raise CoprHD_utils.CoprHdError(
                 CoprHD_utils.CoprHdError.NOT_FOUND_ERR,
-                _("Consistency Group %s not found"), cgid)
+                (_("Consistency Group %s not found"), cgid))
 
     def _get_consistencygroup_name(self, driver, context, cgid):
         consisgrp = driver.db.consistencygroup_get(context, cgid)
@@ -1268,7 +1270,7 @@ class EMCCoprHDDriverCommon(object):
         tagname = "OpenStack:id:" + snapshot['id']
         rslt = CoprHD_utils.search_by_tag(
             CoprHD_snap.Snapshot.URI_SEARCH_SNAPSHOT_BY_TAG.format(tagname),
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
         # if the result is empty, then search with the tagname
@@ -1279,7 +1281,7 @@ class EMCCoprHDDriverCommon(object):
             rslt = CoprHD_utils.search_by_tag(
                 CoprHD_snap.Snapshot.URI_SEARCH_SNAPSHOT_BY_TAG.format(
                     tagname),
-                self.configuration.hostname,
+                self.configuration.coprhd_hostname,
                 self.configuration.coprhd_port)
 
         if rslt is None or len(rslt) == 0:
@@ -1295,7 +1297,7 @@ class EMCCoprHDDriverCommon(object):
         tagname = "OpenStack:id:" + vol['id']
         rslt = CoprHD_utils.search_by_tag(
             CoprHD_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
         # if the result is empty, then search with the tagname
@@ -1305,7 +1307,7 @@ class EMCCoprHDDriverCommon(object):
             tagname = "OpenStack:obj_id:" + vol['id']
             rslt = CoprHD_utils.search_by_tag(
                 CoprHD_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
-                self.configuration.hostname,
+                self.configuration.coprhd_hostname,
                 self.configuration.coprhd_port)
 
         if len(rslt) > 0:
@@ -1318,7 +1320,7 @@ class EMCCoprHDDriverCommon(object):
         else:
             raise CoprHD_utils.CoprHdError(
                 CoprHD_utils.CoprHdError.NOT_FOUND_ERR,
-                _("Volume %s not found"), vol['display_name'])
+                (_("Volume %s not found"), vol['display_name']))
 
     def _get_volume_name(self, vol):
 
@@ -1429,7 +1431,7 @@ class EMCCoprHDDriverCommon(object):
         """Fetches ITL map for a given list of initiator ports"""
         comma_delimited_initiator_list = ",".join(initiator_ports)
         (s, h) = CoprHD_utils.service_json_request(
-            self.configuration.hostname,
+            self.configuration.coprhd_hostname,
             self.configuration.coprhd_port, "GET",
             URI_BLOCK_EXPORTS_FOR_INITIATORS.format(
                 comma_delimited_initiator_list),
@@ -1471,7 +1473,7 @@ class EMCCoprHDDriverCommon(object):
                 for vpair in vpairs:
                     if vpair:
                         (s, h) = CoprHD_utils.service_json_request(
-                            self.configuration.hostname,
+                            self.configuration.coprhd_hostname,
                             self.configuration.coprhd_port,
                             "GET",
                             URI_VPOOL_VARRAY_CAPACITY.format(vpair[0],
@@ -1516,9 +1518,9 @@ class EMCCoprHDDriverCommon(object):
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
                 raise CoprHD_utils.CoprHdError(
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Volume %(volume_name)s: update failed\n%(err)s"),
+                    (_("Volume %(volume_name)s: update failed\n%(err)s"),
                     {'volume_name': volume_name,
-                        'err': six.text_type(e.err_text)}
+                        'err': six.text_type(e.err_text)})
                 )
             else:
                 with excutils.save_and_reraise_exception():
