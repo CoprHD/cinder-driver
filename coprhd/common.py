@@ -77,7 +77,7 @@ volume_opts = [
                default='None',
                help='Rest Gateway for Scaleio'),
     cfg.PortOpt('coprhd_scaleio_rest_gateway_port',
-                default='None',
+                default=4984,
                 help='Rest Gateway Port for Scaleio'),
     cfg.StrOpt('coprhd_scaleio_rest_server_username',
                default=None,

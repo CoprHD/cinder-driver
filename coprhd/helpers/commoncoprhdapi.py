@@ -357,7 +357,7 @@ def format_err_msg_and_raise(operation_type, component,
     @error_message Detailed error message
     """
 
-    formatedErrMsg = (_("Error: Failed to %(operation_type)s %(component)s"),
+    formated_err_msg = (_("Error: Failed to %(operation_type)s %(component)s"),
                       {'operation_type': operation_type,
                        'component': component
                        })
@@ -365,8 +365,8 @@ def format_err_msg_and_raise(operation_type, component,
         # stripping the first 2 and last 2 characters, which are quotes.
         error_message = error_message[2:len(error_message) - 2]
 
-    formatedErrMsg = formatedErrMsg + "\nReason:" + error_message
-    raise CoprHdError(error_code, formatedErrMsg)
+    formated_err_msg = formated_err_msg + "\nReason:" + error_message
+    raise CoprHdError(error_code, formated_err_msg)
 
 
 def exit_gracefully(exit_status_code):
