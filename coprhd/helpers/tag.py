@@ -22,7 +22,7 @@ from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 
 
-def tag_resource(ipaddr, port, uri, resourceid, add, remove):
+def tag_resource(ipaddr, port, uri, resource_id, add, remove):
 
     params = {
         'add': add,
@@ -31,21 +31,21 @@ def tag_resource(ipaddr, port, uri, resourceid, add, remove):
     body = oslo_serialization.jsonutils.dumps(params)
 
     (s, h) = common.service_json_request(ipaddr, port, "PUT",
-                                         uri.format(resourceid), body)
+                                         uri.format(resource_id), body)
     o = common.json_decode(s)
     return o
 
 
-def list_tags(ipaddr, port, resourceUri):
+def list_tags(ipaddr, port, resource_uri):
 
-    if resourceUri.__contains__("tag") is False:
+    if resource_uri.__contains__("tag") is False:
         raise common.CoprHdError(
             common.CoprHdError.VALUE_ERR, _("URI should end with /tag"))
 
     (s, h) = common.service_json_request(ipaddr,
                                          port,
                                          "GET",
-                                         resourceUri,
+                                         resource_uri,
                                          None)
     allTags = []
     o = common.json_decode(s)

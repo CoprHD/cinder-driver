@@ -18,7 +18,7 @@ from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers import tenant
 
 
-class Host(object):
+class Host(common.CoprHDResource):
 
     # All URIs for the Host operations
     URI_HOST_DETAILS = "/compute/hosts/{0}"
@@ -26,16 +26,8 @@ class Host(object):
     URI_COMPUTE_HOST = "/compute/hosts"
     URI_HOSTS_SEARCH_BY_NAME = "/compute/hosts/search?name={0}"
 
-    def __init__(self, ipAddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance
-
-        These are needed to make http requests for REST API
-        """
-        self.__ipAddr = ipAddr
-        self.__port = port
-
-    def query_by_name(self, hostName, tenant_name=None):
-        """Search host matching the hostName and tenant if tenant_name is provided
+    def query_by_name(self, host_name, tenant_name=None):
+        """Search host matching the host_name and tenant if tenant_name is provided
 
         tenant_name is optional
         """
@@ -44,25 +36,25 @@ class Host(object):
             hostUri = host['id']
             hostDetails = self.show_by_uri(hostUri)
             if hostDetails:
-                if hostDetails['name'] == hostName:
+                if hostDetails['name'] == host_name:
                     return hostUri
 
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, (_(
-                                 "Host with name: %s not found"), hostName))
+                                 "Host with name: %s not found"), host_name))
 
-    def list_initiators(self, hostName):
+    def list_initiators(self, host_name):
         """Lists all initiators for the given host
 
         Parameters
-            hostName : The name of the host
+            host_name : The name of the host
         """
-        if not common.is_uri(hostName):
-            hostUri = self.query_by_name(hostName, None)
+        if not common.is_uri(host_name):
+            hostUri = self.query_by_name(host_name, None)
         else:
-            hostUri = hostName
+            hostUri = host_name
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
+            self.__ipaddr, self.__port, "GET",
             Host.URI_HOST_LIST_INITIATORS.format(hostUri),
             None)
         o = common.json_decode(s)
@@ -75,7 +67,7 @@ class Host(object):
     def list_all(self, tenant_name):
         """Gets the ids and self links for all compute elements"""
         restapi = self.URI_COMPUTE_HOST
-        tenant_obj = tenant.Tenant(self.__ipAddr, self.__port)
+        tenant_obj = tenant.Tenant(self.__ipaddr, self.__port)
         if tenant_name is None:
             tenant_uri = tenant_obj.tenant_getid()
         else:
@@ -83,7 +75,7 @@ class Host(object):
         restapi = restapi + "?tenant=" + tenant_uri
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
+            self.__ipaddr, self.__port,
             "GET",
             restapi,
             None)
@@ -92,7 +84,7 @@ class Host(object):
 
     def show_by_uri(self, uri):
         """Makes REST API call to retrieve Host details based on its UUID"""
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port, "GET",
                                              Host.URI_HOST_DETAILS.format(uri),
                                              None)
         o = common.json_decode(s)
@@ -105,7 +97,7 @@ class Host(object):
     def search_by_name(self, host_name):
         """Search host by its name"""
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
+            self.__ipaddr, self.__port, "GET",
             self.URI_HOSTS_SEARCH_BY_NAME.format(host_name), None)
         o = common.json_decode(s)
         if not o:

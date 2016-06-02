@@ -17,19 +17,11 @@ from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 
 
-class VirtualPool(object):
+class VirtualPool(common.CoprHDResource):
 
     URI_VPOOL = "/{0}/vpools"
     URI_VPOOL_SHOW = URI_VPOOL + "/{1}"
     URI_VPOOL_SEARCH = URI_VPOOL + "/search?name={1}"
-
-    def __init__(self, ipAddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance.
-
-        These are needed to make http requests for REST API
-        """
-        self.__ipAddr = ipAddr
-        self.__port = port
 
     def vpool_show_uri(self, vpooltype, uri):
         """Makes REST API call and retrieves vpool details based on UUID
@@ -43,7 +35,7 @@ class VirtualPool(object):
         """
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
+            self.__ipaddr, self.__port,
             "GET",
             self.URI_VPOOL_SHOW.format(vpooltype, uri), None)
 
@@ -68,7 +60,7 @@ class VirtualPool(object):
             return name
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
+            self.__ipaddr, self.__port, "GET",
             self.URI_VPOOL_SEARCH.format(vpooltype, name), None)
 
         o = common.json_decode(s)

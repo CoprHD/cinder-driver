@@ -347,26 +347,26 @@ def get_node_value(json_object, parent_node_name, child_node_name=None):
     return return_value
 
 
-def format_err_msg_and_raise(operationType, component,
-                             errorMessage, errorCode):
+def format_err_msg_and_raise(operation_type, component,
+                             error_message, error_code):
     """Method to format error message
 
-    @operationType create, update, add, etc
+    @operation_type create, update, add, etc
     @component storagesystem, vpool, etc
-    @errorCode Error code from the API call
-    @errorMessage Detailed error message
+    @error_code Error code from the API call
+    @error_message Detailed error message
     """
 
-    formatedErrMsg = (_("Error: Failed to %(operationType)s %(component)s"),
-                      {'operationType': operationType,
+    formatedErrMsg = (_("Error: Failed to %(operation_type)s %(component)s"),
+                      {'operation_type': operation_type,
                        'component': component
                        })
-    if errorMessage.startswith("\"\'") and errorMessage.endswith("\'\""):
+    if error_message.startswith("\"\'") and error_message.endswith("\'\""):
         # stripping the first 2 and last 2 characters, which are quotes.
-        errorMessage = errorMessage[2:len(errorMessage) - 2]
+        error_message = error_message[2:len(error_message) - 2]
 
-    formatedErrMsg = formatedErrMsg + "\nReason:" + errorMessage
-    raise CoprHdError(errorCode, formatedErrMsg)
+    formatedErrMsg = formatedErrMsg + "\nReason:" + error_message
+    raise CoprHdError(error_code, formatedErrMsg)
 
 
 def exit_gracefully(exit_status_code):
@@ -379,20 +379,20 @@ def exit_gracefully(exit_status_code):
     sys.exit(exit_status_code)
 
 
-def search_by_tag(resourceSearchUri, ipAddr, port):
+def search_by_tag(resource_search_uri, ipaddr, port):
     """Fetches the list of resources with a given tag
 
-    Parameter resourceSearchUri : The tag based search uri
+    Parameter resource_search_uri : The tag based search uri
                               Example: '/block/volumes/search?tag=tagexample1'
     """
     # check if the URI passed has both project and name parameters
-    strUri = str(resourceSearchUri)
+    strUri = str(resource_search_uri)
     if strUri.__contains__("search") and strUri.__contains__("?tag="):
         # Get the project URI
 
         (s, h) = service_json_request(
-            ipAddr, port, "GET",
-            resourceSearchUri, None)
+            ipaddr, port, "GET",
+            resource_search_uri, None)
 
         o = json_decode(s)
         if not o:
@@ -419,7 +419,7 @@ def timeout_handler():
 
 
 # Blocks the operation until the task is complete/error out/timeout
-def block_until_complete(componentType,
+def block_until_complete(component_type,
                          resource_uri,
                          task_id,
                          ipAddr,
@@ -435,7 +435,7 @@ def block_until_complete(componentType,
     t.start()
     while True:
         out = get_task_by_resourceuri_and_taskId(
-            componentType, resource_uri, task_id, ipAddr, port)
+            component_type, resource_uri, task_id, ipAddr, port)
 
         if out:
             if out["state"] == "ready":
@@ -470,12 +470,12 @@ def block_until_complete(componentType,
     return
 
 
-def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
+def get_task_by_resourceuri_and_taskId(component_type, resource_uri,
                                        task_id, ipAddr, port):
     """Returns the single task details"""
 
     task_uri_constant = singletonURIHelperInstance.getUri(
-        componentType, "task")
+        component_type, "task")
     (s, h) = service_json_request(
         ipAddr, port, "GET",
         task_uri_constant.format(resource_uri, task_id), None)
@@ -508,3 +508,14 @@ class CoprHdError(exception.VolumeBackendAPIException):
 
     def __str__(self):
         return repr(self.err_text)
+
+
+class CoprHDResource(object):
+
+    def __init__(self, ipaddr, port):
+        """Constructor: takes IP address and port of the CoprHD instance
+
+        These are needed to make http requests for REST API
+        """
+        self.__ipaddr = ipaddr
+        self.__port = port

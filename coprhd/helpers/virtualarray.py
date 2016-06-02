@@ -17,20 +17,12 @@ from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 
 
-class VirtualArray(object):
+class VirtualArray(common.CoprHDResource):
 
     # Commonly used URIs for the 'varrays' module
     URI_VIRTUALARRAY = '/vdc/varrays'
     URI_VIRTUALARRAY_BY_VDC_ID = '/vdc/varrays?vdc-id={0}'
     URI_VIRTUALARRAY_URI = '/vdc/varrays/{0}'
-
-    def __init__(self, ipAddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance.
-
-        These are needed to make http requests for REST API
-        """
-        self.__ipAddr = ipAddr
-        self.__port = port
 
     def varray_query(self, name):
         """Returns the UID of the varray specified by the name"""
@@ -62,7 +54,7 @@ class VirtualArray(object):
         else:
             vdcrestapi = VirtualArray.URI_VIRTUALARRAY
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
+            self.__ipaddr, self.__port, "GET",
             vdcrestapi, None)
 
         o = common.json_decode(s)
@@ -78,7 +70,7 @@ class VirtualArray(object):
         uri = self.varray_query(label)
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
+            self.__ipaddr, self.__port, "GET",
             VirtualArray.URI_VIRTUALARRAY_URI.format(uri),
             None)
 

@@ -17,20 +17,12 @@ from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 
 
-class Tenant(object):
+class Tenant(common.CoprHDResource):
 
     URI_SERVICES_BASE = ''
     URI_TENANT = URI_SERVICES_BASE + '/tenant'
     URI_TENANTS = URI_SERVICES_BASE + '/tenants/{0}'
     URI_TENANTS_SUBTENANT = URI_TENANTS + '/subtenants'
-
-    def __init__(self, ipAddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance
-
-        These are needed to make http requests for REST API
-        """
-        self.__ipAddr = ipAddr
-        self.__port = port
 
     def tenant_query(self, label):
         """Returns the UID of the tenant specified by the hierarchical name
@@ -68,7 +60,7 @@ class Tenant(object):
         return self.tenant_show_by_uri(tenant_id)
 
     def tenant_getid(self):
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
                                              "GET", Tenant.URI_TENANT, None)
 
         o = common.json_decode(s)
@@ -91,7 +83,7 @@ class Tenant(object):
         if(tenantdtls and not ('parent_tenant' in tenantdtls and
                                ("id" in tenantdtls['parent_tenant']))):
             (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port,
+                self.__ipaddr, self.__port,
                 "GET", self.URI_TENANTS_SUBTENANT.format(uri), None)
 
             o = common.json_decode(s)
@@ -102,7 +94,7 @@ class Tenant(object):
 
     def tenant_show_by_uri(self, uri):
         """Makes REST API call to retrieve tenant details based on its UUID"""
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port, "GET",
                                              Tenant.URI_TENANTS.format(uri),
                                              None)
 

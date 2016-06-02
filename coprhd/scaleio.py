@@ -34,11 +34,7 @@ from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
 LOG = logging.getLogger(__name__)
 
 
-class EMCCoprHDScaleIODriver(driver.VolumeDriver,
-                             driver.BaseVD,
-                             driver.SnapshotVD,
-                             driver.ExtendVD,
-                             driver.ConsistencyGroupVD):
+class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     """CoprHD ScaleIO Driver"""
     server_token = None
 
@@ -124,11 +120,13 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver,
 
     def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""
-        return self.common.create_cgsnapshot(self, context, cgsnapshot)
+        return self.common.create_cgsnapshot(self, context,
+                                             cgsnapshot, snapshots)
 
     def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
-        return self.common.delete_cgsnapshot(self, context, cgsnapshot)
+        return self.common.delete_cgsnapshot(self, context,
+                                             cgsnapshot, snapshots)
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
@@ -283,11 +281,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver,
                       'out': out, 'err': err})
         except processutils.ProcessExecutionError as e:
             msg = (_("Error querying sdc version: %s"), e.stderr)
-            if('unrecognized option \'--query_version\'' in msg):
-                return 'R1_30'
-            else:
-                LOG.error(msg)
-                raise exception.VolumeBackendAPIException(data=msg)
+            LOG.error(msg)
+            raise exception.VolumeBackendAPIException(data=msg)
 
         version = out
         msg = (_LI("Current sdc version: %s"), version)
@@ -308,20 +303,14 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver,
         else:
             verify_cert = False
 
-        version = self._get_scaleio_version()
         r = None
 
-        if 'R1_31' in version or 'R2_0' in version:
-            r = requests.get(
-                request, auth=(server_username, self.server_token),
-                verify=verify_cert)
-            r = self._check_response(
-                r, request, server_ip, server_port,
-                server_username, server_password)
-        else:
-            r = requests.get(
-                request, auth=(server_username, server_password),
-                verify=False)
+        r = requests.get(
+            request, auth=(server_username, self.server_token),
+            verify=verify_cert)
+        r = self._check_response(
+            r, request, server_ip, server_port,
+            server_username, server_password)
 
         sdc_id = r.json()
         if (sdc_id == '' or sdc_id is None):

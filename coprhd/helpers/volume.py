@@ -22,7 +22,7 @@ from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
 from cinder.volume.drivers.emc.coprhd.helpers import virtualarray
 
 
-class Volume(object):
+class Volume(common.CoprHDResource):
 
     # Commonly used URIs for the 'Volume' module
     URI_SEARCH_VOLUMES = '/block/volumes/search?project={0}'
@@ -57,14 +57,6 @@ class Volume(object):
     isTimeout = False
     timeout = 300
 
-    def __init__(self, ipAddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance.
-
-        These are needed to make http requests for REST API
-        """
-        self.__ipAddr = ipAddr
-        self.__port = port
-
     # Lists volumes in a project
     def list_volumes(self, project):
         """Makes REST API call to list volumes under a project
@@ -86,10 +78,10 @@ class Volume(object):
     def search_volumes(self, project):
 
         from cinder.volume.drivers.emc.coprhd.helpers.project import Project
-        proj = Project(self.__ipAddr, self.__port)
+        proj = Project(self.__ipaddr, self.__port)
         project_uri = proj.project_query(project)
 
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
                                              "GET",
                                              Volume.URI_SEARCH_VOLUMES.format(
                                                  project_uri),
@@ -114,7 +106,7 @@ class Volume(object):
             Volume details in JSON response payload
         """
 
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
                                              "GET",
                                              Volume.URI_VOLUME.format(uri),
                                              None)
@@ -146,15 +138,15 @@ class Volume(object):
         """
 
         from cinder.volume.drivers.emc.coprhd.helpers.project import Project
-        proj_obj = Project(self.__ipAddr, self.__port)
+        proj_obj = Project(self.__ipaddr, self.__port)
         project_uri = proj_obj.project_query(project)
 
         from cinder.volume.drivers.emc.coprhd.helpers.virtualpool import (
             VirtualPool)
-        vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+        vpool_obj = VirtualPool(self.__ipaddr, self.__port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")
 
-        varray_obj = virtualarray.VirtualArray(self.__ipAddr, self.__port)
+        varray_obj = virtualarray.VirtualArray(self.__ipaddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
 
         request = {
@@ -169,7 +161,7 @@ class Volume(object):
             request['consistency_group'] = consistencygroup
 
         body = oslo_serialization.jsonutils.dumps(request)
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
                                              "POST",
                                              Volume.URI_VOLUMES,
                                              body)
@@ -194,7 +186,7 @@ class Volume(object):
                 resource = result["resource"]
                 return (
                     common.block_until_complete("volume", resource["id"],
-                                                result["id"], self.__ipAddr,
+                                                result["id"], self.__ipaddr,
                                                 self.__port, synctimeout)
                 )
             else:
@@ -229,29 +221,29 @@ class Volume(object):
                                  (_("Volume"
                                     "%s: not found"), label))
 
-    def get_storageAttributes(self, volumeName, cgName, snapshotName=None):
-        storageresType = None
-        storageresTypeName = None
+    def get_storageAttributes(self, volume_name, cg_name, snapshot_name=None):
+        storageres_type = None
+        storageres_typename = None
 
-        if snapshotName is not None:
-            storageresType = Volume.BLOCK
-            storageresTypeName = Volume.SNAPSHOTS
-        elif volumeName is not None:
-            storageresType = Volume.BLOCK
-            storageresTypeName = Volume.VOLUMES
-        elif cgName is not None:
-            storageresType = Volume.BLOCK
-            storageresTypeName = Volume.CG
+        if snapshot_name is not None:
+            storageres_type = Volume.BLOCK
+            storageres_typename = Volume.SNAPSHOTS
+        elif volume_name is not None:
+            storageres_type = Volume.BLOCK
+            storageres_typename = Volume.VOLUMES
+        elif cg_name is not None:
+            storageres_type = Volume.BLOCK
+            storageres_typename = Volume.CG
         else:
-            storageresType = None
-            storageresTypeName = None
-        return (storageresType, storageresTypeName)
+            storageres_type = None
+            storageres_typename = None
+        return (storageres_type, storageres_typename)
 
     def storageResource_query(self,
-                              storageresType,
-                              volumeName,
-                              cgName,
-                              snapshotName,
+                              storageres_type,
+                              volume_name,
+                              cg_name,
+                              snapshot_name,
                               project,
                               tenant):
         resourcepath = "/" + project + "/"
@@ -261,22 +253,22 @@ class Volume(object):
         resUri = None
         resourceObj = None
 
-        if Volume.BLOCK == storageresType and volumeName is not None:
-            resUri = self.volume_query(resourcepath + volumeName)
-            if snapshotName is not None:
+        if Volume.BLOCK == storageres_type and volume_name is not None:
+            resUri = self.volume_query(resourcepath + volume_name)
+            if snapshot_name is not None:
 
                 from cinder.volume.drivers.emc.coprhd.helpers.snapshot import (
                     Snapshot)
-                snapobj = Snapshot(self.__ipAddr, self.__port)
-                resUri = snapobj.snapshot_query(storageresType,
+                snapobj = Snapshot(self.__ipaddr, self.__port)
+                resUri = snapobj.snapshot_query(storageres_type,
                                                 Volume.VOLUMES, resUri,
-                                                snapshotName)
+                                                snapshot_name)
 
-        elif Volume.BLOCK == storageresType and cgName is not None:
+        elif Volume.BLOCK == storageres_type and cg_name is not None:
             resourceObj = consistencygroup.ConsistencyGroup(
-                self.__ipAddr, self.__port)
+                self.__ipaddr, self.__port)
             resUri = resourceObj.consistencygroup_query(
-                cgName,
+                cg_name,
                 project,
                 tenant)
         else:
@@ -285,13 +277,13 @@ class Volume(object):
         return resUri
 
     # Creates volume(s) from given source volume
-    def clone(self, new_vol_name, resourceUri,
+    def clone(self, new_vol_name, resource_uri,
               sync, synctimeout=0):
         """Makes REST API call to clone volume
 
         Parameters:
             new_vol_name     : name of volume
-            resourceUri      : uri of source volume
+            resource_uri      : uri of source volume
             sync             : synchronous request
             synctimeout      : Query for task status for "synctimeout" secs.
                                If the task doesn't complete in synctimeout
@@ -302,20 +294,20 @@ class Volume(object):
         """
 
         from cinder.volume.drivers.emc.coprhd.helpers.snapshot import Snapshot
-        snap_obj = Snapshot(self.__ipAddr, self.__port)
+        snap_obj = Snapshot(self.__ipaddr, self.__port)
         is_snapshot_clone = False
         clone_full_uri = None
 
         # consistency group
-        if resourceUri.find("BlockConsistencyGroup") > 0:
-            clone_full_uri = Volume.URI_CG_CLONE.format(resourceUri)
-        elif resourceUri.find("BlockSnapshot") > 0:
+        if resource_uri.find("BlockConsistencyGroup") > 0:
+            clone_full_uri = Volume.URI_CG_CLONE.format(resource_uri)
+        elif resource_uri.find("BlockSnapshot") > 0:
             is_snapshot_clone = True
             clone_full_uri = (
-                Volume.URI_SNAPSHOT_PROTECTION_FULLCOPIES.format(resourceUri))
+                Volume.URI_SNAPSHOT_PROTECTION_FULLCOPIES.format(resource_uri))
         else:
             clone_full_uri = (
-                Volume.URI_VOLUME_PROTECTION_FULLCOPIES.format(resourceUri))
+                Volume.URI_VOLUME_PROTECTION_FULLCOPIES.format(resource_uri))
 
         request = {
             'name': new_vol_name,
@@ -326,7 +318,7 @@ class Volume(object):
         request["count"] = 1
 
         body = oslo_serialization.jsonutils.dumps(request)
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
                                              "POST",
                                              clone_full_uri,
                                              body)
@@ -350,8 +342,8 @@ class Volume(object):
     # To check whether a cloned volume is in detachable state or not
     def is_volume_detachable(self, name):
 
-        volumeUri = self.volume_query(name)
-        vol = self.show_by_uri(volumeUri)
+        volume_uri = self.volume_query(name)
+        vol = self.show_by_uri(volume_uri)
         # Filtering based on "replicaState" attribute value of Cloned volume.
         # If "replicaState" value is "SYNCHRONIZED" then only Cloned volume
         # would be in detachable state.
@@ -364,23 +356,23 @@ class Volume(object):
             return False
         return False
 
-    def volume_clone_detach(self, resourceUri, name, sync, synctimeout=0):
+    def volume_clone_detach(self, resource_uri, name, sync, synctimeout=0):
 
-        volumeUri = self.volume_query(name)
+        volume_uri = self.volume_query(name)
 
         # consistency group
-        if resourceUri.find("BlockConsistencyGroup") > 0:
+        if resource_uri.find("BlockConsistencyGroup") > 0:
             (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port,
+                self.__ipaddr, self.__port,
                 "POST",
                 Volume.URI_CG_CLONE_DETACH.format(
-                    resourceUri,
-                    volumeUri), None)
+                    resource_uri,
+                    volume_uri), None)
         else:
             (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port,
+                self.__ipaddr, self.__port,
                 "POST",
-                Volume.URI_VOLUME_CLONE_DETACH.format(volumeUri), None)
+                Volume.URI_VOLUME_CLONE_DETACH.format(volume_uri), None)
 
         o = common.json_decode(s)
         if sync:
@@ -437,7 +429,7 @@ class Volume(object):
             "new_size": new_size
         })
 
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
                                              "POST",
                                              Volume.URI_EXPAND.format(
                                                  volume_detail["id"]),
@@ -452,13 +444,13 @@ class Volume(object):
 
     # Deletes a volume given a volume name
     def delete(self, name, sync=False,
-               forceDelete=False, coprhdonly=False, synctimeout=0):
+               force_delete=False, coprhdonly=False, synctimeout=0):
         """Deletes a volume based on volume name
 
         Parameters:
             name        : name of volume to be deleted
             sync        : synchronous request
-            forceDelete : if true, it will force the delete of internal
+            force_delete : if true, it will force the delete of internal
                           volumes that have the SUPPORTS_FORCE flag
             coprhdonly  : to delete volumes from coprHD only
             synctimeout : Query for task status for "synctimeout" secs. If
@@ -467,12 +459,12 @@ class Volume(object):
 
         """
         volume_uri = self.volume_query(name)
-        return self.delete_by_uri(volume_uri, sync, forceDelete,
+        return self.delete_by_uri(volume_uri, sync, force_delete,
                                   coprhdonly, synctimeout)
 
     # Deletes a volume given a volume uri
     def delete_by_uri(self, uri, sync=False,
-                      forceDelete=False, coprhdonly=False, synctimeout=0):
+                      force_delete=False, coprhdonly=False, synctimeout=0):
         """Deletes a volume based on volume uri
 
         Parameters:
@@ -480,14 +472,14 @@ class Volume(object):
         """
 
         params = ''
-        if forceDelete:
+        if force_delete:
             params += '&' if ('?' in params) else '?'
             params += "force=" + "true"
         if coprhdonly is True:
             params += '&' if ('?' in params) else '?'
             params += "type=" + 'CoprHD_ONLY'
 
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
                                              "POST",
                                              Volume.URI_DEACTIVATE.format(
                                                  uri) + params,
@@ -508,7 +500,7 @@ class Volume(object):
         Returns:
             Exports details in JSON response payload
         """
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
                                              "GET",
                                              Volume.URI_VOLUME_EXPORTS.format(
                                                  uri),
@@ -542,7 +534,7 @@ class Volume(object):
         from cinder.volume.drivers.emc.coprhd.helpers.virtualpool import (
             VirtualPool)
 
-        vpool_obj = VirtualPool(self.__ipAddr, self.__port)
+        vpool_obj = VirtualPool(self.__ipaddr, self.__port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")
 
         params = {
@@ -553,7 +545,7 @@ class Volume(object):
         body = oslo_serialization.jsonutils.dumps(params)
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "POST",
+            self.__ipaddr, self.__port, "POST",
             Volume.URI_VOLUME_CHANGE_VPOOL,
             body)
 

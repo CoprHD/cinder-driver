@@ -25,7 +25,7 @@ from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 
 
-class Authentication(object):
+class Authentication(common.CoprHDResource):
 
     # Commonly used URIs for the 'Authentication' module
     URI_SERVICES_BASE = ''
@@ -33,14 +33,6 @@ class Authentication(object):
 
     HEADERS = {'Content-Type': 'application/json',
                'ACCEPT': 'application/json', 'X-EMC-REST-CLIENT': 'TRUE'}
-
-    def __init__(self, ipaddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance
-
-        These are needed to make http requests for REST API
-        """
-        self.__ipaddr = ipaddr
-        self.__port = port
 
     def authenticate_user(self, username, password):
         """Makes REST API call to generate the authentication token

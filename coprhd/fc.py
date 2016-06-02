@@ -28,11 +28,7 @@ from cinder.zonemanager.utils import RemoveFCZone
 LOG = logging.getLogger(__name__)
 
 
-class EMCCoprHDFCDriver(driver.FibreChannelDriver,
-                        driver.BaseVD,
-                        driver.SnapshotVD,
-                        driver.ExtendVD,
-                        driver.ConsistencyGroupVD):
+class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     """CoprHD FC Driver"""
 
     def __init__(self, *args, **kwargs):
@@ -113,11 +109,13 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver,
 
     def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""
-        return self.common.create_cgsnapshot(self, context, cgsnapshot)
+        return self.common.create_cgsnapshot(self, context,
+                                             cgsnapshot, snapshots)
 
     def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
-        return self.common.delete_cgsnapshot(self, context, cgsnapshot)
+        return self.common.delete_cgsnapshot(self, context,
+                                             cgsnapshot, snapshots)
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""

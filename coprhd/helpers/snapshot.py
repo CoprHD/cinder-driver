@@ -23,7 +23,7 @@ from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
 from cinder.volume.drivers.emc.coprhd.helpers import volume
 
 
-class Snapshot(object):
+class Snapshot(common.CoprHDResource):
 
     # Commonly used URIs for the 'Snapshot' module
     URI_SNAPSHOTS = '/{0}/snapshots/{1}'
@@ -46,14 +46,6 @@ class Snapshot(object):
     isTimeout = False
     timeout = 300
 
-    def __init__(self, ipAddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance
-
-        These are needed to make http requests for REST API
-        """
-        self.__ipAddr = ipAddr
-        self.__port = port
-
     def snapshot_list_uri(self, otype, otypename, ouri):
         """Makes REST API call to list snapshots under a volume
 
@@ -66,64 +58,64 @@ class Snapshot(object):
             return list of snapshots
         """
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
+            self.__ipaddr, self.__port,
             "GET",
             Snapshot.URI_SNAPSHOT_LIST.format(otype, otypename, ouri), None)
         o = common.json_decode(s)
         return o['snapshot']
 
-    def snapshot_show_uri(self, otype, resourceUri, suri):
+    def snapshot_show_uri(self, otype, resource_uri, suri):
         """Retrieves snapshot details based on snapshot Name or Label
 
         Parameters:
             otype : block
             suri : uri of the Snapshot.
-            resourceUri: uri of the source resource
+            resource_uri: uri of the source resource
             typename: volumes or consistency-groups should be provided
         Returns:
             Snapshot details in JSON response payload
         """
-        if(resourceUri is not None and
-           resourceUri.find('BlockConsistencyGroup') > 0):
+        if(resource_uri is not None and
+           resource_uri.find('BlockConsistencyGroup') > 0):
             (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port,
+                self.__ipaddr, self.__port,
                 "GET",
                 Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE.format(
-                    resourceUri,
+                    resource_uri,
                     suri),
                 None)
         else:
             (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port,
+                self.__ipaddr, self.__port,
                 "GET",
                 Snapshot.URI_SNAPSHOTS.format(otype, suri), None)
 
         return common.json_decode(s)
 
-    def snapshot_query(self, storageresType,
-                       storageresTypename, resuri, snapshotName):
+    def snapshot_query(self, storageres_type,
+                       storageres_typename, resuri, snapshot_name):
         if resuri is not None:
             uris = self.snapshot_list_uri(
-                storageresType,
-                storageresTypename,
+                storageres_type,
+                storageres_typename,
                 resuri)
             for uri in uris:
                 snapshot = self.snapshot_show_uri(
-                    storageresType,
+                    storageres_type,
                     resuri,
                     uri['id'])
                 if (False == common.get_node_value(snapshot, 'inactive') and
-                        snapshot['name'] == snapshotName):
+                        snapshot['name'] == snapshot_name):
                     return snapshot['id']
 
         raise common.CoprHdError(
             common.CoprHdError.SOS_FAILURE_ERR,
             (_("snapshot with the name: "
-               "%s Not Found"), snapshotName))
+               "%s Not Found"), snapshot_name))
 
     def snapshot_show_task_opid(self, otype, snap, taskid):
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
+            self.__ipaddr, self.__port,
             "GET",
             Snapshot.URI_SNAPSHOT_TASKS_BY_OPID.format(taskid),
             None)
@@ -133,7 +125,7 @@ class Snapshot(object):
         return o
 
     # Blocks the operation until the task is complete/error out/timeout
-    def block_until_complete(self, storageresType, resuri,
+    def block_until_complete(self, storageres_type, resuri,
                              task_id, synctimeout=0):
         if synctimeout:
             t = threading.Timer(synctimeout, common.timeout_handler)
@@ -142,7 +134,8 @@ class Snapshot(object):
             t = threading.Timer(synctimeout, common.timeout_handler)
         t.start()
         while True:
-            out = self.snapshot_show_task_opid(storageresType, resuri, task_id)
+            out = self.snapshot_show_task_opid(
+                storageres_type, resuri, task_id)
 
             if out:
                 if out["state"] == "ready":
@@ -175,9 +168,9 @@ class Snapshot(object):
         return
 
     def storage_resource_query(self,
-                               storageresType,
-                               volumeName,
-                               cgName,
+                               storageres_type,
+                               volume_name,
+                               cg_name,
                                project,
                                tenant):
         resourcepath = "/" + project + "/"
@@ -186,15 +179,15 @@ class Snapshot(object):
 
         resUri = None
         resourceObj = None
-        if Snapshot.BLOCK == storageresType and volumeName is not None:
-            resourceObj = volume.Volume(self.__ipAddr, self.__port)
-            resUri = resourceObj.volume_query(resourcepath + volumeName)
-        elif Snapshot.BLOCK == storageresType and cgName is not None:
+        if Snapshot.BLOCK == storageres_type and volume_name is not None:
+            resourceObj = volume.Volume(self.__ipaddr, self.__port)
+            resUri = resourceObj.volume_query(resourcepath + volume_name)
+        elif Snapshot.BLOCK == storageres_type and cg_name is not None:
             resourceObj = consistencygroup.ConsistencyGroup(
-                self.__ipAddr,
+                self.__ipaddr,
                 self.__port)
             resUri = resourceObj.consistencygroup_query(
-                cgName,
+                cg_name,
                 project,
                 tenant)
         else:
@@ -254,7 +247,7 @@ class Snapshot(object):
 
         # REST api call
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
+            self.__ipaddr, self.__port,
             "POST",
             Snapshot.URI_SNAPSHOT_LIST.format(otype, typename, ouri), body)
         o = common.json_decode(s)
@@ -271,7 +264,7 @@ class Snapshot(object):
         else:
             return o
 
-    def snapshot_delete_uri(self, otype, resourceUri,
+    def snapshot_delete_uri(self, otype, resource_uri,
                             suri, sync, synctimeout=0):
         """Delete a snapshot by uri
 
@@ -284,21 +277,21 @@ class Snapshot(object):
                           exception is thrown
         """
         s = None
-        if resourceUri.find("Volume") > 0:
+        if resource_uri.find("Volume") > 0:
 
             (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port,
+                self.__ipaddr, self.__port,
                 "POST",
                 Snapshot.URI_RESOURCE_DEACTIVATE.format(
                     Snapshot.URI_BLOCK_SNAPSHOTS.format(suri)),
                 None)
-        elif resourceUri.find("BlockConsistencyGroup") > 0:
+        elif resource_uri.find("BlockConsistencyGroup") > 0:
 
             (s, h) = common.service_json_request(
-                self.__ipAddr, self.__port,
+                self.__ipaddr, self.__port,
                 "POST",
                 Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_DEACTIVATE.format(
-                    resourceUri,
+                    resource_uri,
                     suri),
                 None)
         o = common.json_decode(s)
@@ -314,16 +307,16 @@ class Snapshot(object):
         else:
             return o
 
-    def snapshot_delete(self, storageresType,
-                        storageresTypename, resourceUri,
+    def snapshot_delete(self, storageres_type,
+                        storageres_typename, resource_uri,
                         name, sync, synctimeout=0):
         snapshotUri = self.snapshot_query(
-            storageresType,
-            storageresTypename,
-            resourceUri,
+            storageres_type,
+            storageres_typename,
+            resource_uri,
             name)
         self.snapshot_delete_uri(
-            storageresType,
-            resourceUri,
+            storageres_type,
+            resource_uri,
             snapshotUri,
             sync, synctimeout)

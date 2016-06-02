@@ -18,19 +18,11 @@ from cinder.i18n import _
 from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 
 
-class Project(object):
+class Project(common.CoprHDResource):
 
     # Commonly used URIs for the 'Project' module
     URI_PROJECT_LIST = '/tenants/{0}/projects'
     URI_PROJECT = '/projects/{0}'
-
-    def __init__(self, ipAddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance
-
-        These are needed to make http requests for REST API
-        """
-        self.__ipAddr = ipAddr
-        self.__port = port
 
     def project_query(self, name):
         """Retrieves UUID of project based on its name
@@ -46,7 +38,7 @@ class Project(object):
         (tenant_name, project_name) = common.get_parent_child_from_xpath(name)
 
         from cinder.volume.drivers.emc.coprhd.helpers.tenant import Tenant
-        tenant_obj = Tenant(self.__ipAddr, self.__port)
+        tenant_obj = Tenant(self.__ipaddr, self.__port)
 
         tenant_uri = tenant_obj.tenant_query(tenant_name)
         projects = self.project_list(tenant_uri)
@@ -69,9 +61,9 @@ class Project(object):
             List of project UUIDs in JSON response payload
         """
         from cinder.volume.drivers.emc.coprhd.helpers.tenant import Tenant
-        tenant_obj = Tenant(self.__ipAddr, self.__port)
+        tenant_obj = Tenant(self.__ipaddr, self.__port)
         tenant_uri = tenant_obj.tenant_query(tenant_name)
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port, "GET",
                                              Project.URI_PROJECT_LIST.format(
                                                  tenant_uri),
                                              None)
@@ -90,7 +82,7 @@ class Project(object):
             Project details in JSON response payload
         """
 
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
                                              "GET",
                                              Project.URI_PROJECT.format(uri),
                                              None)

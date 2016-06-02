@@ -30,6 +30,7 @@ from cinder import exception
 from cinder.i18n import _
 from cinder.i18n import _LE
 from cinder.i18n import _LI
+from cinder.objects import fields
 from cinder.volume.drivers.emc.coprhd.helpers import (
     authentication as CoprHD_auth)
 from cinder.volume.drivers.emc.coprhd.helpers import (
@@ -118,7 +119,8 @@ def retry_wrapper(func):
             # if we got an http error and
             # the string contains 401 or if the string contains the word cookie
             if (e.err_code == CoprHD_utils.CoprHdError.HTTP_ERR and
-                (e.err_text.find('401') != -1 or
+                (e.err_text.find('401') != -
+                 1 or
                  e.err_text.lower().find('cookie') != -1)):
                 retry = True
                 EMCCoprHDDriverCommon.AUTHENTICATED = False
@@ -411,10 +413,10 @@ class EMCCoprHDDriverCommon(object):
                                   name)
 
     @retry_wrapper
-    def create_cgsnapshot(self, driver, context, cgsnapshot):
+    def create_cgsnapshot(self, driver, context, cgsnapshot, snapshots):
         self.authenticate_user()
 
-        cgsnapshot_id = cgsnapshot['id']
+        snapshots_model_update = []
         cgsnapshot_name = cgsnapshot['name']
         cg_id = cgsnapshot['consistencygroup_id']
         cg_name = None
@@ -423,9 +425,6 @@ class EMCCoprHDDriverCommon(object):
         if cg_id:
             CoprHD_cgid = self._get_coprhd_cgid(cg_id)
             cg_name = self._get_consistencygroup_name(driver, context, cg_id)
-
-        snapshots = driver.db.snapshot_get_all_for_cgsnapshot(
-            context, cgsnapshot_id)
 
         model_update = {}
         LOG.info(_LI('Start to create cgsnapshot for consistency group'
@@ -504,10 +503,12 @@ class EMCCoprHDDriverCommon(object):
                                 snapshot)
 
                 snapshot['status'] = 'available'
+                snapshots_model_update.append(
+                    {'id': snapshot['id'], 'status': 'available'})
 
-            model_update['status'] = 'available'
+            model_update = {'status': fields.ConsistencyGroupStatus.AVAILABLE}
 
-            return model_update, snapshots
+            return model_update, snapshots_model_update
 
         except CoprHD_utils.CoprHdError as e:
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
@@ -524,20 +525,18 @@ class EMCCoprHDDriverCommon(object):
                                    'name': cgsnapshot_name})
 
     @retry_wrapper
-    def delete_cgsnapshot(self, driver, context, cgsnapshot):
+    def delete_cgsnapshot(self, driver, context, cgsnapshot, snapshots):
         self.authenticate_user()
         cgsnapshot_id = cgsnapshot['id']
         cgsnapshot_name = cgsnapshot['name']
 
+        snapshots_model_update = []
         cg_id = cgsnapshot['consistencygroup_id']
 
         CoprHD_cgid = self._get_coprhd_cgid(cg_id)
         cg_name = self._get_consistencygroup_name(driver, context, cg_id)
-        snapshots = driver.db.snapshot_get_all_for_cgsnapshot(
-            context, cgsnapshot_id)
 
         model_update = {}
-        model_update['status'] = cgsnapshot['status']
         LOG.info(_LI('Delete cgsnapshot %(snap_name)s for consistency group: '
                      '%(group_name)s'), {'snap_name': cgsnapshot['name'],
                                          'group_name': cg_name})
@@ -560,12 +559,15 @@ class EMCCoprHDDriverCommon(object):
                 'block',
                 CoprHD_cgid,
                 uri,
-                True)
+                True,
+                0)
 
             for snapshot in snapshots:
-                snapshot['status'] = 'deleted'
+                # snapshot['status'] = 'deleted'
+                snapshots_model_update.append(
+                    {'id': snapshot['id'], 'status': 'deleted'})
 
-            return model_update, snapshots
+            return model_update, snapshots_model_update
 
         except CoprHD_utils.CoprHdError as e:
             if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
@@ -735,6 +737,30 @@ class EMCCoprHDDriverCommon(object):
             else:
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : {%s} clone failed"), name)
+
+        if vol.size > src_vref.size:
+            size_in_bytes = CoprHD_utils.to_bytes(
+                six.text_type(vol.size) + "G")
+            try:
+                self.volume_obj.expand(
+                    self.configuration.coprhd_tenant +
+                    "/" +
+                    self.configuration.coprhd_project +
+                    "/" +
+                    name,
+                    size_in_bytes,
+                    True)
+            except CoprHD_utils.CoprHdError as e:
+                if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
+                    raise CoprHD_utils.CoprHdError(
+                        CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
+                        (_("Volume %(volume_name)s: expand failed\n%(err)s"),
+                         {'volume_name': name,
+                          'err': six.text_type(e.err_text)}))
+                else:
+                    with excutils.save_and_reraise_exception():
+                        LOG.exception(_LE("Volume : %s expand failed"),
+                                      name)
 
     @retry_wrapper
     def expand_volume(self, vol, new_size):
@@ -1243,6 +1269,9 @@ class EMCCoprHDDriverCommon(object):
             self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
+        # if the result is empty, then search with the tagname as
+        # "OpenStack:obj_id" the openstack attribute for id can be obj_id
+        # instead of id. this depends on the version
         if rslt is None or len(rslt) == 0:
             tagname = "OpenStack:obj_id:" + cgid
             rslt = CoprHD_utils.search_by_tag(

@@ -20,7 +20,7 @@ from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.emc.coprhd.helpers import project
 
 
-class ConsistencyGroup(object):
+class ConsistencyGroup(common.CoprHDResource):
 
     URI_CONSISTENCY_GROUP = "/block/consistency-groups"
     URI_CONSISTENCY_GROUPS_INSTANCE = URI_CONSISTENCY_GROUP + "/{0}"
@@ -33,14 +33,6 @@ class ConsistencyGroup(object):
     URI_CONSISTENCY_GROUP_TAGS = (
         '/block/consistency-groups/{0}/tags')
 
-    def __init__(self, ipAddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance
-
-        These are needed to make http requests for REST API
-        """
-        self.__ipAddr = ipAddr
-        self.__port = port
-
     def list(self, project_name, tenant):
         """This function gives list of comma separated consistency group uris
 
@@ -51,12 +43,12 @@ class ConsistencyGroup(object):
         """
         if tenant is None:
             tenant = ""
-        projobj = project.Project(self.__ipAddr, self.__port)
+        projobj = project.Project(self.__ipaddr, self.__port)
         fullproj = tenant + "/" + project_name
         projuri = projobj.project_query(fullproj)
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
+            self.__ipaddr, self.__port, "GET",
             self.URI_CONSISTENCY_GROUPS_SEARCH.format(projuri), None)
         o = common.json_decode(s)
         if not o:
@@ -81,7 +73,7 @@ class ConsistencyGroup(object):
         """
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
+            self.__ipaddr, self.__port, "GET",
             self.URI_CONSISTENCY_GROUPS_INSTANCE.format(uri), None)
         o = common.json_decode(s)
         if o['inactive']:
@@ -113,7 +105,7 @@ class ConsistencyGroup(object):
             resource = result["resource"]
             return (
                 common.block_until_complete("consistencygroup", resource["id"],
-                                            result["id"], self.__ipAddr,
+                                            result["id"], self.__ipaddr,
                                             self.__port, synctimeout)
             )
         else:
@@ -139,14 +131,14 @@ class ConsistencyGroup(object):
                 if tenant is None:
                     tenant = ""
                 fullproj = tenant + "/" + project_name
-                projobj = project.Project(self.__ipAddr, self.__port)
+                projobj = project.Project(self.__ipaddr, self.__port)
                 projuri = projobj.project_query(fullproj)
 
                 parms = {'name': name, 'project': projuri, }
                 body = oslo_serialization.jsonutils.dumps(parms)
 
                 (s, h) = common.service_json_request(
-                    self.__ipAddr, self.__port, "POST",
+                    self.__ipaddr, self.__port, "POST",
                     self.URI_CONSISTENCY_GROUP, body)
 
                 o = common.json_decode(s)
@@ -174,7 +166,7 @@ class ConsistencyGroup(object):
             params += "?type=" + 'CoprHD_ONLY'
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port,
+            self.__ipaddr, self.__port,
             "POST",
             self.URI_CONSISTENCY_GROUPS_DEACTIVATE.format(uri) + params,
             None)
@@ -205,7 +197,7 @@ class ConsistencyGroup(object):
         add_voluris = []
         remove_voluris = []
         from cinder.volume.drivers.emc.coprhd.helpers.volume import Volume
-        volobj = Volume(self.__ipAddr, self.__port)
+        volobj = Volume(self.__ipaddr, self.__port)
         if add_volumes:
             for volname in add_volumes:
                 fullvolname = tenant + "/" + project + "/" + volname
@@ -222,7 +214,7 @@ class ConsistencyGroup(object):
 
         body = oslo_serialization.jsonutils.dumps(parms)
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "PUT",
+            self.__ipaddr, self.__port, "PUT",
             self.URI_CONSISTENCY_GROUPS_INSTANCE.format(uri),
             body)
 
