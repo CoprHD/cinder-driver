@@ -17,9 +17,9 @@ import oslo_serialization
 import six
 
 from cinder.i18n import _
-from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
-from cinder.volume.drivers.emc.coprhd.helpers import virtualarray
+from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.coprhd.helpers import consistencygroup
+from cinder.volume.drivers.coprhd.helpers import virtualarray
 
 
 class Volume(common.CoprHDResource):
@@ -77,7 +77,7 @@ class Volume(common.CoprHDResource):
 
     def search_volumes(self, project):
 
-        from cinder.volume.drivers.emc.coprhd.helpers.project import Project
+        from cinder.volume.drivers.coprhd.helpers.project import Project
         proj = Project(self.__ipaddr, self.__port)
         project_uri = proj.project_query(project)
 
@@ -137,11 +137,11 @@ class Volume(common.CoprHDResource):
             Created task details in JSON response payload
         """
 
-        from cinder.volume.drivers.emc.coprhd.helpers.project import Project
+        from cinder.volume.drivers.coprhd.helpers.project import Project
         proj_obj = Project(self.__ipaddr, self.__port)
         project_uri = proj_obj.project_query(project)
 
-        from cinder.volume.drivers.emc.coprhd.helpers.virtualpool import (
+        from cinder.volume.drivers.coprhd.helpers.virtualpool import (
             VirtualPool)
         vpool_obj = VirtualPool(self.__ipaddr, self.__port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")
@@ -257,7 +257,7 @@ class Volume(common.CoprHDResource):
             resUri = self.volume_query(resourcepath + volume_name)
             if snapshot_name is not None:
 
-                from cinder.volume.drivers.emc.coprhd.helpers.snapshot import (
+                from cinder.volume.drivers.coprhd.helpers.snapshot import (
                     Snapshot)
                 snapobj = Snapshot(self.__ipaddr, self.__port)
                 resUri = snapobj.snapshot_query(storageres_type,
@@ -293,7 +293,7 @@ class Volume(common.CoprHDResource):
             Created task details in JSON response payload
         """
 
-        from cinder.volume.drivers.emc.coprhd.helpers.snapshot import Snapshot
+        from cinder.volume.drivers.coprhd.helpers.snapshot import Snapshot
         snap_obj = Snapshot(self.__ipaddr, self.__port)
         is_snapshot_clone = False
         clone_full_uri = None
@@ -531,7 +531,7 @@ class Volume(common.CoprHDResource):
             volume_uri = self.volume_query(prefix_path + "/" + item)
             volumeurilist.append(volume_uri)
 
-        from cinder.volume.drivers.emc.coprhd.helpers.virtualpool import (
+        from cinder.volume.drivers.coprhd.helpers.virtualpool import (
             VirtualPool)
 
         vpool_obj = VirtualPool(self.__ipaddr, self.__port)

@@ -18,9 +18,9 @@ import threading
 import oslo_serialization
 
 from cinder.i18n import _
-from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers import consistencygroup
-from cinder.volume.drivers.emc.coprhd.helpers import volume
+from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.coprhd.helpers import consistencygroup
+from cinder.volume.drivers.coprhd.helpers import volume
 
 
 class Snapshot(common.CoprHDResource):

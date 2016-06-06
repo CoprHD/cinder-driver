@@ -358,9 +358,9 @@ def format_err_msg_and_raise(operation_type, component,
     """
 
     formated_err_msg = (_("Error: Failed to %(operation_type)s %(component)s"),
-                      {'operation_type': operation_type,
-                       'component': component
-                       })
+                        {'operation_type': operation_type,
+                         'component': component
+                         })
     if error_message.startswith("\"\'") and error_message.endswith("\'\""):
         # stripping the first 2 and last 2 characters, which are quotes.
         error_message = error_message[2:len(error_message) - 2]

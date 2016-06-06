@@ -19,7 +19,7 @@
 from oslo_log import log as logging
 
 from cinder.volume import driver
-from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
+from cinder.volume.drivers.coprhd import common as CoprHD_common
 
 
 LOG = logging.getLogger(__name__)

@@ -16,8 +16,8 @@
 import oslo_serialization
 
 from cinder.i18n import _
-from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers import project
+from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.coprhd.helpers import project
 
 
 class ConsistencyGroup(common.CoprHDResource):
@@ -196,7 +196,7 @@ class ConsistencyGroup(common.CoprHDResource):
         parms = []
         add_voluris = []
         remove_voluris = []
-        from cinder.volume.drivers.emc.coprhd.helpers.volume import Volume
+        from cinder.volume.drivers.coprhd.helpers.volume import Volume
         volobj = Volume(self.__ipaddr, self.__port)
         if add_volumes:
             for volname in add_volumes:

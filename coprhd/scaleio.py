@@ -28,7 +28,7 @@ from cinder.i18n import _
 from cinder.i18n import _LI
 from cinder import utils
 from cinder.volume import driver
-from cinder.volume.drivers.emc.coprhd import common as CoprHD_common
+from cinder.volume.drivers.coprhd import common as CoprHD_common
 
 
 LOG = logging.getLogger(__name__)

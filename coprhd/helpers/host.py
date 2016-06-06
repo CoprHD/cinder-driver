@@ -14,8 +14,8 @@
 #    under the License.
 
 from cinder.i18n import _
-from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers import tenant
+from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.coprhd.helpers import tenant
 
 
 class Host(common.CoprHDResource):

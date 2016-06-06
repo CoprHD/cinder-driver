@@ -19,7 +19,7 @@
 import oslo_serialization
 
 from cinder.i18n import _
-from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
 
 
 def tag_resource(ipaddr, port, uri, resource_id, add, remove):

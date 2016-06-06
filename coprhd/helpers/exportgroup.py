@@ -16,11 +16,11 @@
 import oslo_serialization
 
 from cinder.i18n import _
-from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
-from cinder.volume.drivers.emc.coprhd.helpers import host
-from cinder.volume.drivers.emc.coprhd.helpers import project
-from cinder.volume.drivers.emc.coprhd.helpers import virtualarray
-from cinder.volume.drivers.emc.coprhd.helpers import volume
+from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.coprhd.helpers import host
+from cinder.volume.drivers.coprhd.helpers import project
+from cinder.volume.drivers.coprhd.helpers import virtualarray
+from cinder.volume.drivers.coprhd.helpers import volume
 
 
 class ExportGroup(common.CoprHDResource):

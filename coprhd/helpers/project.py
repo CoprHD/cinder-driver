@@ -15,7 +15,7 @@
 
 
 from cinder.i18n import _
-from cinder.volume.drivers.emc.coprhd.helpers import commoncoprhdapi as common
+from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
 
 
 class Project(common.CoprHDResource):
@@ -37,7 +37,7 @@ class Project(common.CoprHDResource):
             return name
         (tenant_name, project_name) = common.get_parent_child_from_xpath(name)
 
-        from cinder.volume.drivers.emc.coprhd.helpers.tenant import Tenant
+        from cinder.volume.drivers.coprhd.helpers.tenant import Tenant
         tenant_obj = Tenant(self.__ipaddr, self.__port)
 
         tenant_uri = tenant_obj.tenant_query(tenant_name)
@@ -60,7 +60,7 @@ class Project(common.CoprHDResource):
         Returns:
             List of project UUIDs in JSON response payload
         """
-        from cinder.volume.drivers.emc.coprhd.helpers.tenant import Tenant
+        from cinder.volume.drivers.coprhd.helpers.tenant import Tenant
         tenant_obj = Tenant(self.__ipaddr, self.__port)
         tenant_uri = tenant_obj.tenant_query(tenant_name)
         (s, h) = common.service_json_request(self.__ipaddr, self.__port, "GET",

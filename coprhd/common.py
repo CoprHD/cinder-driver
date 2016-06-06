@@ -31,20 +31,20 @@ from cinder.i18n import _
 from cinder.i18n import _LE
 from cinder.i18n import _LI
 from cinder.objects import fields
-from cinder.volume.drivers.emc.coprhd.helpers import (
+from cinder.volume.drivers.coprhd.helpers import (
     authentication as CoprHD_auth)
-from cinder.volume.drivers.emc.coprhd.helpers import (
+from cinder.volume.drivers.coprhd.helpers import (
     commoncoprhdapi as CoprHD_utils)
-from cinder.volume.drivers.emc.coprhd.helpers import (
+from cinder.volume.drivers.coprhd.helpers import (
     consistencygroup as CoprHD_cg)
-from cinder.volume.drivers.emc.coprhd.helpers import exportgroup as CoprHD_eg
-from cinder.volume.drivers.emc.coprhd.helpers import host as CoprHD_host
-from cinder.volume.drivers.emc.coprhd.helpers import snapshot as CoprHD_snap
-from cinder.volume.drivers.emc.coprhd.helpers import tag as CoprHD_tag
+from cinder.volume.drivers.coprhd.helpers import exportgroup as CoprHD_eg
+from cinder.volume.drivers.coprhd.helpers import host as CoprHD_host
+from cinder.volume.drivers.coprhd.helpers import snapshot as CoprHD_snap
+from cinder.volume.drivers.coprhd.helpers import tag as CoprHD_tag
 
-from cinder.volume.drivers.emc.coprhd.helpers import (
+from cinder.volume.drivers.coprhd.helpers import (
     virtualarray as CoprHD_varray)
-from cinder.volume.drivers.emc.coprhd.helpers import volume as CoprHD_vol
+from cinder.volume.drivers.coprhd.helpers import volume as CoprHD_vol
 from cinder.volume import volume_types
 
 
