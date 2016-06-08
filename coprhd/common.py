@@ -18,7 +18,6 @@ import six
 import string
 import sys
 import time
-import traceback
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -86,19 +85,16 @@ volume_opts = [
                default=None,
                help='Rest Gateway Password',
                secret=True),
-    cfg.StrOpt('scaleio_verify_server_certificate',
-               default='False',
-               help='verify server certificate'),
+    cfg.BoolOpt('scaleio_verify_server_certificate',
+                default=False,
+                help='verify server certificate'),
     cfg.StrOpt('scaleio_server_certificate_path',
                default=None,
                help='Server certificate path'),
-    cfg.StrOpt('coprhd_emulate_snapshot',
-               default='False',
-               help='True | False to indicate if the storage array '
-               'in CoprHD is VMAX or VPLEX'),
-    cfg.StrOpt('coprhd_security_file',
-               default=None,
-               help='Path of security file')
+    cfg.BoolOpt('coprhd_emulate_snapshot',
+                default=False,
+                help='True | False to indicate if the storage array '
+                'in CoprHD is VMAX or VPLEX')
 ]
 
 CONF = cfg.CONF
@@ -123,19 +119,17 @@ def retry_wrapper(func):
                  1 or
                  e.err_text.lower().find('cookie') != -1)):
                 retry = True
-                EMCCoprHDDriverCommon.AUTHENTICATED = False
+                args[0].AUTHENTICATED = False
             else:
-                exception_message = (_("\nCoprHD Exception: %(err_text)s\n"
-                                       " Stack Trace:\n%(traceback)s"),
-                                     {'err_text': e.err_text,
-                                      'traceback': traceback.format_exc()})
+                exception_message = (_LE("\nCoprHD Exception: %(err_text)s\n"),
+                                     {'err_text': e.err_text})
+                LOG.exception(exception_message)
                 raise exception.VolumeBackendAPIException(
                     data=exception_message)
         except Exception:
-            exception_message = (_("\nGeneral Exception: %(exec_info)s\nStack"
-                                   " Trace:\n%(traceback_format)s"),
-                                 {'exec_info': sys.exc_info()[0],
-                                  'traceback_format': traceback.format_exc()})
+            exception_message = (_LE("\nGeneral Exception: %(exec_info)s\n"),
+                                 {'exec_info': sys.exc_info()[0]})
+            LOG.exception(exception_message)
             raise exception.VolumeBackendAPIException(
                 data=exception_message)
 
@@ -148,9 +142,9 @@ def retry_wrapper(func):
 class EMCCoprHDDriverCommon(object):
 
     OPENSTACK_TAG = 'OpenStack'
-    AUTHENTICATED = False
 
     def __init__(self, protocol, default_backend_name, configuration=None):
+        self.AUTHENTICATED = False
         self.protocol = protocol
         self.configuration = configuration
         self.configuration.append_config_values(volume_opts)
@@ -226,10 +220,17 @@ class EMCCoprHDDriverCommon(object):
             message = _("coprhd_varray is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
 
+        if (self.configuration.scaleio_verify_server_certificate is True and
+                self.configuration.scaleio_server_certificate_path is None):
+            message = _("scaleio_verify_server_certificate is True but"
+                        " scaleio_server_certificate_path is not provided"
+                        " in cinder configuration")
+            raise exception.VolumeBackendAPIException(data=message)
+
     def authenticate_user(self):
         # we should check to see if we are already authenticated before blindly
         # doing it again
-        if EMCCoprHDDriverCommon.AUTHENTICATED is False:
+        if self.AUTHENTICATED is False:
             obj = CoprHD_auth.Authentication(
                 self.configuration.coprhd_hostname,
                 self.configuration.coprhd_port)
@@ -237,26 +238,13 @@ class EMCCoprHDDriverCommon(object):
             username = None
             password = None
 
-            if((self.configuration.coprhd_security_file is not '') and
-                    (self.configuration.coprhd_security_file is not None)):
-                from Crypto.Cipher import ARC4
-                import getpass
-                obj1 = ARC4.new(getpass.getuser())
-                security_file = open(
-                    self.configuration.coprhd_security_file, 'r')
-                cipher_text = security_file.readline().rstrip()
-                username = obj1.decrypt(cipher_text)
-                cipher_text = security_file.readline().rstrip()
-                password = obj1.decrypt(cipher_text)
-                security_file.close()
-            else:
-                username = self.configuration.coprhd_username
-                password = self.configuration.coprhd_password
+            username = self.configuration.coprhd_username
+            password = self.configuration.coprhd_password
 
             CoprHD_utils.AUTH_TOKEN = obj.authenticate_user(username,
                                                             password)
 
-            EMCCoprHDDriverCommon.AUTHENTICATED = True
+            self.AUTHENTICATED = True
 
     def create_volume(self, vol, driver):
         self.authenticate_user()
@@ -791,7 +779,7 @@ class EMCCoprHDDriverCommon(object):
                                   volume_name)
 
     @retry_wrapper
-    def create_volume_from_snapshot(self, snapshot, volume, volume_db):
+    def create_volume_from_snapshot(self, snapshot, volume):
         """Creates volume from given snapshot ( snapshot clone to volume )"""
         self.authenticate_user()
 
@@ -799,10 +787,8 @@ class EMCCoprHDDriverCommon(object):
             self.create_cloned_volume(volume, snapshot)
             return
 
-        ctxt = context.get_admin_context()
-
         src_snapshot_name = None
-        src_vol_ref = volume_db.volume_get(ctxt, snapshot['volume_id'])
+        src_vol_ref = snapshot['volume']
         new_volume_name = self._get_volume_name(volume)
 
         try:
@@ -889,12 +875,10 @@ class EMCCoprHDDriverCommon(object):
                 LOG.exception(_LE("List volumes failed"))
 
     @retry_wrapper
-    def create_snapshot(self, snapshot, volume_db):
+    def create_snapshot(self, snapshot):
         self.authenticate_user()
 
-        ctxt = context.get_admin_context()
-        volume_id = snapshot['volume_id']
-        volume = volume_db.volume_get(ctxt, volume_id)
+        volume = snapshot['volume']
 
         try:
             if volume['consistencygroup_id']:

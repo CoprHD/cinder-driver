@@ -20,13 +20,11 @@ import requests
 import six
 from six.moves import urllib
 
-from oslo_concurrency import processutils
 from oslo_log import log as logging
 
 from cinder import exception
 from cinder.i18n import _
 from cinder.i18n import _LI
-from cinder import utils
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as CoprHD_common
 
@@ -73,7 +71,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def create_volume_from_snapshot(self, volume, snapshot):
         """Creates a volume from a snapshot."""
-        self.common.create_volume_from_snapshot(snapshot, volume, self.db)
+        self.common.create_volume_from_snapshot(snapshot, volume)
         self.common.set_volume_tags(volume, ['_obj_volume_type'])
 
     def extend_volume(self, volume, new_size):
@@ -86,7 +84,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def create_snapshot(self, snapshot):
         """Creates a snapshot."""
-        self.common.create_snapshot(snapshot, self.db)
+        self.common.create_snapshot(snapshot)
 
     def delete_snapshot(self, snapshot):
         """Deletes a snapshot."""
@@ -263,31 +261,6 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         """Retrieve stats info from virtual pool/virtual array."""
         LOG.debug("Updating volume stats")
         self._stats = self.common.update_volume_stats()
-
-    def _get_scaleio_version(self):
-        LOG.info(_LI("Get version of the scaleio SDC"))
-
-        cmd = ['drv_cfg']
-        cmd += ["--query_version"]
-
-        LOG.info(_LI("ScaleIO sdc query version command: %s"),
-                 six.text_type(cmd))
-
-        try:
-            (out, err) = utils.execute(*cmd, run_as_root=True)
-            LOG.info(_LI("Get ScaleIO version cmd=%(cmd)s:"
-                         "stdout=%(out)s strerr=%(err)s"),
-                     {'cmd': cmd,
-                      'out': out, 'err': err})
-        except processutils.ProcessExecutionError as e:
-            msg = (_("Error querying sdc version: %s"), e.stderr)
-            LOG.error(msg)
-            raise exception.VolumeBackendAPIException(data=msg)
-
-        version = out
-        msg = (_LI("Current sdc version: %s"), version)
-        LOG.info(msg)
-        return version
 
     def _get_client_id(self, server_ip, server_port, server_username,
                        server_password, sdc_ip):
