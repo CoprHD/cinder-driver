@@ -35,7 +35,7 @@ class VirtualPool(common.CoprHDResource):
         """
 
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port,
+            self.ipaddr, self.port,
             "GET",
             self.URI_VPOOL_SHOW.format(vpooltype, uri), None)
 
@@ -60,7 +60,7 @@ class VirtualPool(common.CoprHDResource):
             return name
 
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "GET",
+            self.ipaddr, self.port, "GET",
             self.URI_VPOOL_SEARCH.format(vpooltype, name), None)
 
         o = common.json_decode(s)

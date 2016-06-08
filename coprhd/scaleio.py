@@ -17,7 +17,6 @@
 """Driver for EMC CoprHD ScaleIO volumes"""
 
 import requests
-import six
 from six.moves import urllib
 
 from oslo_log import log as logging

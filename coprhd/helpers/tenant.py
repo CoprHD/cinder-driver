@@ -60,7 +60,7 @@ class Tenant(common.CoprHDResource):
         return self.tenant_show_by_uri(tenant_id)
 
     def tenant_getid(self):
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
+        (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "GET", Tenant.URI_TENANT, None)
 
         o = common.json_decode(s)
@@ -83,7 +83,7 @@ class Tenant(common.CoprHDResource):
         if(tenantdtls and not ('parent_tenant' in tenantdtls and
                                ("id" in tenantdtls['parent_tenant']))):
             (s, h) = common.service_json_request(
-                self.__ipaddr, self.__port,
+                self.ipaddr, self.port,
                 "GET", self.URI_TENANTS_SUBTENANT.format(uri), None)
 
             o = common.json_decode(s)
@@ -94,7 +94,7 @@ class Tenant(common.CoprHDResource):
 
     def tenant_show_by_uri(self, uri):
         """Makes REST API call to retrieve tenant details based on its UUID"""
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port, "GET",
+        (s, h) = common.service_json_request(self.ipaddr, self.port, "GET",
                                              Tenant.URI_TENANTS.format(uri),
                                              None)
 

@@ -56,11 +56,11 @@ class Authentication(common.CoprHDResource):
 
         cookiejar = cookielib.LWPCookieJar()
 
-        url = ('https://' + str(self.__ipaddr) + ':' + str(self.__port) +
+        url = ('https://' + str(self.ipaddr) + ':' + str(self.port) +
                self.URI_AUTHENTICATION)
 
         try:
-            if self.__port == APISVC_PORT:
+            if self.port == APISVC_PORT:
                 login_response = requests.get(
                     url, headers=self.HEADERS, verify=False,
                     auth=(username, password), cookies=cookiejar,
@@ -130,7 +130,7 @@ class Authentication(common.CoprHDResource):
                                 {'statuscode': six.text_type(
                                     login_response.status_code),
                                  'responsetext': login_response.text}))
-            elif self.__port == LB_API_PORT:
+            elif self.port == LB_API_PORT:
                 login_response = requests.get(
                     url, headers=self.HEADERS, verify=False,
                     cookies=cookiejar, allow_redirects=False)

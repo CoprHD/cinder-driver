@@ -54,7 +54,7 @@ class VirtualArray(common.CoprHDResource):
         else:
             vdcrestapi = VirtualArray.URI_VIRTUALARRAY
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "GET",
+            self.ipaddr, self.port, "GET",
             vdcrestapi, None)
 
         o = common.json_decode(s)
@@ -70,7 +70,7 @@ class VirtualArray(common.CoprHDResource):
         uri = self.varray_query(label)
 
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "GET",
+            self.ipaddr, self.port, "GET",
             VirtualArray.URI_VIRTUALARRAY_URI.format(uri),
             None)
 

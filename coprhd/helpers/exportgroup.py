@@ -54,7 +54,7 @@ class ExportGroup(common.CoprHDResource):
     def send_json_request(self, exportgroup_uri, param):
         body = oslo_serialization.jsonutils.dumps(param)
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "PUT",
+            self.ipaddr, self.port, "PUT",
             self.URI_EXPORT_GROUP_UPDATE.format(exportgroup_uri), body)
         return common.json_decode(s)
 
@@ -64,8 +64,8 @@ class ExportGroup(common.CoprHDResource):
                 resource = result["resource"]
                 return (
                     common.block_until_complete("export", resource["id"],
-                                                result["id"], self.__ipaddr,
-                                                self.__port, synctimeout)
+                                                result["id"], self.ipaddr,
+                                                self.port, synctimeout)
                 )
             else:
                 raise common.CoprHdError(
@@ -84,7 +84,7 @@ class ExportGroup(common.CoprHDResource):
         """
         if tenant is None:
             tenant = ""
-        projobj = project.Project(self.__ipaddr, self.__port)
+        projobj = project.Project(self.ipaddr, self.port)
         fullproj = tenant + "/" + project_name
         projuri = projobj.project_query(fullproj)
 
@@ -95,7 +95,7 @@ class ExportGroup(common.CoprHDResource):
         else:
             uri += '?project=' + projuri
 
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port, "GET",
+        (s, h) = common.service_json_request(self.ipaddr, self.port, "GET",
                                              uri, None)
         o = common.json_decode(s)
         if not o:
@@ -120,12 +120,12 @@ class ExportGroup(common.CoprHDResource):
         varrayuri = None
         if varray:
             varrayObject = virtualarray.VirtualArray(
-                self.__ipaddr, self.__port)
+                self.ipaddr, self.port)
             varrayuri = varrayObject.varray_query(varray)
         uri = self.exportgroup_query(name, project, tenant, varrayuri)
         (s, h) = common.service_json_request(
-            self.__ipaddr,
-            self.__port,
+            self.ipaddr,
+            self.port,
             "GET",
             self.URI_EXPORT_GROUPS_SHOW.format(uri), None)
         o = common.json_decode(s)
@@ -154,11 +154,11 @@ class ExportGroup(common.CoprHDResource):
                     tenant = ""
 
                 fullproj = tenant + "/" + project
-                projObject = project.Project(self.__ipaddr, self.__port)
+                projObject = project.Project(self.ipaddr, self.port)
                 projuri = projObject.project_query(fullproj)
 
                 varrayObject = virtualarray.VirtualArray(
-                    self.__ipaddr, self.__port)
+                    self.ipaddr, self.port)
                 nhuri = varrayObject.varray_query(varray)
 
                 parms = {
@@ -169,7 +169,7 @@ class ExportGroup(common.CoprHDResource):
                 }
 
                 if exportgrouptype and export_destination:
-                    host_obj = host.Host(self.__ipaddr, self.__port)
+                    host_obj = host.Host(self.ipaddr, self.port)
                     try:
                         host_uri = host_obj.query_by_name(
                             export_destination)
@@ -178,8 +178,8 @@ class ExportGroup(common.CoprHDResource):
                     parms['hosts'] = [host_uri]
 
                 body = oslo_serialization.jsonutils.dumps(parms)
-                (s, h) = common.service_json_request(self.__ipaddr,
-                                                     self.__port, "POST",
+                (s, h) = common.service_json_request(self.ipaddr,
+                                                     self.port, "POST",
                                                      self.URI_EXPORT_GROUP,
                                                      body)
 
@@ -249,7 +249,7 @@ class ExportGroup(common.CoprHDResource):
         varrayuri = None
         if varray:
             varrayObject = virtualarray.VirtualArray(
-                self.__ipaddr, self.__port)
+                self.ipaddr, self.port)
             varrayuri = varrayObject.varray_query(varray)
 
         exportgroup_uri = self.exportgroup_query(exportgroupname,
@@ -297,7 +297,7 @@ class ExportGroup(common.CoprHDResource):
         """
 
         copyEntries = []
-        volumeObject = volume.Volume(self.__ipaddr, self.__port)
+        volumeObject = volume.Volume(self.ipaddr, self.port)
         for copy in resources:
             copyParam = []
             try:

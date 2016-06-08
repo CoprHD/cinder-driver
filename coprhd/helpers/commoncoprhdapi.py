@@ -517,5 +517,5 @@ class CoprHDResource(object):
 
         These are needed to make http requests for REST API
         """
-        self.__ipaddr = ipaddr
-        self.__port = port
+        self.ipaddr = ipaddr
+        self.port = port

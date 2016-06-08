@@ -43,12 +43,12 @@ class ConsistencyGroup(common.CoprHDResource):
         """
         if tenant is None:
             tenant = ""
-        projobj = project.Project(self.__ipaddr, self.__port)
+        projobj = project.Project(self.ipaddr, self.port)
         fullproj = tenant + "/" + project_name
         projuri = projobj.project_query(fullproj)
 
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "GET",
+            self.ipaddr, self.port, "GET",
             self.URI_CONSISTENCY_GROUPS_SEARCH.format(projuri), None)
         o = common.json_decode(s)
         if not o:
@@ -73,7 +73,7 @@ class ConsistencyGroup(common.CoprHDResource):
         """
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "GET",
+            self.ipaddr, self.port, "GET",
             self.URI_CONSISTENCY_GROUPS_INSTANCE.format(uri), None)
         o = common.json_decode(s)
         if o['inactive']:
@@ -105,8 +105,8 @@ class ConsistencyGroup(common.CoprHDResource):
             resource = result["resource"]
             return (
                 common.block_until_complete("consistencygroup", resource["id"],
-                                            result["id"], self.__ipaddr,
-                                            self.__port, synctimeout)
+                                            result["id"], self.ipaddr,
+                                            self.port, synctimeout)
             )
         else:
             raise common.CoprHdError(
@@ -131,14 +131,14 @@ class ConsistencyGroup(common.CoprHDResource):
                 if tenant is None:
                     tenant = ""
                 fullproj = tenant + "/" + project_name
-                projobj = project.Project(self.__ipaddr, self.__port)
+                projobj = project.Project(self.ipaddr, self.port)
                 projuri = projobj.project_query(fullproj)
 
                 parms = {'name': name, 'project': projuri, }
                 body = oslo_serialization.jsonutils.dumps(parms)
 
                 (s, h) = common.service_json_request(
-                    self.__ipaddr, self.__port, "POST",
+                    self.ipaddr, self.port, "POST",
                     self.URI_CONSISTENCY_GROUP, body)
 
                 o = common.json_decode(s)
@@ -166,7 +166,7 @@ class ConsistencyGroup(common.CoprHDResource):
             params += "?type=" + 'CoprHD_ONLY'
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port,
+            self.ipaddr, self.port,
             "POST",
             self.URI_CONSISTENCY_GROUPS_DEACTIVATE.format(uri) + params,
             None)
@@ -197,7 +197,7 @@ class ConsistencyGroup(common.CoprHDResource):
         add_voluris = []
         remove_voluris = []
         from cinder.volume.drivers.coprhd.helpers.volume import Volume
-        volobj = Volume(self.__ipaddr, self.__port)
+        volobj = Volume(self.ipaddr, self.port)
         if add_volumes:
             for volname in add_volumes:
                 fullvolname = tenant + "/" + project + "/" + volname
@@ -214,7 +214,7 @@ class ConsistencyGroup(common.CoprHDResource):
 
         body = oslo_serialization.jsonutils.dumps(parms)
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "PUT",
+            self.ipaddr, self.port, "PUT",
             self.URI_CONSISTENCY_GROUPS_INSTANCE.format(uri),
             body)
 

@@ -54,7 +54,7 @@ class Host(common.CoprHDResource):
             hostUri = host_name
 
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "GET",
+            self.ipaddr, self.port, "GET",
             Host.URI_HOST_LIST_INITIATORS.format(hostUri),
             None)
         o = common.json_decode(s)
@@ -67,7 +67,7 @@ class Host(common.CoprHDResource):
     def list_all(self, tenant_name):
         """Gets the ids and self links for all compute elements"""
         restapi = self.URI_COMPUTE_HOST
-        tenant_obj = tenant.Tenant(self.__ipaddr, self.__port)
+        tenant_obj = tenant.Tenant(self.ipaddr, self.port)
         if tenant_name is None:
             tenant_uri = tenant_obj.tenant_getid()
         else:
@@ -75,7 +75,7 @@ class Host(common.CoprHDResource):
         restapi = restapi + "?tenant=" + tenant_uri
 
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port,
+            self.ipaddr, self.port,
             "GET",
             restapi,
             None)
@@ -84,7 +84,7 @@ class Host(common.CoprHDResource):
 
     def show_by_uri(self, uri):
         """Makes REST API call to retrieve Host details based on its UUID"""
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port, "GET",
+        (s, h) = common.service_json_request(self.ipaddr, self.port, "GET",
                                              Host.URI_HOST_DETAILS.format(uri),
                                              None)
         o = common.json_decode(s)
@@ -97,7 +97,7 @@ class Host(common.CoprHDResource):
     def search_by_name(self, host_name):
         """Search host by its name"""
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "GET",
+            self.ipaddr, self.port, "GET",
             self.URI_HOSTS_SEARCH_BY_NAME.format(host_name), None)
         o = common.json_decode(s)
         if not o:

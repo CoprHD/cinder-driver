@@ -78,10 +78,10 @@ class Volume(common.CoprHDResource):
     def search_volumes(self, project):
 
         from cinder.volume.drivers.coprhd.helpers.project import Project
-        proj = Project(self.__ipaddr, self.__port)
+        proj = Project(self.ipaddr, self.port)
         project_uri = proj.project_query(project)
 
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
+        (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "GET",
                                              Volume.URI_SEARCH_VOLUMES.format(
                                                  project_uri),
@@ -106,7 +106,7 @@ class Volume(common.CoprHDResource):
             Volume details in JSON response payload
         """
 
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
+        (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "GET",
                                              Volume.URI_VOLUME.format(uri),
                                              None)
@@ -138,15 +138,15 @@ class Volume(common.CoprHDResource):
         """
 
         from cinder.volume.drivers.coprhd.helpers.project import Project
-        proj_obj = Project(self.__ipaddr, self.__port)
+        proj_obj = Project(self.ipaddr, self.port)
         project_uri = proj_obj.project_query(project)
 
         from cinder.volume.drivers.coprhd.helpers.virtualpool import (
             VirtualPool)
-        vpool_obj = VirtualPool(self.__ipaddr, self.__port)
+        vpool_obj = VirtualPool(self.ipaddr, self.port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")
 
-        varray_obj = virtualarray.VirtualArray(self.__ipaddr, self.__port)
+        varray_obj = virtualarray.VirtualArray(self.ipaddr, self.port)
         varray_uri = varray_obj.varray_query(varray)
 
         request = {
@@ -161,7 +161,7 @@ class Volume(common.CoprHDResource):
             request['consistency_group'] = consistencygroup
 
         body = oslo_serialization.jsonutils.dumps(request)
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
+        (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "POST",
                                              Volume.URI_VOLUMES,
                                              body)
@@ -186,8 +186,8 @@ class Volume(common.CoprHDResource):
                 resource = result["resource"]
                 return (
                     common.block_until_complete("volume", resource["id"],
-                                                result["id"], self.__ipaddr,
-                                                self.__port, synctimeout)
+                                                result["id"], self.ipaddr,
+                                                self.port, synctimeout)
                 )
             else:
                 raise common.CoprHdError(
@@ -259,14 +259,14 @@ class Volume(common.CoprHDResource):
 
                 from cinder.volume.drivers.coprhd.helpers.snapshot import (
                     Snapshot)
-                snapobj = Snapshot(self.__ipaddr, self.__port)
+                snapobj = Snapshot(self.ipaddr, self.port)
                 resUri = snapobj.snapshot_query(storageres_type,
                                                 Volume.VOLUMES, resUri,
                                                 snapshot_name)
 
         elif Volume.BLOCK == storageres_type and cg_name is not None:
             resourceObj = consistencygroup.ConsistencyGroup(
-                self.__ipaddr, self.__port)
+                self.ipaddr, self.port)
             resUri = resourceObj.consistencygroup_query(
                 cg_name,
                 project,
@@ -294,7 +294,7 @@ class Volume(common.CoprHDResource):
         """
 
         from cinder.volume.drivers.coprhd.helpers.snapshot import Snapshot
-        snap_obj = Snapshot(self.__ipaddr, self.__port)
+        snap_obj = Snapshot(self.ipaddr, self.port)
         is_snapshot_clone = False
         clone_full_uri = None
 
@@ -318,7 +318,7 @@ class Volume(common.CoprHDResource):
         request["count"] = 1
 
         body = oslo_serialization.jsonutils.dumps(request)
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
+        (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "POST",
                                              clone_full_uri,
                                              body)
@@ -363,14 +363,14 @@ class Volume(common.CoprHDResource):
         # consistency group
         if resource_uri.find("BlockConsistencyGroup") > 0:
             (s, h) = common.service_json_request(
-                self.__ipaddr, self.__port,
+                self.ipaddr, self.port,
                 "POST",
                 Volume.URI_CG_CLONE_DETACH.format(
                     resource_uri,
                     volume_uri), None)
         else:
             (s, h) = common.service_json_request(
-                self.__ipaddr, self.__port,
+                self.ipaddr, self.port,
                 "POST",
                 Volume.URI_VOLUME_CLONE_DETACH.format(volume_uri), None)
 
@@ -429,7 +429,7 @@ class Volume(common.CoprHDResource):
             "new_size": new_size
         })
 
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
+        (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "POST",
                                              Volume.URI_EXPAND.format(
                                                  volume_detail["id"]),
@@ -479,7 +479,7 @@ class Volume(common.CoprHDResource):
             params += '&' if ('?' in params) else '?'
             params += "type=" + 'CoprHD_ONLY'
 
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
+        (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "POST",
                                              Volume.URI_DEACTIVATE.format(
                                                  uri) + params,
@@ -500,7 +500,7 @@ class Volume(common.CoprHDResource):
         Returns:
             Exports details in JSON response payload
         """
-        (s, h) = common.service_json_request(self.__ipaddr, self.__port,
+        (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "GET",
                                              Volume.URI_VOLUME_EXPORTS.format(
                                                  uri),
@@ -534,7 +534,7 @@ class Volume(common.CoprHDResource):
         from cinder.volume.drivers.coprhd.helpers.virtualpool import (
             VirtualPool)
 
-        vpool_obj = VirtualPool(self.__ipaddr, self.__port)
+        vpool_obj = VirtualPool(self.ipaddr, self.port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")
 
         params = {
@@ -545,7 +545,7 @@ class Volume(common.CoprHDResource):
         body = oslo_serialization.jsonutils.dumps(params)
 
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port, "POST",
+            self.ipaddr, self.port, "POST",
             Volume.URI_VOLUME_CHANGE_VPOOL,
             body)
 

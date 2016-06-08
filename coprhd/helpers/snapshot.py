@@ -58,7 +58,7 @@ class Snapshot(common.CoprHDResource):
             return list of snapshots
         """
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port,
+            self.ipaddr, self.port,
             "GET",
             Snapshot.URI_SNAPSHOT_LIST.format(otype, otypename, ouri), None)
         o = common.json_decode(s)
@@ -78,7 +78,7 @@ class Snapshot(common.CoprHDResource):
         if(resource_uri is not None and
            resource_uri.find('BlockConsistencyGroup') > 0):
             (s, h) = common.service_json_request(
-                self.__ipaddr, self.__port,
+                self.ipaddr, self.port,
                 "GET",
                 Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_INSTANCE.format(
                     resource_uri,
@@ -86,7 +86,7 @@ class Snapshot(common.CoprHDResource):
                 None)
         else:
             (s, h) = common.service_json_request(
-                self.__ipaddr, self.__port,
+                self.ipaddr, self.port,
                 "GET",
                 Snapshot.URI_SNAPSHOTS.format(otype, suri), None)
 
@@ -115,7 +115,7 @@ class Snapshot(common.CoprHDResource):
 
     def snapshot_show_task_opid(self, otype, snap, taskid):
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port,
+            self.ipaddr, self.port,
             "GET",
             Snapshot.URI_SNAPSHOT_TASKS_BY_OPID.format(taskid),
             None)
@@ -180,12 +180,12 @@ class Snapshot(common.CoprHDResource):
         resUri = None
         resourceObj = None
         if Snapshot.BLOCK == storageres_type and volume_name is not None:
-            resourceObj = volume.Volume(self.__ipaddr, self.__port)
+            resourceObj = volume.Volume(self.ipaddr, self.port)
             resUri = resourceObj.volume_query(resourcepath + volume_name)
         elif Snapshot.BLOCK == storageres_type and cg_name is not None:
             resourceObj = consistencygroup.ConsistencyGroup(
-                self.__ipaddr,
-                self.__port)
+                self.ipaddr,
+                self.port)
             resUri = resourceObj.consistencygroup_query(
                 cg_name,
                 project,
@@ -247,7 +247,7 @@ class Snapshot(common.CoprHDResource):
 
         # REST api call
         (s, h) = common.service_json_request(
-            self.__ipaddr, self.__port,
+            self.ipaddr, self.port,
             "POST",
             Snapshot.URI_SNAPSHOT_LIST.format(otype, typename, ouri), body)
         o = common.json_decode(s)
@@ -280,7 +280,7 @@ class Snapshot(common.CoprHDResource):
         if resource_uri.find("Volume") > 0:
 
             (s, h) = common.service_json_request(
-                self.__ipaddr, self.__port,
+                self.ipaddr, self.port,
                 "POST",
                 Snapshot.URI_RESOURCE_DEACTIVATE.format(
                     Snapshot.URI_BLOCK_SNAPSHOTS.format(suri)),
@@ -288,7 +288,7 @@ class Snapshot(common.CoprHDResource):
         elif resource_uri.find("BlockConsistencyGroup") > 0:
 
             (s, h) = common.service_json_request(
-                self.__ipaddr, self.__port,
+                self.ipaddr, self.port,
                 "POST",
                 Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_DEACTIVATE.format(
                     resource_uri,
