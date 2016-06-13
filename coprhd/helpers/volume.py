@@ -239,7 +239,7 @@ class Volume(common.CoprHDResource):
             storageres_typename = None
         return (storageres_type, storageres_typename)
 
-    def storageResource_query(self,
+    def storage_resource_query(self,
                               storageres_type,
                               volume_name,
                               cg_name,

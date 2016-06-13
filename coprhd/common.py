@@ -690,7 +690,7 @@ class EMCCoprHDDriverCommon(object):
              storageresTypename) = self.volume_obj.get_storageAttributes(
                 srcname, None, None)
 
-            resource_id = self.volume_obj.storageResource_query(
+            resource_id = self.volume_obj.storage_resource_query(
                 storageresType,
                 srcname,
                 None,
@@ -801,7 +801,7 @@ class EMCCoprHDDriverCommon(object):
              storageresTypename) = self.volume_obj.get_storageAttributes(
                 src_vol_name, None, src_snapshot_name)
 
-            resource_id = self.volume_obj.storageResource_query(
+            resource_id = self.volume_obj.storage_resource_query(
                 storageresType,
                 src_vol_name,
                 None,
@@ -903,7 +903,7 @@ class EMCCoprHDDriverCommon(object):
             tenantname = self.configuration.coprhd_tenant
             storageresType = 'block'
             storageresTypename = 'volumes'
-            resourceUri = self.snapshot_obj.storageResource_query(
+            resourceUri = self.snapshot_obj.storage_resource_query(
                 storageresType,
                 volumeName=volumename,
                 cgName=None,
@@ -969,7 +969,7 @@ class EMCCoprHDDriverCommon(object):
             tenantname = self.configuration.coprhd_tenant
             storageresType = 'block'
             storageresTypename = 'volumes'
-            resourceUri = self.snapshot_obj.storageResource_query(
+            resourceUri = self.snapshot_obj.storage_resource_query(
                 storageresType,
                 volumeName=volumename,
                 cgName=None,
