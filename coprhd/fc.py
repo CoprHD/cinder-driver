@@ -159,10 +159,9 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
 
         protocol = 'FC'
         hostname = connector['host']
-        initPorts, initNodes = self._build_initport_initnode_list(connector)
+        initPorts = self._build_initport_list(connector)
         itls = self.common.initialize_connection(volume,
                                                  protocol,
-                                                 initNodes,
                                                  initPorts,
                                                  hostname)
         if itls:
@@ -192,10 +191,9 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Driver entry point to detach a volume from an instance."""
         protocol = 'FC'
         hostname = connector['host']
-        initPorts, initNodes = self._build_initport_initnode_list(connector)
+        initPorts = self._build_initport_list(connector)
         itls = self.common.terminate_connection(volume,
                                                 protocol,
-                                                initNodes,
                                                 initPorts,
                                                 hostname)
 
@@ -229,20 +227,15 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
 
         return target_wwns, initiator_target_map
 
-    def _build_initport_initnode_list(self, connector):
+    def _build_initport_list(self, connector):
         initPorts = []
-        initNodes = []
         for i in xrange(len(connector['wwpns'])):
-            initiatorNode = ':'.join(re.findall(
-                '..',
-                connector['wwnns'][i])).upper()   # Add ":" every two digits
             initiatorPort = ':'.join(re.findall(
                 '..',
                 connector['wwpns'][i])).upper()   # Add ":" every two digits
             initPorts.append(initiatorPort)
-            initNodes.append(initiatorNode)
 
-        return initPorts, initNodes
+        return initPorts
 
     def get_volume_stats(self, refresh=False):
         """Get volume status.

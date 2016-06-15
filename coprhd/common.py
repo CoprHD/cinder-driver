@@ -149,7 +149,7 @@ class EMCCoprHDDriverCommon(object):
 
         self.init_coprhd_api_components()
 
-        self.stats = {'driver_version': '1.0',
+        self.stats = {'driver_version': '3.0.0.0',
                       'free_capacity_gb': 'unknown',
                       'reserved_percentage': '0',
                       'storage_protocol': protocol,
@@ -1001,7 +1001,6 @@ class EMCCoprHDDriverCommon(object):
     def initialize_connection(self,
                               volume,
                               protocol,
-                              initiatorNodes,
                               initiatorPorts,
                               hostname):
 
@@ -1126,7 +1125,6 @@ class EMCCoprHDDriverCommon(object):
     def terminate_connection(self,
                              volume,
                              protocol,
-                             initiatorNodes,
                              initiatorPorts,
                              hostname):
         try:

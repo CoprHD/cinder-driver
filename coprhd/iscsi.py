@@ -149,9 +149,6 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
             }
 
         """
-        initiatorNodes = []
-        initiatorNode = None
-        initiatorNodes.append(initiatorNode)
         initiatorPorts = []
         initiatorPort = connector['initiator']
         initiatorPorts.append(initiatorPort)
@@ -159,7 +156,6 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         hostname = connector['host']
         itls = self.common.initialize_connection(volume,
                                                  protocol,
-                                                 initiatorNodes,
                                                  initiatorPorts,
                                                  hostname)
         properties = {}
@@ -190,11 +186,9 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         protocol = 'iSCSI'
         hostname = connector['host']
         initPorts = []
-        initNodes = []
         initPorts.append(initiatorPort)
         self.common.terminate_connection(volume,
                                          protocol,
-                                         initNodes,
                                          initPorts,
                                          hostname)
 

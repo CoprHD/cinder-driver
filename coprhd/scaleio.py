@@ -181,9 +181,6 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         properties['bandwidthLimit'] = None
         properties['serverToken'] = self.server_token
 
-        initiatorNodes = []
-        initiatorNode = None
-        initiatorNodes.append(initiatorNode)
         initiatorPorts = []
         initiatorPort = self._get_client_id(properties['serverIP'],
                                             properties['serverPort'],
@@ -197,7 +194,6 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         hostname = connector['host']
         self.common.initialize_connection(volume,
                                           protocol,
-                                          initiatorNodes,
                                           initiatorPorts,
                                           hostname)
 
@@ -210,8 +206,6 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def terminate_connection(self, volume, connector, **kwargs):
         """Disallow connection from connector"""
-
-        initiatorNode = connector['initiator']
 
         volname = volume['display_name']
         properties = {}
@@ -237,12 +231,9 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         protocol = 'scaleio'
         hostname = connector['host']
         initPorts = []
-        initNodes = []
         initPorts.append(initiatorPort)
-        initNodes.append(initiatorNode)
         self.common.terminate_connection(volume,
                                          protocol,
-                                         initNodes,
                                          initPorts,
                                          hostname)
 
