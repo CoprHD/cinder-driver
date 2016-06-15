@@ -134,26 +134,26 @@ class ExportGroup(common.CoprHDResource):
 
         return o
 
-    def exportgroup_create(self, name, project, tenant, varray,
+    def exportgroup_create(self, name, project_name, tenant, varray,
                            exportgrouptype, export_destination=None):
         """This function creates the Export group with given name
 
         Parameters:
            name : Name of the export group
-           project: Name of the project path
+           project_name: Name of the project path
            tenant: Container tenant name
         return
             returns with status of creation
         """
         # check for existence of export group.
         try:
-            status = self.exportgroup_show(name, project, tenant)
+            status = self.exportgroup_show(name, project_name, tenant)
         except common.CoprHdError as e:
             if e.err_code == common.CoprHdError.NOT_FOUND_ERR:
                 if tenant is None:
                     tenant = ""
 
-                fullproj = tenant + "/" + project
+                fullproj = tenant + "/" + project_name
                 projObject = project.Project(self.ipaddr, self.port)
                 projuri = projObject.project_query(fullproj)
 

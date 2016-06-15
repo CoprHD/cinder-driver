@@ -88,7 +88,7 @@ class Project(common.CoprHDResource):
                                              None)
         o = common.json_decode(s)
         inactive = common.get_node_value(o, 'inactive')
-        if inactive is True:
+        if inactive:
             return None
 
         return o

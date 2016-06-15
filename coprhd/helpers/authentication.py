@@ -47,6 +47,7 @@ class Authentication(common.CoprHDResource):
         Returns:
             The authtoken
         """
+
         SEC_REDIRECT = 302
         SEC_AUTHTOKEN_HEADER = 'X-SDS-AUTH-TOKEN'
         LB_API_PORT = 4443
@@ -55,7 +56,6 @@ class Authentication(common.CoprHDResource):
         APISVC_PORT = 8443  # Port on which apisvc listens to incoming requests
 
         cookiejar = cookielib.LWPCookieJar()
-
         url = ('https://' + str(self.ipaddr) + ':' + str(self.port) +
                self.URI_AUTHENTICATION)
 

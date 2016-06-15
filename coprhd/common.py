@@ -108,15 +108,13 @@ EXPORT_RETRY_COUNT = 5
 def retry_wrapper(func):
     def try_and_retry(*args, **kwargs):
         retry = False
-
         try:
             return func(*args, **kwargs)
         except CoprHD_utils.CoprHdError as e:
             # if we got an http error and
             # the string contains 401 or if the string contains the word cookie
             if (e.err_code == CoprHD_utils.CoprHdError.HTTP_ERR and
-                (e.err_text.find('401') != -
-                 1 or
+                (e.err_text.find('401') != -1 or
                  e.err_text.lower().find('cookie') != -1)):
                 retry = True
                 args[0].AUTHENTICATED = False
@@ -243,7 +241,6 @@ class EMCCoprHDDriverCommon(object):
 
             CoprHD_utils.AUTH_TOKEN = obj.authenticate_user(username,
                                                             password)
-
             self.AUTHENTICATED = True
 
     def create_volume(self, vol, driver):
@@ -374,7 +371,7 @@ class EMCCoprHDDriverCommon(object):
                     "/" +
                     vol_name,
                     sync=True,
-                    forceDelete=True)
+                    force_delete=True)
 
                 vol['status'] = 'deleted'
 
@@ -690,7 +687,7 @@ class EMCCoprHDDriverCommon(object):
              storageresTypename) = self.volume_obj.get_storageAttributes(
                 srcname, None, None)
 
-            resource_id = self.volume_obj.storageResource_query(
+            resource_id = self.volume_obj.storage_resource_query(
                 storageresType,
                 srcname,
                 None,
@@ -783,7 +780,7 @@ class EMCCoprHDDriverCommon(object):
         """Creates volume from given snapshot ( snapshot clone to volume )"""
         self.authenticate_user()
 
-        if self.configuration.coprhd_emulate_snapshot == 'True':
+        if self.configuration.coprhd_emulate_snapshot:
             self.create_cloned_volume(volume, snapshot)
             return
 
@@ -801,7 +798,7 @@ class EMCCoprHDDriverCommon(object):
              storageresTypename) = self.volume_obj.get_storageAttributes(
                 src_vol_name, None, src_snapshot_name)
 
-            resource_id = self.volume_obj.storageResource_query(
+            resource_id = self.volume_obj.storage_resource_query(
                 storageresType,
                 src_vol_name,
                 None,
@@ -889,7 +886,7 @@ class EMCCoprHDDriverCommon(object):
         except AttributeError as e:
             LOG.info(_LI("No Consistency Group associated with the volume"))
 
-        if self.configuration.coprhd_emulate_snapshot == 'True':
+        if self.configuration.coprhd_emulate_snapshot:
             self.create_cloned_volume(snapshot, volume)
             self.set_volume_tags(snapshot, ['_volume', '_obj_volume_type'])
             return
@@ -903,9 +900,9 @@ class EMCCoprHDDriverCommon(object):
             tenantname = self.configuration.coprhd_tenant
             storageresType = 'block'
             storageresTypename = 'volumes'
-            resourceUri = self.snapshot_obj.storageResource_query(
+            resourceUri = self.snapshot_obj.storage_resource_query(
                 storageresType,
-                volumeName=volumename,
+                volume_name=volumename,
                 cgName=None,
                 project=projectname,
                 tenant=tenantname)
@@ -958,7 +955,7 @@ class EMCCoprHDDriverCommon(object):
         except AttributeError as e:
             LOG.info(_LI("No Consistency Group associated with the volume"))
 
-        if self.configuration.coprhd_emulate_snapshot == 'True':
+        if self.configuration.coprhd_emulate_snapshot:
             self.delete_volume(snapshot)
             return
 
@@ -969,9 +966,9 @@ class EMCCoprHDDriverCommon(object):
             tenantname = self.configuration.coprhd_tenant
             storageresType = 'block'
             storageresTypename = 'volumes'
-            resourceUri = self.snapshot_obj.storageResource_query(
+            resourceUri = self.snapshot_obj.storage_resource_query(
                 storageresType,
-                volumeName=volumename,
+                volume_name=volumename,
                 cgName=None,
                 project=projectname,
                 tenant=tenantname)

@@ -112,7 +112,7 @@ class Volume(common.CoprHDResource):
                                              None)
         o = common.json_decode(s)
         inactive = common.get_node_value(o, 'inactive')
-        if inactive is True:
+        if inactive:
             return None
         return o
 
@@ -154,9 +154,9 @@ class Volume(common.CoprHDResource):
             'size': size,
             'varray': varray_uri,
             'project': project_uri,
-            'vpool': vpool_uri
+            'vpool': vpool_uri,
+            'count': 1
         }
-        request["count"] = 1
         if consistencygroup:
             request['consistency_group'] = consistencygroup
 
@@ -239,13 +239,13 @@ class Volume(common.CoprHDResource):
             storageres_typename = None
         return (storageres_type, storageres_typename)
 
-    def storageResource_query(self,
-                              storageres_type,
-                              volume_name,
-                              cg_name,
-                              snapshot_name,
-                              project,
-                              tenant):
+    def storage_resource_query(self,
+                               storageres_type,
+                               volume_name,
+                               cg_name,
+                               snapshot_name,
+                               project,
+                               tenant):
         resourcepath = "/" + project + "/"
         if tenant is not None:
             resourcepath = tenant + resourcepath

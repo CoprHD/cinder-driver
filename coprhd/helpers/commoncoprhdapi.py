@@ -37,6 +37,7 @@ TIMEOUT_SEC = 20  # 20 SECONDS
 IS_TASK_TIMEOUT = False
 
 global AUTH_TOKEN
+AUTH_TOKEN = None
 
 
 def _decode_list(data):

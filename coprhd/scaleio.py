@@ -61,7 +61,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         if((volSize % defaultSize) != 0):
             return (volSize / defaultSize) * defaultSize + defaultSize
         else:
-            return (volSize / defaultSize) * defaultSize
+            return volSize
 
     def create_cloned_volume(self, volume, src_vref):
         """Creates a cloned Volume."""
@@ -270,8 +270,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                    ip_double_encoded + "/")
         LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
 
-        if self.configuration.scaleio_verify_server_certificate == 'True':
-            verify_cert = self.scaleio_server_certificate_path
+        if self.configuration.scaleio_verify_server_certificate:
+            verify_cert = self.configuration.scaleio_server_certificate_path
         else:
             verify_cert = False
 
@@ -307,8 +307,9 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                 _LI("Token is invalid, going to re-login and get a new one"))
             login_request = ("https://" + server_ip +
                              ":" + server_port + "/api/login")
-            if(self.configuration.scaleio_verify_server_certificate == 'True'):
-                verify_cert = self.scaleio_server_certificate_path
+            if self.configuration.scaleio_verify_server_certificate:
+                verify_cert = (
+                    self.configuration.scaleio_server_certificate_path)
             else:
                 verify_cert = False
 
