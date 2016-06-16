@@ -903,7 +903,7 @@ class EMCCoprHDDriverCommon(object):
             resourceUri = self.snapshot_obj.storage_resource_query(
                 storageresType,
                 volume_name=volumename,
-                cgName=None,
+                cg_name=None,
                 project=projectname,
                 tenant=tenantname)
             inactive = False
@@ -969,7 +969,7 @@ class EMCCoprHDDriverCommon(object):
             resourceUri = self.snapshot_obj.storage_resource_query(
                 storageresType,
                 volume_name=volumename,
-                cgName=None,
+                cg_name=None,
                 project=projectname,
                 tenant=tenantname)
             if resourceUri is None:
