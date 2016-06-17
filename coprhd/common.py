@@ -824,6 +824,31 @@ class EMCCoprHDDriverCommon(object):
                     LOG.exception(_LE
                                   ("Snapshot : %s clone failed"),
                                   src_snapshot_name)
+                    
+        if volume.size > snapshot.size:
+            size_in_bytes = CoprHD_utils.to_bytes(
+                six.text_type(volume.size) + "G")
+            try:
+                self.volume_obj.expand(
+                    self.configuration.coprhd_tenant +
+                    "/" +
+                    self.configuration.coprhd_project +
+                    "/" +
+                    new_volume_name,
+                    size_in_bytes,
+                    True)
+            except CoprHD_utils.CoprHdError as e:
+                if e.err_code == CoprHD_utils.CoprHdError.SOS_FAILURE_ERR:
+                    raise CoprHD_utils.CoprHdError(
+                        CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
+                        (_("Volume %(volume_name)s: expand failed\n%(err)s"),
+                         {'volume_name': new_volume_name,
+                          'err': six.text_type(e.err_text)}))
+                else:
+                    with excutils.save_and_reraise_exception():
+                        LOG.exception(_LE("Volume : %s expand failed"),
+                                      new_volume_name)
+
 
     @retry_wrapper
     def delete_volume(self, vol):
