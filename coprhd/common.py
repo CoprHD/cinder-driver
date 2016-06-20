@@ -824,7 +824,7 @@ class EMCCoprHDDriverCommon(object):
                     LOG.exception(_LE
                                   ("Snapshot : %s clone failed"),
                                   src_snapshot_name)
-                    
+
         if volume.size > snapshot.size:
             size_in_bytes = CoprHD_utils.to_bytes(
                 six.text_type(volume.size) + "G")
@@ -848,7 +848,6 @@ class EMCCoprHDDriverCommon(object):
                     with excutils.save_and_reraise_exception():
                         LOG.exception(_LE("Volume : %s expand failed"),
                                       new_volume_name)
-
 
     @retry_wrapper
     def delete_volume(self, vol):
