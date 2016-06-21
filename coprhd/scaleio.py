@@ -24,6 +24,7 @@ from oslo_log import log as logging
 from cinder import exception
 from cinder.i18n import _
 from cinder.i18n import _LI
+from cinder import interface
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as CoprHD_common
 
@@ -31,6 +32,7 @@ from cinder.volume.drivers.coprhd import common as CoprHD_common
 LOG = logging.getLogger(__name__)
 
 
+@interface.volumedriver
 class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     """CoprHD ScaleIO Driver"""
     server_token = None

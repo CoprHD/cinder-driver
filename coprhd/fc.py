@@ -20,6 +20,7 @@ import re
 
 from oslo_log import log as logging
 
+from cinder import interface
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as CoprHD_common
 from cinder.zonemanager.utils import AddFCZone
@@ -28,6 +29,7 @@ from cinder.zonemanager.utils import RemoveFCZone
 LOG = logging.getLogger(__name__)
 
 
+@interface.volumedriver
 class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     """CoprHD FC Driver"""
 
