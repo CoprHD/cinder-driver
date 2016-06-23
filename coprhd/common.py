@@ -245,9 +245,9 @@ class EMCCoprHDDriverCommon(object):
                                                             password)
             self.AUTHENTICATED = True
 
-    def create_volume(self, vol, driver, protocol=None):
+    def create_volume(self, vol, driver, truncate_name=False):
         self.authenticate_user()
-        name = self._get_volume_name(vol, protocol)
+        name = self._get_resource_name(vol, truncate_name)
         size = int(vol['size']) * units.Gi
 
         vpool = self._get_vpool(vol)
@@ -283,9 +283,9 @@ class EMCCoprHDDriverCommon(object):
                     LOG.exception(_LE("Volume : %s creation failed"), name)
 
     @retry_wrapper
-    def create_consistencygroup(self, context, group):
+    def create_consistencygroup(self, context, group, truncate_name=False):
         self.authenticate_user()
-        name = group['name']
+        name = self._get_resource_name(group, truncate_name)
 
         try:
             self.consistencygroup_obj.create(
@@ -355,9 +355,10 @@ class EMCCoprHDDriverCommon(object):
                                   cg_uri)
 
     @retry_wrapper
-    def delete_consistencygroup(self, driver, context, group):
+    def delete_consistencygroup(self, driver, context, group,
+                                truncate_name=False):
         self.authenticate_user()
-        name = group['name']
+        name = self._get_resource_name(group, truncate_name)
 
         try:
             volumes = driver.db.volume_get_all_by_group(
@@ -400,11 +401,12 @@ class EMCCoprHDDriverCommon(object):
                                   name)
 
     @retry_wrapper
-    def create_cgsnapshot(self, driver, context, cgsnapshot, snapshots):
+    def create_cgsnapshot(self, driver, context, cgsnapshot, snapshots,
+                          truncate_name=False):
         self.authenticate_user()
 
         snapshots_model_update = []
-        cgsnapshot_name = cgsnapshot['name']
+        cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
         cg_id = cgsnapshot['consistencygroup_id']
         cg_name = None
         CoprHD_cgid = None
@@ -512,10 +514,11 @@ class EMCCoprHDDriverCommon(object):
                                    'name': cgsnapshot_name})
 
     @retry_wrapper
-    def delete_cgsnapshot(self, driver, context, cgsnapshot, snapshots):
+    def delete_cgsnapshot(self, driver, context, cgsnapshot, snapshots,
+                          truncate_name=False):
         self.authenticate_user()
         cgsnapshot_id = cgsnapshot['id']
-        cgsnapshot_name = cgsnapshot['name']
+        cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
 
         snapshots_model_update = []
         cg_id = cgsnapshot['consistencygroup_id']
@@ -572,12 +575,12 @@ class EMCCoprHDDriverCommon(object):
                                    'name': cgsnapshot_name})
 
     @retry_wrapper
-    def set_volume_tags(self, vol, exemptTags=None, protocol=None):
+    def set_volume_tags(self, vol, exemptTags=None, truncate_name=False):
         if exemptTags is None:
             exemptTags = []
 
         self.authenticate_user()
-        name = self._get_volume_name(vol, protocol)
+        name = self._get_resource_name(vol, truncate_name)
 
         vol_uri = self.volume_obj.volume_query(
             self.configuration.coprhd_tenant +
@@ -669,10 +672,10 @@ class EMCCoprHDDriverCommon(object):
                                     formattedUri)
 
     @retry_wrapper
-    def create_cloned_volume(self, vol, src_vref):
+    def create_cloned_volume(self, vol, src_vref, truncate_name=False):
         """Creates a clone of the specified volume"""
         self.authenticate_user()
-        name = self._get_volume_name(vol)
+        name = self._get_resource_name(vol, truncate_name)
         srcname = self._get_coprhd_volume_name(src_vref)
 
         try:
@@ -784,17 +787,18 @@ class EMCCoprHDDriverCommon(object):
                                   volume_name)
 
     @retry_wrapper
-    def create_volume_from_snapshot(self, snapshot, volume):
+    def create_volume_from_snapshot(self, snapshot, volume,
+                                    truncate_name=False):
         """Creates volume from given snapshot ( snapshot clone to volume )"""
         self.authenticate_user()
 
         if self.configuration.coprhd_emulate_snapshot:
-            self.create_cloned_volume(volume, snapshot)
+            self.create_cloned_volume(volume, snapshot, truncate_name)
             return
 
         src_snapshot_name = None
         src_vol_ref = snapshot['volume']
-        new_volume_name = self._get_volume_name(volume)
+        new_volume_name = self._get_resource_name(volume, truncate_name)
 
         try:
             src_vol_name, src_vol_uri = self._get_coprhd_volume_name(
@@ -904,7 +908,7 @@ class EMCCoprHDDriverCommon(object):
                 LOG.exception(_LE("List volumes failed"))
 
     @retry_wrapper
-    def create_snapshot(self, snapshot):
+    def create_snapshot(self, snapshot, truncate_name=False):
         self.authenticate_user()
 
         volume = snapshot['volume']
@@ -919,12 +923,13 @@ class EMCCoprHDDriverCommon(object):
             LOG.info(_LI("No Consistency Group associated with the volume"))
 
         if self.configuration.coprhd_emulate_snapshot:
-            self.create_cloned_volume(snapshot, volume)
-            self.set_volume_tags(snapshot, ['_volume', '_obj_volume_type'])
+            self.create_cloned_volume(snapshot, volume, truncate_name)
+            self.set_volume_tags(
+                snapshot, ['_volume', '_obj_volume_type'], truncate_name)
             return
 
         try:
-            snapshotname = self._get_snapshot_name(snapshot)
+            snapshotname = self._get_resource_name(snapshot, truncate_name)
             vol = snapshot['volume']
 
             volumename = self._get_coprhd_volume_name(vol)
@@ -1364,23 +1369,14 @@ class EMCCoprHDDriverCommon(object):
                 CoprHD_utils.CoprHdError.NOT_FOUND_ERR,
                 (_("Volume %s not found"), vol['display_name']))
 
-    def _get_volume_name(self, vol, protocol=None):
-        name = vol.get('display_name', None)
+    def _get_resource_name(self, resource, truncate_name=False):
+        name = resource.get('display_name', None)
 
         if name is None or len(name) == 0:
-            name = vol['name']
+            name = resource['name']
 
-        if protocol == "scaleio" and len(name) > 32:
-            name = self._id_to_base64(vol.id)
-
-        return name
-
-    def _get_snapshot_name(self, snap):
-
-        name = snap.get('display_name', None)
-
-        if name is None or len(name) == 0:
-            name = snap['name']
+        if truncate_name and len(name) > 32:
+            name = self._id_to_base64(resource.id)
 
         return name
 

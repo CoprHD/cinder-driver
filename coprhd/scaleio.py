@@ -52,8 +52,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def create_volume(self, volume):
         """Creates a Volume."""
-        self.common.create_volume(volume, self, "scaleio")
-        self.common.set_volume_tags(volume, ['_obj_volume_type'], "scaleio")
+        self.common.create_volume(volume, self, True)
+        self.common.set_volume_tags(volume, ['_obj_volume_type'], True)
         volSize = self.updateVolumeSize(int(volume['size']))
         return {'size': volSize}
 
@@ -67,13 +67,13 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def create_cloned_volume(self, volume, src_vref):
         """Creates a cloned Volume."""
-        self.common.create_cloned_volume(volume, src_vref)
-        self.common.set_volume_tags(volume, ['_obj_volume_type'])
+        self.common.create_cloned_volume(volume, src_vref, True)
+        self.common.set_volume_tags(volume, ['_obj_volume_type'], True)
 
     def create_volume_from_snapshot(self, volume, snapshot):
         """Creates a volume from a snapshot."""
-        self.common.create_volume_from_snapshot(snapshot, volume)
-        self.common.set_volume_tags(volume, ['_obj_volume_type'])
+        self.common.create_volume_from_snapshot(snapshot, volume, True)
+        self.common.set_volume_tags(volume, ['_obj_volume_type'], True)
 
     def extend_volume(self, volume, new_size):
         """expands the size of the volume."""
@@ -85,7 +85,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def create_snapshot(self, snapshot):
         """Creates a snapshot."""
-        self.common.create_snapshot(snapshot)
+        self.common.create_snapshot(snapshot, True)
 
     def delete_snapshot(self, snapshot):
         """Deletes a snapshot."""
@@ -105,7 +105,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def create_consistencygroup(self, context, group):
         """Creates a consistencygroup."""
-        return self.common.create_consistencygroup(context, group)
+        return self.common.create_consistencygroup(context, group, True)
 
     def update_consistencygroup(self, context, group,
                                 add_volumes, remove_volumes):
@@ -115,17 +115,17 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def delete_consistencygroup(self, context, group):
         """Deletes a consistency group."""
-        return self.common.delete_consistencygroup(self, context, group)
+        return self.common.delete_consistencygroup(self, context, group, True)
 
     def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""
         return self.common.create_cgsnapshot(self, context,
-                                             cgsnapshot, snapshots)
+                                             cgsnapshot, snapshots, True)
 
     def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
         return self.common.delete_cgsnapshot(self, context,
-                                             cgsnapshot, snapshots)
+                                             cgsnapshot, snapshots, True)
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
