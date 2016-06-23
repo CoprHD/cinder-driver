@@ -492,7 +492,7 @@ class CoprHdError(exception.VolumeBackendAPIException):
 
     Attributes:
         err_code - String error code
-        err_text - String text
+        msg - String text
     """
     SOS_FAILURE_ERR = 1
     CMD_LINE_ERR = 2
@@ -503,12 +503,12 @@ class CoprHdError(exception.VolumeBackendAPIException):
     MAX_COUNT_REACHED = 6
     TIME_OUT = 7
 
-    def __init__(self, err_code, err_text):
+    def __init__(self, err_code, msg):
         self.err_code = err_code
-        self.err_text = err_text
+        self.msg = msg
 
     def __str__(self):
-        return repr(self.err_text)
+        return repr(self.msg)
 
 
 class CoprHDResource(object):
