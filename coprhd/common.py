@@ -1389,7 +1389,7 @@ class EMCCoprHDDriverCommon(object):
                 vpool[key] = value
 
         return vpool
-    
+
     def _id_to_base64(self, id):
         # Base64 encode the id to get a volume name less than 32 characters due
         # to ScaleIO limitation.
@@ -1407,7 +1407,6 @@ class EMCCoprHDDriverCommon(object):
         LOG.debug("Converted id %(id)s to scaleio name %(name)s.",
                   {'id': id, 'name': encoded_name})
         return encoded_name
-
 
     @retry_wrapper
     def _find_exportgroup(self, initiator_ports):
