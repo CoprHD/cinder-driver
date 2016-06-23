@@ -725,7 +725,13 @@ class EMCCoprHDDriverCommon(object):
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : {%s} clone failed"), name)
 
-        if vol.size > src_vref.volume_size:
+        src_vol_size = None
+        if src_vref.volume_size:
+            src_vol_size = src_vref.volume_size
+        else:
+            src_vol_size = src_vref.size
+
+        if vol.size > src_vol_size:
             size_in_bytes = CoprHD_utils.to_bytes(
                 six.text_type(vol.size) + "G")
             try:
@@ -1359,13 +1365,13 @@ class EMCCoprHDDriverCommon(object):
                 (_("Volume %s not found"), vol['display_name']))
 
     def _get_volume_name(self, vol, protocol=None):
-        if protocol == "ScaleIO" and len(vol['name']) > 32:
-            name = self._id_to_base64(vol.id)
-            return name
         name = vol.get('display_name', None)
 
         if name is None or len(name) == 0:
             name = vol['name']
+
+        if protocol == "scaleio" and len(name) > 32:
+            name = self._id_to_base64(vol.id)
 
         return name
 

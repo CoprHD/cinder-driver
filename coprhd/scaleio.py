@@ -52,8 +52,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def create_volume(self, volume):
         """Creates a Volume."""
-        self.common.create_volume(volume, self, "ScaleIO")
-        self.common.set_volume_tags(volume, ['_obj_volume_type'], "ScaleIO")
+        self.common.create_volume(volume, self, "scaleio")
+        self.common.set_volume_tags(volume, ['_obj_volume_type'], "scaleio")
         volSize = self.updateVolumeSize(int(volume['size']))
         return {'size': volSize}
 
