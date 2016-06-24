@@ -125,7 +125,35 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
 
     @AddFCZone
     def initialize_connection(self, volume, connector):
-        """Initializes the connection and returns connection info."""
+        """Initializes the connection and returns connection info.
+
+        The  driver returns a driver_volume_type of 'fibre_channel'.
+        The target_wwn can be a single entry or a list of wwns that
+        correspond to the list of remote wwn(s) that will export the volume.
+        Example return values:
+
+            {
+                'driver_volume_type': 'fibre_channel'
+                'data': {
+                    'target_discovered': True,
+                    'target_lun': 1,
+                    'target_wwn': '1234567890123',
+                }
+            }
+
+            or
+
+             {
+                'driver_volume_type': 'fibre_channel'
+                'data': {
+                    'volume_id': 1,
+                    'target_discovered': True,
+                    'target_lun': 1,
+                    'target_wwn': ['1234567890123', '0987654321321'],
+                }
+            }
+
+        """
         properties = {}
         properties['volume_id'] = volume['id']
         properties['target_discovered'] = False
