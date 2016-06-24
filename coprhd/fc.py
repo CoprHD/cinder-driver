@@ -14,7 +14,7 @@
 #    under the License.
 
 
-"""Driver for EMC CoprHD FC volumes"""
+"""Driver for EMC CoprHD FC volumes."""
 
 import re
 
@@ -31,7 +31,7 @@ LOG = logging.getLogger(__name__)
 
 @interface.volumedriver
 class EMCCoprHDFCDriver(driver.FibreChannelDriver):
-    """CoprHD FC Driver"""
+    """CoprHD FC Driver."""
 
     def __init__(self, *args, **kwargs):
         super(EMCCoprHDFCDriver, self).__init__(*args, **kwargs)
@@ -125,35 +125,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
 
     @AddFCZone
     def initialize_connection(self, volume, connector):
-        """Initializes the connection and returns connection info.
-
-        The  driver returns a driver_volume_type of 'fibre_channel'.
-        The target_wwn can be a single entry or a list of wwns that
-        correspond to the list of remote wwn(s) that will export the volume.
-        Example return values:
-
-            {
-                'driver_volume_type': 'fibre_channel'
-                'data': {
-                    'target_discovered': True,
-                    'target_lun': 1,
-                    'target_wwn': '1234567890123',
-                }
-            }
-
-            or
-
-             {
-                'driver_volume_type': 'fibre_channel'
-                'data': {
-                    'volume_id': 1,
-                    'target_discovered': True,
-                    'target_lun': 1,
-                    'target_wwn': ['1234567890123', '0987654321321'],
-                }
-            }
-
-        """
+        """Initializes the connection and returns connection info."""
         properties = {}
         properties['volume_id'] = volume['id']
         properties['target_discovered'] = False
@@ -255,5 +227,5 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         self._stats = self.common.update_volume_stats()
 
     def retype(self, ctxt, volume, new_type, diff, host):
-        """Change the volume type"""
+        """Change the volume type."""
         return self.common.retype(ctxt, volume, new_type, diff, host)

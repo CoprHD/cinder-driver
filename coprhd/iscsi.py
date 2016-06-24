@@ -14,7 +14,7 @@
 #    under the License.
 
 
-"""Driver for EMC CoprHD iSCSI volumes"""
+"""Driver for EMC CoprHD iSCSI volumes."""
 
 from oslo_log import log as logging
 
@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 
 @interface.volumedriver
 class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
-    """CoprHD iSCSI Driver"""
+    """CoprHD iSCSI Driver."""
 
     def __init__(self, *args, **kwargs):
         super(EMCCoprHDISCSIDriver, self).__init__(*args, **kwargs)
@@ -86,11 +86,11 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         pass
 
     def create_export(self, context, volume, connector=None):
-        """Driver entry point to get the export info for a new volume"""
+        """Driver entry point to get the export info for a new volume."""
         pass
 
     def remove_export(self, context, volume):
-        """Driver exntry point to remove an export for a volume"""
+        """Driver exntry point to remove an export for a volume."""
         pass
 
     def create_consistencygroup(self, context, group):
@@ -122,35 +122,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         pass
 
     def initialize_connection(self, volume, connector):
-        """Initializes the connection and returns connection info.
-
-        the iscsi driver returns a driver_volume_type of 'iscsi'.
-        the format of the driver data is defined as:
-            :target_discovered:    boolean indicating
-            whether discovery was used
-            :target_iqn:    the IQN of the iSCSI target
-            :target_portal:    the portal of the iSCSI target
-            :target_lun:    the lun of the iSCSI target
-            :volume_id:    the id of the volume (currently used by xen)
-            :auth_method:, :auth_username:, :auth_password:
-                the authentication details. Right now,
-                either auth_method is not
-                present meaning no authentication, or auth_method == `CHAP`
-                meaning use CHAP with the specified credentials.
-
-        Example return value::
-
-            {
-                'driver_volume_type': 'iscsi'
-                'data': {
-                    'target_discovered': True,
-                    'target_iqn': 'iqn.2010-10.org.openstack:volume-00000001',
-                    'target_portal': '127.0.0.0.1:3260',
-                    'volume_id': 1,
-                }
-            }
-
-        """
+        """Initializes the connection and returns connection info."""
         initiatorPorts = []
         initiatorPort = connector['initiator']
         initiatorPorts.append(initiatorPort)
@@ -183,7 +155,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         }
 
     def terminate_connection(self, volume, connector, **kwargs):
-        """Disallow connection from connector"""
+        """Disallow connection from connector."""
         initiatorPort = connector['initiator']
         protocol = 'iSCSI'
         hostname = connector['host']
@@ -210,5 +182,5 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         self._stats = self.common.update_volume_stats()
 
     def retype(self, ctxt, volume, new_type, diff, host):
-        """Change the volume type"""
+        """Change the volume type."""
         return self.common.retype(ctxt, volume, new_type, diff, host)

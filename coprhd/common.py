@@ -1375,7 +1375,7 @@ class EMCCoprHDDriverCommon(object):
         if name is None or len(name) == 0:
             name = resource['name']
 
-        if truncate_name and len(name) > 32:
+        if truncate_name and len(name) > 31:
             name = self._id_to_base64(resource.id)
 
         return name

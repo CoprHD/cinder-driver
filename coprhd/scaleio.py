@@ -14,7 +14,7 @@
 #    under the License.
 
 
-"""Driver for EMC CoprHD ScaleIO volumes"""
+"""Driver for EMC CoprHD ScaleIO volumes."""
 
 import requests
 from six.moves import urllib
@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
 
 @interface.volumedriver
 class EMCCoprHDScaleIODriver(driver.VolumeDriver):
-    """CoprHD ScaleIO Driver"""
+    """CoprHD ScaleIO Driver."""
     server_token = None
 
     def __init__(self, *args, **kwargs):
@@ -58,7 +58,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         return {'size': volSize}
 
     def updateVolumeSize(self, volSize):
-        """update the openstack volume size"""
+        """update the openstack volume size."""
         defaultSize = 8
         if((volSize % defaultSize) != 0):
             return (volSize / defaultSize) * defaultSize + defaultSize
@@ -92,7 +92,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         self.common.delete_snapshot(snapshot)
 
     def ensure_export(self, context, volume):
-        """Driver entry point to get the export info for an existing volume"""
+        """Driver entry point to get the export info for an existing volume."""
         pass
 
     def create_export(self, context, volume, connector=None):
@@ -100,7 +100,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         pass
 
     def remove_export(self, context, volume):
-        """Driver exntry point to remove an export for a volume"""
+        """Driver exntry point to remove an export for a volume."""
         pass
 
     def create_consistencygroup(self, context, group):
@@ -132,38 +132,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         pass
 
     def initialize_connection(self, volume, connector):
-        """Initializes the connection and returns connection info.
-
-        the scaleio driver returns a driver_volume_type of 'scaleio'.
-        the format of the driver data is defined as:
-            :scaleIO_volname:    name of the volume
-            :hostIP:    The IP address of the openstack host to which we
-                want to export the scaleio volume.
-            :serverIP:     The IP address of the REST gateway of the ScaleIO.
-            :serverPort:   The port of the REST gateway of the ScaleIO.
-            :serverUsername: The username to access REST gateway of ScaleIO.
-            :serverPassword:    The password to access REST gateway of ScaleIO.
-            :iopsLimit:    iops limit.
-            :bandwidthLimit:    bandwidth Limit.
-
-        Example return value::
-
-            {
-                'driver_volume_type': 'scaleio'
-                'data': {
-                    'scaleIO_volname': vol_1,
-                    'hostIP': '10.63.20.12',
-                    'serverIP': '10.63.20.176',
-                    'serverPort': '443'
-                    'serverUsername': 'admin'
-                    'serverPassword': 'password'
-                    'iopsLimit': None
-                    'bandwidthLimit': None
-                }
-            }
-
-        """
-
+        """Initializes the connection and returns connection info."""
         volname = self.common._get_volume_name(volume)
 
         properties = {}
@@ -207,7 +176,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         return dictobj
 
     def terminate_connection(self, volume, connector, **kwargs):
-        """Disallow connection from connector"""
+        """Disallow connection from connector."""
 
         volname = volume['display_name']
         properties = {}
@@ -322,5 +291,5 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         return response
 
     def retype(self, ctxt, volume, new_type, diff, host):
-        """Change the volume type"""
+        """Change the volume type."""
         return self.common.retype(ctxt, volume, new_type, diff, host)
