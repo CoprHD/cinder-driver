@@ -163,7 +163,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             }
 
         """
-        volname = self.common._get_volume_name(volume)
+        volname = self.common._get_resource_name(volume, False)
 
         properties = {}
         properties['scaleIO_volname'] = volname

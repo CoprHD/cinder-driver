@@ -728,11 +728,10 @@ class EMCCoprHDDriverCommon(object):
                 with excutils.save_and_reraise_exception():
                     LOG.exception(_LE("Volume : {%s} clone failed"), name)
 
-        src_vol_size = None
-        if src_vref.volume_size:
-            src_vol_size = src_vref.volume_size
-        else:
+        try:
             src_vol_size = src_vref.size
+        except AttributeError:
+            src_vol_size = src_vref.volume_size
 
         if vol.size > src_vol_size:
             size_in_bytes = CoprHD_utils.to_bytes(
