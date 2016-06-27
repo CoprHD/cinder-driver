@@ -189,6 +189,10 @@ class EMCCoprHDDriverCommon(object):
         self.consistencygroup_obj = CoprHD_cg.ConsistencyGroup(
             self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
+        
+        self.tag_obj = CoprHD_tag.Tag(
+            self.configuration.coprhd_hostname,
+            self.configuration.coprhd_port)
 
     def check_for_setup_error(self):
         # validate all of the coprhd_* configuration values
@@ -603,19 +607,14 @@ class EMCCoprHDDriverCommon(object):
         # eyecatcher
         formattedUri = uri.format(resourceId)
         remove_tags = []
-        currentTags = CoprHD_tag.list_tags(self.configuration.coprhd_hostname,
-                                           self.configuration.coprhd_port,
-                                           formattedUri)
+        currentTags = self.tag_obj.list_tags(formattedUri)
         for cTag in currentTags:
             if cTag.startswith(self.OPENSTACK_TAG):
                 remove_tags.append(cTag)
 
         try:
             if len(remove_tags) > 0:
-                CoprHD_tag.tag_resource(
-                    self.configuration.coprhd_hostname,
-                    self.configuration.coprhd_port,
-                    uri,
+                self.tag_obj.tag_resource(uri,
                     resourceId,
                     None,
                     remove_tags)
@@ -654,9 +653,7 @@ class EMCCoprHDDriverCommon(object):
             LOG.debug("Error tagging the resource properties")
 
         try:
-            CoprHD_tag.tag_resource(
-                self.configuration.coprhd_hostname,
-                self.configuration.coprhd_port,
+            self.tag_obj.tag_resource(
                 uri,
                 resourceId,
                 add_tags,
@@ -667,9 +664,7 @@ class EMCCoprHDDriverCommon(object):
                     "CoprHdError adding the tag: %s",
                     six.text_type(e.msg))
 
-        return CoprHD_tag.list_tags(self.configuration.coprhd_hostname,
-                                    self.configuration.coprhd_port,
-                                    formattedUri)
+        return self.tag_obj.list_tags(formattedUri)
 
     @retry_wrapper
     def create_cloned_volume(self, vol, src_vref, truncate_name=False):
