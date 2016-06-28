@@ -23,7 +23,7 @@ from mock import MagicMock
 from mock import Mock
 from mock import patch
 
-#LOG = logging.getLogger(__name__)
+from cinder.volume.drivers.coprhd import common as coprhd_common
 
 '''
 Test Data required for mocking
@@ -52,7 +52,11 @@ export_group_details_data = {
     "varray": {"id": "urn:storageos:VirtualArray:5af376e9-ce2f-493d-9079-a872",
                "link": {"href": "/vdc/varrays/urn:storageos:VirtualArray:5af3",
                         "rel": "self"}
-               }}
+               },
+    "volumes": [{"id": "urn:storageos:Volume:6dc64865-bb25-431c-b321-ac268f16a7ae:vdc1",
+                "lun": 1
+                }]
+}
 
 varray_detail_data = {"name": "varray"}
 
@@ -136,13 +140,171 @@ fcitl_itl_list = {"itl": [{"hlu": 3,
                                       'ip_address': "10.10.10.10",
                                       'tcp_port': '22'}}]}
 
+def get_test_volume_data(volume_type_id):
+    test_volume = {'name': 'test-vol1',
+                   'size': 1,
+                   'volume_name': 'test-vol1',
+                   'id': '1',
+                   'consistencygroup_id': None,
+                   'provider_auth': None,
+                   'project_id': 'project',
+                   'display_name': 'test-vol1',
+                   'display_description': 'test volume',
+                   'volume_type_id': volume_type_id}
+    return test_volume
+
+def get_source_test_volume_data(volume_type_id):
+    test_volume = {'name': 'source_test-vol1',
+                   'size': 1,
+                   'volume_name': 'source_test-vol1',
+                   'id': '1234',
+                   'consistencygroup_id': None,
+                   'provider_auth': None,
+                   'project_id': 'project',
+                   'display_name': 'source_test-vol1',
+                   'display_description': 'test volume',
+                   'volume_type_id': volume_type_id}
+    return test_volume
+
+def get_clone_volume_data(volume_type_id):
+    clone_test_volume = {'name': 'clone-test-vol1',
+                         'size': 1,
+                         'volume_name': 'clone-test-vol1',
+                         'id': '2',
+                         'provider_auth': None,
+                         'project_id': 'project',
+                         'display_name': 'clone-test-vol1',
+                         'display_description': 'clone test volume',
+                         'volume_type_id': volume_type_id}
+    return clone_test_volume
+
+def get_test_snapshot_data(src_volume):
+    test_snapshot = {'name': 'snapshot1',
+                     'display_name': 'snapshot1',
+                     'size': 1,
+                     'id': '1111',
+                     'volume_name': 'test-vol1',
+                     'volume_id': '1234',
+                     'volume': src_volume,
+                     'volume_size': 1,
+                     'project_id': 'project'}
+    return test_snapshot
+
+def get_connector_data():
+    connector = {'ip': '10.0.0.2',
+                 'initiator': 'iqn.1993-08.org.deb:01:222',
+                 'wwpns': ["1234567890123456", "1234567890543211"],
+                 'wwnns': ["223456789012345", "223456789054321"],
+                 'host': 'fakehost'}
+    return connector
+
+
+class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
+    
+    def __init__(self, protocol, default_backend_name,
+             configuration=None):
+        
+        super(MockedEMCCoprHDDriverCommon, self).__init__(
+        protocol, default_backend_name, configuration)
+
+    def authenticate_user(self):
+        pass
+
+    def get_exports_count_by_initiators(self, initiator_ports):
+        return 0
+
+    def _get_coprhd_volume_name(self, vol, verbose=False):
+        if verbose is True:
+            return "coprhd_vol_name", "coprhd_vol_uri"
+        else:
+            return "coprhd_vol_name"
+
+    def _get_CoprHD_snapshot_name(self, snapshot, resUri):
+        return "coprhd_snapshot_name"
+    
+    def init_volume_api(self):
+        self.volume_api = Mock()
+        self.volume_api.get.return_value = {
+            'name': 'source_test-vol1',
+            'size': 1,
+            'volume_name': 'source_test-vol1',
+            'id': '1234',
+            'consistencygroup_id': '12345',
+            'provider_auth': None,
+            'project_id': 'project',
+            'display_name': 'source_test-vol1',
+            'display_description': 'test volume',
+            'volume_type_id': "vol_type_id-for-snap"}
+    
+    '''
+    Mocking all CLI components methods is done here.
+    Mock is a powerful python library that helps to mock the test
+    data.
+    Refer -
+    http://www.voidspace.org.uk/python/mock/index.html#user-guide
+    '''
+    def init_coprhd_api_components(self):
+        self.volume_obj = Mock()
+        self.volume_obj.create.return_value = "volume_created"
+        self.volume_obj.volume_query.return_value = "volume_uri"
+        self.volume_obj.get_storageAttributes.return_value = ('block', 'volume_name')
+        self.volume_obj.storage_resource_query.return_value = "volume_uri"
+        self.volume_obj.is_volume_detachable.return_value = False
+        self.volume_obj.volume_clone_detach.return_value = 'detached'
+        self.volume_obj.getTags.return_value \
+            = ["Openstack-vol", "Openstack-vol1"]
+        self.volume_obj.tag.return_value = "tagged"
+        self.volume_obj.clone.return_value = "volume-cloned"
+        if(self.protocol == "iSCSI"):
+            self.volume_obj.get_exports_by_uri.return_value \
+                = iscsi_itl_list
+        else:
+            self.volume_obj.get_exports_by_uri.return_value \
+                = fcitl_itl_list
+        
+        self.volume_obj.list_volumes.return_value = []
+        self.volume_obj.show.return_value = {"id": "vol_id"}
+        self.volume_obj.expand.return_value = "expanded"
+        
+        self.tag_obj = Mock()
+        self.tag_obj.list_tags.return_value = ["Openstack-vol", "Openstack-vol1"]
+        self.tag_obj.tag_resource.return_value = "Tagged"
+        
+        self.exportgroup_obj = Mock()
+        self.exportgroup_obj.exportgroup_list.return_value \
+            = export_group_list
+        self.exportgroup_obj.exportgroup_show.return_value \
+            = export_group_details_data
+            
+        self.exportgroup_obj.exportgroup_add_volumes.return_value = "volume-added"
+        
+        self.host_obj = Mock()
+        self.host_obj.list_by_tenant.return_value = []
+        self.host_obj.search_by_name.return_value = []
+        self.host_obj.list_all.return_value = [{'id':"host1_id",
+                                                'name':"host1"}]
+        self.host_obj.list_initiators.return_value = [{'name':"12:34:56:78:90:12:34:56"},
+                                                      {'name':"12:34:56:78:90:54:32:11"}]
+        
+        self.hostinitiator_obj = Mock()
+        self.varray_obj = Mock()
+        self.varray_obj.varray_show.return_value = varray_detail_data
+        
+        self.snapshot_obj = Mock()
+        mocked_snap_obj = self.snapshot_obj.return_value
+        mocked_snap_obj.storageResource_query.return_value \
+            = "resourceUri"
+        mocked_snap_obj.snapshot_create.return_value \
+            = "snapshot_created"
+        mocked_snap_obj.snapshot_query.return_value = "snapshot_uri"
+
 
 class EMCCoprHDISCSIDriverTest(test.TestCase):
     def setUp(self):
         super(EMCCoprHDISCSIDriverTest, self).setUp()
-        self.create_vipr_setup()
+        self.create_coprhd_setup()
 
-    def create_vipr_setup(self):
+    def create_coprhd_setup(self):
 
         self.configuration = Mock()
         self.configuration.coprhd_hostname = "10.10.10.10"
@@ -153,9 +315,9 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.configuration.coprhd_tenant = "tenant"
         self.configuration.coprhd_project = "project"
         self.configuration.coprhd_varray = "varray"
+        self.configuration.coprhd_emulate_snapshot = False
 
         self.volume_type_id = self.create_coprhd_volume_type()
-        #self.mock_vipr_cli_imports()
 
         from cinder.volume.drivers.coprhd import iscsi as coprhd_iscsi
 
@@ -165,29 +327,8 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.driver = coprhd_iscsi.EMCCoprHDISCSIDriver(
             configuration=self.configuration)
 
-    def mock_vipr_cli_imports(self):
-
-        self.viprcli_mock = MagicMock()
-        modules_to_be_mocked = {
-            'viprcli': self.viprcli_mock,
-            'viprcli.common': self.viprcli_mock.common,
-            'viprcli.exportgroup': self.viprcli_mock.exportgroup,
-            'viprcli.host': self.viprcli_mock.host,
-            'viprcli.hostinitiators': self.viprcli_mock.hostinitiators,
-            'viprcli.snapshot': self.viprcli_mock.snapshot,
-            'viprcli.virtualarray': self.viprcli_mock.virtualarray,
-            'viprcli.volume': self.viprcli_mock.volume,
-            'viprcli.authentication': self.viprcli_mock.authentication}
-
-        '''Fooling python interpreter for imports to go through,
-        even if actual modules are not present in the system.
-        '''
-        self.module_patcher = patch.dict('sys.modules', modules_to_be_mocked)
-        self.module_patcher.start()
-
     def tearDown(self):
         self._cleanUp()
-        #self.module_patcher.stop()
         super(EMCCoprHDISCSIDriverTest, self).tearDown()
 
     def _cleanUp(self):
@@ -202,94 +343,6 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         return volume_id
 
     def _get_mocked_common_driver(self):
-        from cinder.volume.drivers.coprhd import common as coprhd_common
-
-        class MockedEMCCoprHDDriverCommon(coprhd_common.
-                                        EMCCoprHDDriverCommon):
-
-            def __init__(self, protocol, default_backend_name,
-                         configuration=None):
-
-                super(MockedEMCCoprHDDriverCommon, self).__init__(
-                    protocol, default_backend_name, configuration)
-
-            def authenticate_user(self):
-                pass
-
-            def get_exports_count_by_initiators(self, initiator_ports):
-                return 0
-            
-            def _get_coprhd_volume_name(self, vol, verbose=False):
-                return "coprhd_vol_name"
-
-            def init_volume_api(self):
-                self.volume_api = Mock()
-                self.volume_api.get.return_value = {
-                    'name': 'source_test-vol1',
-                    'size': 1,
-                    'volume_name': 'source_test-vol1',
-                    'id': '1234',
-					'consistencygroup_id': '12345',
-                    'provider_auth': None,
-                    'project_id': 'project',
-                    'display_name': 'source_test-vol1',
-                    'display_description': 'test volume',
-                    'volume_type_id': "vol_type_id-for-snap"}
-
-            '''
-            Mocking all CLI components methods is done here.
-            Mock is a powerful python library that helps to mock the test
-            data.
-            Refer -
-            http://www.voidspace.org.uk/python/mock/index.html#user-guide
-            '''
-            def init_coprhd_api_components(self):
-                self.volume_obj = Mock()
-                self.volume_obj.create.return_value = "volume_created"
-                self.volume_obj.volume_query.return_value = "volume_uri"
-                self.volume_obj.get_storageAttributes.return_value = ('block', 'volume_name') 
-                self.volume_obj.storage_resource_query.return_value = "volume_uri"
-                self.volume_obj.is_volume_detachable.return_value = False
-                self.volume_obj.volume_clone_detach.return_value = 'detached'
-                self.volume_obj.getTags.return_value \
-                    = ["Openstack-vol", "Openstack-vol1"]
-                self.volume_obj.tag.return_value = "tagged"
-                self.volume_obj.clone.return_value = "volume-cloned"
-                if(self.protocol == "iSCSI"):
-                    self.volume_obj.get_exports_by_uri.return_value \
-                        = iscsi_itl_list
-                else:
-                    self.volume_obj.get_exports_by_uri.return_value \
-                        = fcitl_itl_list
-
-                self.volume_obj.list_volumes.return_value = []
-                self.volume_obj.show.return_value = {"id": "vol_id"}
-                
-                self.tag_obj = Mock()
-                self.tag_obj.list_tags.return_value = ["Openstack-vol", "Openstack-vol1"]
-                self.tag_obj.tag_resource.return_value = "Tagged"
-
-                self.exportgroup_obj = Mock()
-                self.exportgroup_obj.exportgroup_list.return_value \
-                    = export_group_list
-                self.exportgroup_obj.exportgroup_show.return_value \
-                    = export_group_details_data
-
-                self.host_obj = Mock()
-                self.host_obj.list_by_tenant.return_value = []
-                self.host_obj.search_by_name.return_value = []
-
-                self.hostinitiator_obj = Mock()
-                self.varray_obj = Mock()
-                self.varray_obj.varray_show.return_value = varray_detail_data
-
-                self.snapshot_obj = Mock()
-                mocked_snap_obj = self.snapshot_obj.return_value
-                mocked_snap_obj.storageResource_query.return_value \
-                    = "resourceUri"
-                mocked_snap_obj.snapshot_create.return_value \
-                    = "snapshot_created"
-
         return MockedEMCCoprHDDriverCommon(
             protocol="iSCSI",
             default_backend_name="EMCViPRISCSIDriver",
@@ -298,66 +351,9 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
     def delete_vipr_volume_type(self):
         ctx = context.get_admin_context()
         volume_types.destroy(ctx, self.volume_type_id)
-
-    def get_test_volume_data(self):
-        test_volume = {'name': 'test-vol1',
-                       'size': 1,
-                       'volume_name': 'test-vol1',
-                       'id': '1',
-					   'consistencygroup_id': None,
-                       'provider_auth': None,
-                       'project_id': 'project',
-                       'display_name': 'test-vol1',
-                       'display_description': 'test volume',
-                       'volume_type_id': self.volume_type_id}
-        return test_volume
-
-    def get_source_test_volume_data(self):
-        test_volume = {'name': 'source_test-vol1',
-                       'size': 1,
-                       'volume_name': 'source_test-vol1',
-                       'id': '1234',
-                       'provider_auth': None,
-                       'project_id': 'project',
-                       'display_name': 'source_test-vol1',
-                       'display_description': 'test volume',
-                       'volume_type_id': self.volume_type_id}
-        return test_volume
-
-    def get_clone_volume_data(self):
-        clone_test_volume = {'name': 'clone-test-vol1',
-                             'size': 1,
-                             'volume_name': 'clone-test-vol1',
-                             'id': '2',
-                             'provider_auth': None,
-                             'project_id': 'project',
-                             'display_name': 'clone-test-vol1',
-                             'display_description': 'clone test volume',
-                             'volume_type_id': self.volume_type_id}
-        return clone_test_volume
-
-    def get_test_snapshot_data(self):
-        test_snapshot = {'name': 'snapshot1',
-                         'display_name': 'snapshot1',
-                         'size': 1,
-                         'id': '1111',
-                         'volume_name': 'test-vol1',
-                         'volume_id': '1234',
-                         'volume': self.get_source_test_volume_data(),
-                         'volume_size': 1,
-                         'project_id': 'project'}
-        return test_snapshot
-
-    def get_connector_data(self):
-        connector = {'ip': '10.0.0.2',
-                     'initiator': 'iqn.1993-08.org.deb:01:222',
-                     'wwpns': ["1234567890123456", "1234567890543211"],
-                     'wwnns': ["223456789012345", "223456789054321"],
-                     'host': 'fakehost'}
-        return connector
-
+    
     def test_create_destroy(self):
-        volume = self.get_test_volume_data()
+        volume = get_test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume)
         self.driver.delete_volume(volume)
@@ -367,16 +363,16 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.assertTrue(vol_stats['free_capacity_gb'], 'unknown')
 
     def test_create_volume_clone(self):
-        src_volume_data = self.get_test_volume_data()
-        clone_volume_data = self.get_clone_volume_data()
+        src_volume_data = get_test_volume_data(self.volume_type_id)
+        clone_volume_data = get_clone_volume_data(self.volume_type_id)
         self.driver.create_volume(src_volume_data)
         self.driver.create_cloned_volume(clone_volume_data, src_volume_data)
         self.driver.delete_volume(src_volume_data)
         self.driver.delete_volume(clone_volume_data)
 
     def test_create_destroy_snapshot(self):
-        volume_data = self.get_test_volume_data()
-        snapshot_data = self.get_test_snapshot_data()
+        volume_data = get_test_volume_data(self.volume_type_id)
+        snapshot_data = get_test_snapshot_data(get_source_test_volume_data(self.volume_type_id))
 
         self.driver.create_volume(volume_data)
         self.driver.create_snapshot(snapshot_data)
@@ -385,11 +381,11 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
 
     def test_create_volume_from_snapshot(self):
 
-        src_vol_data = self.get_source_test_volume_data()
+        src_vol_data = get_source_test_volume_data(self.volume_type_id)
         self.driver.create_volume(src_vol_data)
 
-        volume_data = self.get_test_volume_data()
-        snapshot_data = self.get_test_snapshot_data()
+        volume_data = get_test_volume_data(self.volume_type_id)
+        snapshot_data = get_test_snapshot_data(src_vol_data)
 
         self.driver.create_snapshot(snapshot_data)
         self.driver.create_volume_from_snapshot(volume_data, snapshot_data)
@@ -399,14 +395,14 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_extend_volume(self):
-        volume_data = self.get_test_volume_data()
+        volume_data = get_test_volume_data(self.volume_type_id)
         self.driver.create_volume(volume_data)
         self.driver.extend_volume(volume_data, 2)
         self.driver.delete_volume(volume_data)
 
     def test_initialize_and_terminate_connection(self):
-        connector_data = self.get_connector_data()
-        volume_data = self.get_test_volume_data()
+        connector_data = get_connector_data()
+        volume_data = get_test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume_data)
         self.driver.initialize_connection(volume_data, connector_data)
@@ -414,150 +410,52 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
 
-class EMCViPRFCDriverTest(test.TestCase):
+class EMCCoprHDFCDriverTest(test.TestCase):
 
     def setUp(self):
-        super(EMCViPRFCDriverTest, self).setUp()
-        self.create_vipr_setup()
+        super(EMCCoprHDFCDriverTest, self).setUp()
+        self.create_coprhd_setup()
 
-    def create_vipr_setup(self):
+    def create_coprhd_setup(self):
 
         self.configuration = Mock()
-        self.configuration.vipr_hostname = "10.10.10.10"
-        self.configuration.vipr_port = "4443"
-        self.configuration.volume_backend_name = "EMCViPRFCDriver"
-        self.configuration.vipr_cookiedir = "/tmp"
-        self.configuration.vipr_username = "user-name"
-        self.configuration.vipr_password = "password"
-        self.configuration.vipr_tenant = "tenant"
-        self.configuration.vipr_project = "project"
-        self.configuration.vipr_varray = "varray"
-        self.configuration.vipr_cli_path = "/opt/storageos/cli/bin"
+        self.configuration.coprhd_hostname = "10.10.10.10"
+        self.configuration.coprhd_port = "4443"
+        self.configuration.volume_backend_name = "EMCCoprHDFCDriver"
+        self.configuration.coprhd_username = "user-name"
+        self.configuration.coprhd_password = "password"
+        self.configuration.coprhd_tenant = "tenant"
+        self.configuration.coprhd_project = "project"
+        self.configuration.coprhd_varray = "varray"
+        self.configuration.coprhd_emulate_snapshot = False
 
-        self.volume_type_id = self.create_vipr_volume_type()
-        self.mock_vipr_cli_imports()
+        self.volume_type_id = self.create_coprhd_volume_type()
 
-        from cinder.volume.drivers.emc.vipr import fc as vipr_fc
+        from cinder.volume.drivers.coprhd import fc as coprhd_fc
 
-        self.stubs.Set(vipr_fc.EMCViPRFCDriver,
+        self.stubs.Set(coprhd_fc.EMCCoprHDFCDriver,
                        '_get_common_driver',
                        self._get_mocked_common_driver)
-        self.driver = vipr_fc.EMCViPRFCDriver(
+        self.driver = coprhd_fc.EMCCoprHDFCDriver(
             configuration=self.configuration)
-
-    def mock_vipr_cli_imports(self):
-
-        self.viprcli_mock = MagicMock()
-        modules_to_be_mocked = {
-            'viprcli': self.viprcli_mock,
-            'viprcli.common': self.viprcli_mock.common,
-            'viprcli.exportgroup': self.viprcli_mock.exportgroup,
-            'viprcli.host': self.viprcli_mock.host,
-            'viprcli.hostinitiators': self.viprcli_mock.hostinitiators,
-            'viprcli.snapshot': self.viprcli_mock.snapshot,
-            'viprcli.virtualarray': self.viprcli_mock.virtualarray,
-            'viprcli.volume': self.viprcli_mock.volume,
-            'viprcli.authentication': self.viprcli_mock.authentication}
-
-        self.module_patcher = patch.dict('sys.modules', modules_to_be_mocked)
-        self.module_patcher.start()
 
     def tearDown(self):
         self._cleanUp()
-        self.module_patcher.stop()
-        super(EMCViPRFCDriverTest, self).tearDown()
+        super(EMCCoprHDFCDriverTest, self).tearDown()
 
     def _cleanUp(self):
         self.delete_vipr_volume_type()
 
-    def create_vipr_volume_type(self):
+    def create_coprhd_volume_type(self):
         ctx = context.get_admin_context()
         vipr_volume_type = volume_types.create(ctx,
-                                               "vipr-volume-type",
-                                               {'ViPR:VPOOL': 'vpool_vipr'})
+                                               "coprhd-volume-type",
+                                               {'CoprHD:VPOOL': 'vpool_vipr'})
         volume_id = vipr_volume_type['id']
         return volume_id
 
     def _get_mocked_common_driver(self):
-        from cinder.volume.drivers.emc.vipr import common as vipr_common
-
-        class MockedEMCViPRDriverCommon(vipr_common.
-                                        EMCViPRDriverCommon):
-
-            def __init__(self, protocol, default_backend_name,
-                         configuration=None):
-
-                super(MockedEMCViPRDriverCommon, self).__init__(
-                    protocol, default_backend_name, configuration)
-
-            def check_for_vipr_cli_path(self):
-                pass
-
-            def get_exports_count_by_initiators(self, initiator_ports):
-                return 0
-            
-            def _get_coprhd_volume_name(self, vol, verbose=False):
-                return "coprhd_vol_name"
-
-            def init_volume_api(self):
-                self.volume_api = Mock()
-                self.volume_api.get.return_value = {
-                    'name': 'source_test-vol1',
-                    'size': 1,
-                    'volume_name': 'source_test-vol1',
-                    'id': '1234',
-                    'provider_auth': None,
-                    'project_id': 'project',
-                    'display_name': 'source_test-vol1',
-                    'display_description': 'test volume',
-                    'volume_type_id': "vol_type_id-for-snap"}
-
-            '''
-            Mocking all CLI components methods is done here.
-            Mock is a powerful python library that helps to mock the test
-            data.
-            Refer -
-            http://www.voidspace.org.uk/python/mock/index.html#user-guide
-            '''
-            def init_vipr_cli_components(self):
-                self.volume_obj = Mock()
-                self.volume_obj.create.return_value = "volume_created"
-                self.volume_obj.delete.return_value = "volume_deleted"
-                self.volume_obj.getTags.return_value \
-                    = ["Openstack-vol", "Openstack-vol1"]
-                self.volume_obj.tag.return_value = "tagged"
-                self.volume_obj.clone.return_value = "volume-cloned"
-                if(self.protocol == "iSCSI"):
-                    self.volume_obj.get_exports_by_uri.return_value \
-                        = iscsi_itl_list
-                else:
-                    self.volume_obj.get_exports_by_uri.return_value \
-                        = fcitl_itl_list
-
-                self.volume_obj.list_volumes.return_value = []
-                self.volume_obj.show.return_value = {"id": "vol_id"}
-
-                self.exportgroup_obj = Mock()
-                self.exportgroup_obj.exportgroup_list.return_value \
-                    = export_group_list
-                self.exportgroup_obj.exportgroup_show.return_value \
-                    = export_group_details_data
-                self.host_obj = Mock()
-                self.host_obj.list_by_tenant.return_value = []
-                self.host_obj.search_by_name.return_value = []
-
-                self.hostinitiator_obj = Mock()
-                self.varray_obj = Mock()
-                self.varray_obj.varray_show.return_value = varray_detail_data
-
-                self.snapshot_obj = Mock()
-                mocked_snap_obj = self.snapshot_obj.return_value
-                mocked_snap_obj.storageResource_query.return_value \
-                    = "resourceUri"
-                mocked_snap_obj.snapshot_create.return_value \
-                    = "snapshot_created"
-
-        return MockedEMCViPRDriverCommon(
+        return MockedEMCCoprHDDriverCommon(
             protocol="FC",
             default_backend_name="EMCViPRFCDriver",
             configuration=self.configuration)
@@ -566,65 +464,8 @@ class EMCViPRFCDriverTest(test.TestCase):
         ctx = context.get_admin_context()
         volume_types.destroy(ctx, self.volume_type_id)
 
-    def get_test_volume_data(self):
-        test_volume = {'name': 'test-vol1',
-                       'size': 1,
-                       'volume_name': 'test-vol1',
-                       'id': '1',
-					   'consistencygroup_id': None,
-                       'provider_auth': None,
-                       'project_id': 'project',
-                       'display_name': 'test-vol1',
-                       'display_description': 'test volume',
-                       'volume_type_id': self.volume_type_id}
-        return test_volume
-
-    def get_clone_volume_data(self):
-        clone_test_volume = {'name': 'clone-test-vol1',
-                             'size': 1,
-                             'volume_name': 'clone-test-vol1',
-                             'id': '2',
-                             'provider_auth': None,
-                             'project_id': 'project',
-                             'display_name': 'clone-test-vol1',
-                             'display_description': 'clone test volume',
-                             'volume_type_id': self.volume_type_id}
-        return clone_test_volume
-
-    def get_test_snapshot_data(self):
-        test_snapshot = {'name': 'snapshot1',
-                         'display_name': 'snapshot1',
-                         'size': 1,
-                         'id': '1111',
-                         'volume_name': 'test-vol1',
-                         'volume_id': '1234',
-                         'volume': self.get_source_test_volume_data(),
-                         'volume_size': 1,
-                         'project_id': 'project'}
-        return test_snapshot
-
-    def get_source_test_volume_data(self):
-        test_volume = {'name': 'source_test-vol1',
-                       'size': 1,
-                       'volume_name': 'source_test-vol1',
-                       'id': '1234',
-                       'provider_auth': None,
-                       'project_id': 'project',
-                       'display_name': 'source_test-vol1',
-                       'display_description': 'test volume',
-                       'volume_type_id': self.volume_type_id}
-        return test_volume
-
-    def get_connector_data(self):
-        connector = {'ip': '10.0.0.2',
-                     'initiator': 'iqn.1993-08.org.deb:01:222',
-                     'wwpns': ["1234567890123456", "1234567890543211"],
-                     'wwnns': ["223456789012345", "223456789054321"],
-                     'host': 'fakehost'}
-        return connector
-
     def test_create_destroy(self):
-        volume = self.get_test_volume_data()
+        volume = get_test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume)
         self.driver.delete_volume(volume)
@@ -635,8 +476,8 @@ class EMCViPRFCDriverTest(test.TestCase):
 
     def test_create_volume_clone(self):
 
-        src_volume_data = self.get_test_volume_data()
-        clone_volume_data = self.get_clone_volume_data()
+        src_volume_data = get_test_volume_data(self.volume_type_id)
+        clone_volume_data = get_clone_volume_data(self.volume_type_id)
         self.driver.create_volume(src_volume_data)
         self.driver.create_cloned_volume(clone_volume_data, src_volume_data)
         self.driver.delete_volume(src_volume_data)
@@ -644,8 +485,8 @@ class EMCViPRFCDriverTest(test.TestCase):
 
     def test_create_destroy_snapshot(self):
 
-        volume_data = self.get_test_volume_data()
-        snapshot_data = self.get_test_snapshot_data()
+        volume_data = get_test_volume_data(self.volume_type_id)
+        snapshot_data = get_test_snapshot_data(get_source_test_volume_data(self.volume_type_id))
 
         self.driver.create_volume(volume_data)
         self.driver.create_snapshot(snapshot_data)
@@ -653,11 +494,11 @@ class EMCViPRFCDriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_create_volume_from_snapshot(self):
-        src_vol_data = self.get_source_test_volume_data()
+        src_vol_data = get_source_test_volume_data(self.volume_type_id)
         self.driver.create_volume(src_vol_data)
 
-        volume_data = self.get_test_volume_data()
-        snapshot_data = self.get_test_snapshot_data()
+        volume_data = get_test_volume_data(self.volume_type_id)
+        snapshot_data = get_test_snapshot_data(src_vol_data)
 
         self.driver.create_snapshot(snapshot_data)
         self.driver.create_volume_from_snapshot(volume_data, snapshot_data)
@@ -667,15 +508,15 @@ class EMCViPRFCDriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_extend_volume(self):
-        volume_data = self.get_test_volume_data()
+        volume_data = get_test_volume_data(self.volume_type_id)
         self.driver.create_volume(volume_data)
         self.driver.extend_volume(volume_data, 2)
         self.driver.delete_volume(volume_data)
 
     def test_initialize_and_terminate_connection(self):
 
-        connector_data = self.get_connector_data()
-        volume_data = self.get_test_volume_data()
+        connector_data = get_connector_data()
+        volume_data = get_test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume_data)
         self.driver.initialize_connection(volume_data, connector_data)
