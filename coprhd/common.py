@@ -191,6 +191,10 @@ class EMCCoprHDDriverCommon(object):
         self.consistencygroup_obj = CoprHD_cg.ConsistencyGroup(
             self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
+        
+        self.tag_obj = CoprHD_tag.Tag(
+            self.configuration.coprhd_hostname,
+            self.configuration.coprhd_port)
 
     def check_for_setup_error(self):
         # validate all of the coprhd_* configuration values
@@ -600,19 +604,14 @@ class EMCCoprHDDriverCommon(object):
         # eyecatcher
         formattedUri = uri.format(resourceId)
         remove_tags = []
-        currentTags = CoprHD_tag.list_tags(self.configuration.coprhd_hostname,
-                                           self.configuration.coprhd_port,
-                                           formattedUri)
+        currentTags = self.tag_obj.list_tags(formattedUri)
         for cTag in currentTags:
             if cTag.startswith(self.OPENSTACK_TAG):
                 remove_tags.append(cTag)
 
         try:
             if len(remove_tags) > 0:
-                CoprHD_tag.tag_resource(
-                    self.configuration.coprhd_hostname,
-                    self.configuration.coprhd_port,
-                    uri,
+                self.tag_obj.tag_resource(uri,
                     resourceId,
                     None,
                     remove_tags)
@@ -648,9 +647,7 @@ class EMCCoprHDDriverCommon(object):
             LOG.debug("Error tagging the resource properties")
 
         try:
-            CoprHD_tag.tag_resource(
-                self.configuration.coprhd_hostname,
-                self.configuration.coprhd_port,
+            self.tag_obj.tag_resource(
                 uri,
                 resourceId,
                 add_tags,
@@ -661,9 +658,7 @@ class EMCCoprHDDriverCommon(object):
                     "Adding the tag failed. CoprHdError: %s",
                     six.text_type(e.msg))
 
-        return CoprHD_tag.list_tags(self.configuration.coprhd_hostname,
-                                    self.configuration.coprhd_port,
-                                    formattedUri)
+        return self.tag_obj.list_tags(formattedUri)
 
     @retry_wrapper
     def create_cloned_volume(self, vol, src_vref, truncate_name=False):
@@ -724,13 +719,13 @@ class EMCCoprHDDriverCommon(object):
                     LOG.exception(_LE("Volume : {%s} clone failed"), name)
 
         try:
-            src_vol_size = src_vref.size
+            src_vol_size = src_vref['size']
         except AttributeError:
-            src_vol_size = src_vref.volume_size
+            src_vol_size = src_vref['volume_size']
 
-        if vol.size > src_vol_size:
+        if vol['size'] > src_vol_size:
             size_in_bytes = CoprHD_utils.to_bytes(
-                six.text_type(vol.size) + "G")
+                six.text_type(vol['size']) + "G")
             try:
                 self.volume_obj.expand(
                     ("%s/%s/%s" % (self.configuration.coprhd_tenant,
