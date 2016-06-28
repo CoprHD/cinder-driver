@@ -192,7 +192,7 @@ class ExportGroup(common.CoprHDResource):
             raise common.CoprHdError(
                 common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR, (_(
                     "Export group with name %s"
-                    " already exists"), name))
+                    " already exists") % name))
 
     def exportgroup_query(self, name, project, tenant, varrayuri=None):
         """Makes REST API call to query the exportgroup by name
@@ -306,7 +306,7 @@ class ExportGroup(common.CoprHDResource):
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
                     (_("Please provide valid format volume:"
-                       " lun for parameter %s"),
+                       " lun for parameter %s") %
                      resType))
             copy = dict()
             if not len(copyParam):

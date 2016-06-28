@@ -148,7 +148,7 @@ class ConsistencyGroup(common.CoprHDResource):
         if status:
             common.format_err_msg_and_raise(
                 "create", "consistency group",
-                (_("consistency group with name: %s already exists"), name),
+                (_("consistency group with name: %s already exists") % name),
                 common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR)
 
     def delete(self, name, project, tenant, coprhdonly=False):

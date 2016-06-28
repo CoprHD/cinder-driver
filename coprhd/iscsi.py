@@ -20,7 +20,7 @@ from oslo_log import log as logging
 
 from cinder import interface
 from cinder.volume import driver
-from cinder.volume.drivers.coprhd import common as CoprHD_common
+from cinder.volume.drivers.coprhd import common as coprhd_common
 
 
 LOG = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         self.common = self._get_common_driver()
 
     def _get_common_driver(self):
-        return CoprHD_common.EMCCoprHDDriverCommon(
+        return coprhd_common.EMCCoprHDDriverCommon(
             protocol='iSCSI',
             default_backend_name=self.__class__.__name__,
             configuration=self.configuration)
@@ -74,13 +74,6 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         """Deletes a snapshot."""
         self.common.delete_snapshot(snapshot)
 
-    def _iscsi_location(self, ip, target, iqn, lun=None):
-        return "%s:%s,%s %s %s" % (ip,
-                                   self.configuration.iscsi_port,
-                                   target,
-                                   iqn,
-                                   lun)
-
     def ensure_export(self, context, volume):
         """Driver entry point to get the export info for an existing volume."""
         pass
@@ -90,7 +83,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         pass
 
     def remove_export(self, context, volume):
-        """Driver exntry point to remove an export for a volume."""
+        """Driver entry point to remove an export for a volume."""
         pass
 
     def create_consistencygroup(self, context, group):
@@ -151,15 +144,12 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
             }
 
         """
-        initiatorPorts = []
-        initiatorPort = connector['initiator']
-        initiatorPorts.append(initiatorPort)
-        protocol = 'iSCSI'
-        hostname = connector['host']
+        initiator_ports = []
+        initiator_ports.append(connector['initiator'])
         itls = self.common.initialize_connection(volume,
-                                                 protocol,
-                                                 initiatorPorts,
-                                                 hostname)
+                                                 'iSCSI',
+                                                 initiator_ports,
+                                                 connector['host'])
         properties = {}
         properties['target_discovered'] = False
         properties['volume_id'] = volume['id']
@@ -175,24 +165,20 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
             properties['auth_username'] = auth_username
             properties['auth_password'] = auth_secret
 
-        LOG.debug("ISCSI properties: ")
-        LOG.debug(properties)
+        LOG.debug("ISCSI properties: %s", properties)
         return {
             'driver_volume_type': 'iscsi',
-            'data': properties
+            'data': properties,
         }
 
     def terminate_connection(self, volume, connector, **kwargs):
         """Disallow connection from connector."""
-        initiatorPort = connector['initiator']
-        protocol = 'iSCSI'
-        hostname = connector['host']
-        initPorts = []
-        initPorts.append(initiatorPort)
+        init_ports = []
+        init_ports.append(connector['initiator'])
         self.common.terminate_connection(volume,
-                                         protocol,
-                                         initPorts,
-                                         hostname)
+                                         'iSCSI',
+                                         init_ports,
+                                         connector['host'])
 
     def get_volume_stats(self, refresh=False):
         """Get volume status.

@@ -26,7 +26,7 @@ from cinder.i18n import _
 from cinder.i18n import _LI
 from cinder import interface
 from cinder.volume import driver
-from cinder.volume.drivers.coprhd import common as CoprHD_common
+from cinder.volume.drivers.coprhd import common as coprhd_common
 
 
 LOG = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         self.common = self._get_common_driver()
 
     def _get_common_driver(self):
-        return CoprHD_common.EMCCoprHDDriverCommon(
+        return coprhd_common.EMCCoprHDDriverCommon(
             protocol='scaleio',
             default_backend_name=self.__class__.__name__,
             configuration=self.configuration)
@@ -54,16 +54,16 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         """Creates a Volume."""
         self.common.create_volume(volume, self, True)
         self.common.set_volume_tags(volume, ['_obj_volume_type'], True)
-        volSize = self.updateVolumeSize(int(volume['size']))
-        return {'size': volSize}
+        vol_size = self._update_volume_size(int(volume['size']))
+        return {'size': vol_size}
 
-    def updateVolumeSize(self, volSize):
+    def _update_volume_size(self, vol_size):
         """update the openstack volume size."""
-        defaultSize = 8
-        if((volSize % defaultSize) != 0):
-            return (volSize / defaultSize) * defaultSize + defaultSize
+        default_size = 8
+        if (vol_size % default_size) != 0:
+            return (vol_size / default_size) * default_size + default_size
         else:
-            return volSize
+            return vol_size
 
     def create_cloned_volume(self, volume, src_vref):
         """Creates a cloned Volume."""
@@ -163,7 +163,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             }
 
         """
-        volname = self.common._get_volume_name(volume)
+        volname = self.common._get_resource_name(volume, False)
 
         properties = {}
         properties['scaleIO_volname'] = volname
@@ -191,12 +191,10 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         initiatorPorts.append(initiatorPort)
 
         properties['serverToken'] = self.server_token
-        protocol = 'scaleio'
-        hostname = connector['host']
         self.common.initialize_connection(volume,
-                                          protocol,
+                                          'scaleio',
                                           initiatorPorts,
-                                          hostname)
+                                          connector['host'])
 
         dictobj = {
             'driver_volume_type': 'scaleio',
@@ -229,14 +227,12 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                                             properties['serverUsername'],
                                             properties['serverPassword'],
                                             properties['hostIP'])
-        protocol = 'scaleio'
-        hostname = connector['host']
         initPorts = []
         initPorts.append(initiatorPort)
         self.common.terminate_connection(volume,
-                                         protocol,
+                                         'scaleio',
                                          initPorts,
-                                         hostname)
+                                         connector['host'])
 
     def get_volume_stats(self, refresh=False):
         """Get volume status.
@@ -257,7 +253,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                        server_password, sdc_ip):
         ip_encoded = urllib.parse.quote(sdc_ip, '')
         ip_double_encoded = urllib.parse.quote(ip_encoded, '')
-        request = ("https://" + server_ip + ":" + server_port +
+        request = ("https://" + server_ip + ":" + str(server_port) +
                    "/api/types/Sdc/instances/getByIp::" +
                    ip_double_encoded + "/")
         LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
@@ -267,8 +263,6 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         else:
             verify_cert = False
 
-        r = None
-
         r = requests.get(
             request, auth=(server_username, self.server_token),
             verify=verify_cert)
@@ -277,13 +271,13 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             server_username, server_password)
 
         sdc_id = r.json()
-        if (sdc_id == '' or sdc_id is None):
-            msg = (_("Client with ip %s wasn't found "), sdc_ip)
+        if not sdc_id:
+            msg = (_("Client with ip %s wasn't found ") % sdc_ip)
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
-        if (r.status_code != 200 and "errorCode" in sdc_id):
+        if r.status_code != 200 and "errorCode" in sdc_id:
             msg = (_("Error getting sdc id from ip %(sdc_ip)s:"
-                     " %(sdc_id_message)s"), {'sdc_ip': sdc_ip,
+                     " %(sdc_id_message)s") % {'sdc_ip': sdc_ip,
                                               'sdc_id_message': sdc_id[
                                                   'message']})
             LOG.error(msg)
@@ -294,11 +288,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     def _check_response(self, response, request,
                         server_ip, server_port,
                         server_username, server_password):
-        if (response.status_code == 401 or response.status_code == 403):
+        if response.status_code == 401 or response.status_code == 403:
             LOG.info(
                 _LI("Token is invalid, going to re-login and get a new one"))
             login_request = ("https://" + server_ip +
-                             ":" + server_port + "/api/login")
+                             ":" + str(server_port) + "/api/login")
             if self.configuration.scaleio_verify_server_certificate:
                 verify_cert = (
                     self.configuration.scaleio_server_certificate_path)
@@ -312,7 +306,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             token = r.json()
             self.server_token = token
             # repeat request with valid token
-            LOG.info(_LI("going to perform request again %s with valid token"),
+            LOG.info(_LI("Going to perform request again %s with valid token"),
                      request)
             res = requests.get(
                 request, auth=(server_username, self.server_token),

@@ -22,9 +22,8 @@ from oslo_log import log as logging
 
 from cinder import interface
 from cinder.volume import driver
-from cinder.volume.drivers.coprhd import common as CoprHD_common
-from cinder.zonemanager.utils import AddFCZone
-from cinder.zonemanager.utils import RemoveFCZone
+from cinder.volume.drivers.coprhd import common as coprhd_common
+from cinder.zonemanager import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -38,7 +37,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         self.common = self._get_common_driver()
 
     def _get_common_driver(self):
-        return CoprHD_common.EMCCoprHDDriverCommon(
+        return coprhd_common.EMCCoprHDDriverCommon(
             protocol='FC',
             default_backend_name=self.__class__.__name__,
             configuration=self.configuration)
@@ -93,15 +92,10 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Creates a consistencygroup."""
         return self.common.create_consistencygroup(context, group)
 
-    def update_consistencygroup(self,
-                                context,
-                                group,
-                                add_volumes,
+    def update_consistencygroup(self, context, group, add_volumes,
                                 remove_volumes):
         """Updates volumes in consistency group."""
-        return self.common.update_consistencygroup(self,
-                                                   context,
-                                                   group,
+        return self.common.update_consistencygroup(self, context, group,
                                                    add_volumes,
                                                    remove_volumes)
 
@@ -123,7 +117,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Make sure volume is exported."""
         pass
 
-    @AddFCZone
+    @utils.AddFCZone
     def initialize_connection(self, volume, connector):
         """Initializes the connection and returns connection info.
 
@@ -159,13 +153,11 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         properties['target_discovered'] = False
         properties['target_wwn'] = []
 
-        protocol = 'FC'
-        hostname = connector['host']
-        initPorts = self._build_initport_list(connector)
+        init_ports = self._build_initport_list(connector)
         itls = self.common.initialize_connection(volume,
-                                                 protocol,
-                                                 initPorts,
-                                                 hostname)
+                                                 'FC',
+                                                 init_ports,
+                                                 connector['host'])
         if itls:
             properties['target_lun'] = itls[0]['hlu']
             target_wwns, initiator_target_map = (
@@ -188,18 +180,16 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
             'data': properties
         }
 
-    @RemoveFCZone
+    @utils.RemoveFCZone
     def terminate_connection(self, volume, connector, **kwargs):
         """Driver entry point to detach a volume from an instance."""
-        protocol = 'FC'
-        hostname = connector['host']
-        initPorts = self._build_initport_list(connector)
+        init_ports = self._build_initport_list(connector)
         itls = self.common.terminate_connection(volume,
-                                                protocol,
-                                                initPorts,
-                                                hostname)
+                                                'FC',
+                                                init_ports,
+                                                connector['host'])
 
-        volumes_count = self.common.get_exports_count_by_initiators(initPorts)
+        volumes_count = self.common.get_exports_count_by_initiators(init_ports)
         if volumes_count > 0:
             # return empty data
             data = {'driver_volume_type': 'fibre_channel', 'data': {}}
@@ -230,14 +220,14 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         return target_wwns, initiator_target_map
 
     def _build_initport_list(self, connector):
-        initPorts = []
+        init_ports = []
         for i in xrange(len(connector['wwpns'])):
-            initiatorPort = ':'.join(re.findall(
+            initiator_port = ':'.join(re.findall(
                 '..',
                 connector['wwpns'][i])).upper()   # Add ":" every two digits
-            initPorts.append(initiatorPort)
+            init_ports.append(initiator_port)
 
-        return initPorts
+        return init_ports
 
     def get_volume_stats(self, refresh=False):
         """Get volume status.

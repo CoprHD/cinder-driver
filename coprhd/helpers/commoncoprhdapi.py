@@ -76,7 +76,7 @@ def json_decode(rsp):
         o = json.loads(rsp, object_hook=_decode_dict)
     except ValueError:
         raise CoprHdError(CoprHdError.VALUE_ERR,
-                          (_("Failed to recognize JSON payload:\n[%s]"), rsp))
+                          (_("Failed to recognize JSON payload:\n[%s]") % rsp))
     return o
 
 
