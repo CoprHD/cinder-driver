@@ -831,9 +831,9 @@ class EMCCoprHDDriverCommon(object):
                                   ("Snapshot : %s clone failed"),
                                   src_snapshot_name)
 
-        if volume.size > snapshot.volume_size:
+        if volume['size'] > snapshot['volume_size']:
             size_in_bytes = CoprHD_utils.to_bytes(
-                six.text_type(volume.size) + "G")
+                six.text_type(volume['size']) + "G")
             try:
                 self.volume_obj.expand(
                     self.configuration.coprhd_tenant +
