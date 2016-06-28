@@ -90,15 +90,15 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         """Creates a consistencygroup."""
         return self.common.create_consistencygroup(context, group)
 
-    def delete_consistencygroup(self, context, group):
+    def delete_consistencygroup(self, context, group, volumes):
         """Deletes a consistency group."""
-        return self.common.delete_consistencygroup(self, context, group)
+        return self.common.delete_consistencygroup(context, group, volumes)
 
     def update_consistencygroup(self, context, group,
                                 add_volumes, remove_volumes):
         """Updates volumes in consistency group."""
-        return self.common.update_consistencygroup(self, context, group,
-                                                   add_volumes, remove_volumes)
+        return self.common.update_consistencygroup(group, add_volumes,
+                                                   remove_volumes)
 
     def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""

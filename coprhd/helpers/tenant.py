@@ -25,7 +25,7 @@ class Tenant(common.CoprHDResource):
     URI_TENANTS_SUBTENANT = URI_TENANTS + '/subtenants'
 
     def tenant_query(self, label):
-        """Returns the UID of the tenant specified by the hierarchical name
+        """Returns the UID of the tenant specified by the hierarchical name.
 
         (ex tenant1/tenant2/tenant3)
         """
@@ -48,10 +48,10 @@ class Tenant(common.CoprHDResource):
                     return tenant['id']
 
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                 (_("Tenant %s: not found"), label))
+                                 (_("Tenant %s: not found") % label))
 
     def tenant_show(self, label):
-        """Returns the details of the tenant based on its name"""
+        """Returns the details of the tenant based on its name."""
         if label:
             tenant_id = self.tenant_query(label)
         else:
@@ -67,7 +67,7 @@ class Tenant(common.CoprHDResource):
         return o['id']
 
     def tenant_list(self, uri=None):
-        """Returns all the tenants under a parent tenant
+        """Returns all the tenants under a parent tenant.
 
         Parameters:
             parent: The parent tenant name
@@ -93,7 +93,7 @@ class Tenant(common.CoprHDResource):
             return []
 
     def tenant_show_by_uri(self, uri):
-        """Makes REST API call to retrieve tenant details based on its UUID"""
+        """Makes REST API call to retrieve tenant details based on UUID."""
         (s, h) = common.service_json_request(self.ipaddr, self.port, "GET",
                                              Tenant.URI_TENANTS.format(uri),
                                              None)
@@ -115,5 +115,5 @@ class Tenant(common.CoprHDResource):
                 uri = tenant
             if not uri:
                 raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                         (_("Tenant %s: not found"), tenant))
+                                         (_("Tenant %s: not found") % tenant))
         return uri

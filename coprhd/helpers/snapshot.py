@@ -47,12 +47,12 @@ class Snapshot(common.CoprHDResource):
     timeout = 300
 
     def snapshot_list_uri(self, otype, otypename, ouri):
-        """Makes REST API call to list snapshots under a volume
+        """Makes REST API call to list snapshots under a volume.
 
         Parameters:
             otype     : block
-            otypename : either volumes or consistency-groups should be provided
-            ouri      : uri of volumes or consistency-group
+            otypename : either volume or consistency-group should be provided
+            ouri      : uri of volume or consistency-group
 
         Returns:
             return list of snapshots
@@ -65,7 +65,7 @@ class Snapshot(common.CoprHDResource):
         return o['snapshot']
 
     def snapshot_show_uri(self, otype, resource_uri, suri):
-        """Retrieves snapshot details based on snapshot Name or Label
+        """Retrieves snapshot details based on snapshot Name or Label.
 
         Parameters:
             otype : block
@@ -111,7 +111,7 @@ class Snapshot(common.CoprHDResource):
         raise common.CoprHdError(
             common.CoprHdError.SOS_FAILURE_ERR,
             (_("snapshot with the name: "
-               "%s Not Found"), snapshot_name))
+               "%s Not Found") % snapshot_name))
 
     def snapshot_show_task_opid(self, otype, snap, taskid):
         (s, h) = common.service_json_request(
@@ -154,7 +154,7 @@ class Snapshot(common.CoprHDResource):
                     raise common.CoprHdError(
                         common.CoprHdError.VALUE_ERR,
                         (_("Task: %(task_id)s is failed with error: "
-                           "%(error_message)s"),
+                           "%(error_message)s") %
                          {'task_id': task_id,
                           '.error_message': error_message}))
 
@@ -163,7 +163,7 @@ class Snapshot(common.CoprHDResource):
                 raise common.CoprHdError(common.CoprHdError.TIME_OUT,
                                          (_("Task did not complete in %d secs."
                                             " Operation timed out. Task in"
-                                            " CoprHD will continue"),
+                                            " CoprHD will continue") %
                                           synctimeout))
         return
 
@@ -198,7 +198,7 @@ class Snapshot(common.CoprHDResource):
     def snapshot_create(self, otype, typename, ouri,
                         snaplabel, inactive, sync,
                         readonly=False, synctimeout=0):
-        """New snapshot is created, for a given volume
+        """New snapshot is created, for a given volume.
 
         Parameters:
             otype       : block
@@ -230,7 +230,7 @@ class Snapshot(common.CoprHDResource):
             raise common.CoprHdError(
                 common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
                 (_("Snapshot with name %(snaplabel)s"
-                   " already exists under %(typename)s"),
+                   " already exists under %(typename)s") %
                  {'snaplabel': snaplabel,
                   'typename': typename
                   }))
@@ -266,7 +266,7 @@ class Snapshot(common.CoprHDResource):
 
     def snapshot_delete_uri(self, otype, resource_uri,
                             suri, sync, synctimeout=0):
-        """Delete a snapshot by uri
+        """Delete a snapshot by uri.
 
         Parameters:
             otype : block

@@ -34,7 +34,7 @@ class ExportGroup(common.CoprHDResource):
                                           volume_id_list, sync=False,
                                           tenantname=None, projectname=None,
                                           cg=None, synctimeout=0):
-        """Remove volumes from the exportgroup, given the uris of volume"""
+        """Remove volumes from the exportgroup, given the uris of volume."""
 
         volume_list = volume_id_list
         parms = {}
@@ -75,7 +75,7 @@ class ExportGroup(common.CoprHDResource):
             return result
 
     def exportgroup_list(self, project_name, tenant):
-        """This function gives us list of export group uris separated by comma
+        """This function gives list of export group uris separated by comma.
 
         Parameters:
             project_name: Name of the project path
@@ -109,7 +109,7 @@ class ExportGroup(common.CoprHDResource):
         return exportgroups
 
     def exportgroup_show(self, name, project, tenant, varray=None):
-        """This function display the Export group with details
+        """This function display the Export group with details.
 
         Parameters:
            name : Name of the export group
@@ -136,7 +136,7 @@ class ExportGroup(common.CoprHDResource):
 
     def exportgroup_create(self, name, project_name, tenant, varray,
                            exportgrouptype, export_destination=None):
-        """This function creates the Export group with given name
+        """This function creates the Export group with given name.
 
         Parameters:
            name : Name of the export group
@@ -195,7 +195,7 @@ class ExportGroup(common.CoprHDResource):
                     " already exists") % name))
 
     def exportgroup_query(self, name, project, tenant, varrayuri=None):
-        """Makes REST API call to query the exportgroup by name
+        """Makes REST API call to query the exportgroup by name.
 
         Parameters:
             name : Name/id of the export group.
@@ -219,13 +219,13 @@ class ExportGroup(common.CoprHDResource):
                     return exportgroup['id']
         raise common.CoprHdError(
             common.CoprHdError.NOT_FOUND_ERR,
-            (_("Export Group %s: not found"), name))
+            (_("Export Group %s: not found") % name))
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
                                 projectname, volumenames,
                                 cg=None, synctimeout=0, varray=None):
-        """Add volume to export group
+        """Add volume to export group.
 
         Parameters:
            sync              : synchronous request
@@ -273,16 +273,6 @@ class ExportGroup(common.CoprHDResource):
 
         volChanges = {}
         volChanges['add'] = volume_list
-        path_parameters = {}
-
-        if maxpaths:
-            path_parameters['max_paths'] = maxpaths
-        if minpaths:
-            path_parameters['min_paths'] = minpaths
-        if pathsperinitiator is not None:
-            path_parameters['paths_per_initiator'] = pathsperinitiator
-
-        parms['path_parameters'] = path_parameters
         parms['volume_changes'] = volChanges
 
         o = self.send_json_request(exportgroup_uri, parms)
@@ -290,7 +280,7 @@ class ExportGroup(common.CoprHDResource):
 
     def _get_resource_lun_tuple(self, resources, resType, baseResUri,
                                 tenantname, projectname, blockTypeName):
-        """Function to validate input volumes and return list of ids and luns
+        """Function to validate input volumes and return list of ids and luns.
 
         input
             list of volumes in the format name:lun
@@ -312,7 +302,7 @@ class ExportGroup(common.CoprHDResource):
             if not len(copyParam):
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
-                    (_("Please provide at least volume for parameter %s"),
+                    (_("Please provide at least volume for parameter %s") %
                      resType))
             if resType == "volumes":
                 fullvolname = tenantname + "/" + projectname + "/"

@@ -59,7 +59,7 @@ class Volume(common.CoprHDResource):
 
     # Lists volumes in a project
     def list_volumes(self, project):
-        """Makes REST API call to list volumes under a project
+        """Makes REST API call to list volumes under a project.
 
         Parameters:
             project: name of project
@@ -98,7 +98,7 @@ class Volume(common.CoprHDResource):
 
     # Shows volume information given its uri
     def show_by_uri(self, uri):
-        """Makes REST API call and retrieves volume details based on UUID
+        """Makes REST API call and retrieves volume details based on UUID.
 
         Parameters:
             uri: UUID of volume
@@ -119,7 +119,7 @@ class Volume(common.CoprHDResource):
     # Creates a volume given label, project, vpool and size
     def create(self, project, label, size, varray, vpool,
                sync, consistencygroup, synctimeout=0):
-        """Makes REST API call to create volume under a project
+        """Makes REST API call to create volume under a project.
 
         Parameters:
             project          : name of the project under which the volume will
@@ -198,7 +198,7 @@ class Volume(common.CoprHDResource):
 
     # Queries a volume given its name
     def volume_query(self, name):
-        """Makes REST API call to query the volume by name
+        """Makes REST API call to query the volume by name.
 
         Parameters:
             name: name of volume
@@ -219,7 +219,7 @@ class Volume(common.CoprHDResource):
                 return volume['id']
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
                                  (_("Volume"
-                                    "%s: not found"), label))
+                                    "%s: not found") % label))
 
     def get_storageAttributes(self, volume_name, cg_name, snapshot_name=None):
         storageres_type = None
@@ -279,7 +279,7 @@ class Volume(common.CoprHDResource):
     # Creates volume(s) from given source volume
     def clone(self, new_vol_name, resource_uri,
               sync, synctimeout=0):
-        """Makes REST API call to clone volume
+        """Makes REST API call to clone volume.
 
         Parameters:
             new_vol_name     : name of volume
@@ -383,7 +383,7 @@ class Volume(common.CoprHDResource):
 
     # Shows volume information given its name
     def show(self, name):
-        """Retrieves volume details based on volume name
+        """Retrieves volume details based on volume name.
 
         Parameters:
             name: name of the volume. If the volume is under a project,
@@ -398,7 +398,7 @@ class Volume(common.CoprHDResource):
         (pname, label) = common.get_parent_child_from_xpath(name)
         if pname is None:
             raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                     (_("Volume %s : not found"),
+                                     (_("Volume %s : not found") %
                                       six.text_type(name)))
 
         uris = self.search_volumes(pname)
@@ -409,7 +409,7 @@ class Volume(common.CoprHDResource):
                 return volume
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
                                  (_("Volume"
-                                    " %s : not found"), six.text_type(label)))
+                                    " %s : not found") % six.text_type(label)))
 
     def expand(self, name, new_size, sync=False, synctimeout=0):
 
@@ -422,8 +422,8 @@ class Volume(common.CoprHDResource):
                 common.CoprHdError.VALUE_ERR,
                 (_("error: Incorrect value of new size: %(new_size_in_gb)s"
                    " GB\nNew size must be greater than current size: "
-                   "%(current_size)s GB"), {'new_size_in_gb': new_size_in_gb,
-                                            'current_size': current_size}))
+                   "%(current_size)s GB") % {'new_size_in_gb': new_size_in_gb,
+                                             'current_size': current_size}))
 
         body = oslo_serialization.jsonutils.dumps({
             "new_size": new_size
@@ -445,7 +445,7 @@ class Volume(common.CoprHDResource):
     # Deletes a volume given a volume name
     def delete(self, name, sync=False,
                force_delete=False, coprhdonly=False, synctimeout=0):
-        """Deletes a volume based on volume name
+        """Deletes a volume based on volume name.
 
         Parameters:
             name        : name of volume to be deleted
@@ -465,7 +465,7 @@ class Volume(common.CoprHDResource):
     # Deletes a volume given a volume uri
     def delete_by_uri(self, uri, sync=False,
                       force_delete=False, coprhdonly=False, synctimeout=0):
-        """Deletes a volume based on volume uri
+        """Deletes a volume based on volume uri.
 
         Parameters:
             uri: uri of volume
@@ -493,7 +493,7 @@ class Volume(common.CoprHDResource):
 
     # Gets the exports info given a volume uri
     def get_exports_by_uri(self, uri):
-        """Makes REST API call to get exports info of a volume
+        """Makes REST API call to get exports info of a volume.
 
         Parameters:
             uri: URI of the volume
@@ -510,7 +510,7 @@ class Volume(common.CoprHDResource):
     # Update a volume information
     # Changed the volume vpool
     def update(self, prefix_path, name, vpool):
-        """Makes REST API call to update a volume information
+        """Makes REST API call to update a volume information.
 
         Parameters:
             name: name of the volume to be updated

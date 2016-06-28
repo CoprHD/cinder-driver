@@ -24,7 +24,7 @@ class VirtualPool(common.CoprHDResource):
     URI_VPOOL_SEARCH = URI_VPOOL + "/search?name={1}"
 
     def vpool_show_uri(self, vpooltype, uri):
-        """Makes REST API call and retrieves vpool details based on UUID
+        """Makes REST API call and retrieves vpool details based on UUID.
 
         This function will take uri as input and returns with
         all parameters of VPOOL like label, urn and type.
@@ -46,7 +46,7 @@ class VirtualPool(common.CoprHDResource):
         return o
 
     def vpool_query(self, name, vpooltype):
-        """Makes REST API call to query the vpool by name and type
+        """Makes REST API call to query the vpool by name and type.
 
         This function will take the VPOOL name and type of VPOOL
         as input and get uri of the first occurance of given VPOOL.
@@ -72,7 +72,7 @@ class VirtualPool(common.CoprHDResource):
         # Raise not found exception. as we did not find any active vpool.
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
                                  (_("VPool %(name)s ( %(vpooltype)s ) :"
-                                    " not found"),
+                                    " not found") %
                                   {'name': name,
                                    'vpooltype': vpooltype
                                    }))

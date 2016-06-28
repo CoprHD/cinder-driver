@@ -14,42 +14,42 @@
 #    under the License.
 
 
-"""Contains tagging related methods"""
+"""Contains tagging related methods."""
 
 import oslo_serialization
 
 from cinder.i18n import _
 from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
 
+
 class Tag(common.CoprHDResource):
-    
+
     def tag_resource(self, uri, resource_id, add, remove):
         params = {
             'add': add,
             'remove': remove
         }
-        
+
         body = oslo_serialization.jsonutils.dumps(params)
-        
+
         (s, h) = common.service_json_request(self.ipaddr, self.port, "PUT",
                                              uri.format(resource_id), body)
         o = common.json_decode(s)
         return o
-    
+
     def list_tags(self, resource_uri):
         if resource_uri.__contains__("tag") is False:
             raise common.CoprHdError(
                 common.CoprHdError.VALUE_ERR, _("URI should end with /tag"))
-        
+
         (s, h) = common.service_json_request(self.ipaddr,
                                              self.port,
                                              "GET",
                                              resource_uri,
                                              None)
-        
+
         allTags = []
         o = common.json_decode(s)
         allTags = o['tag']
-        
-        return allTags
 
+        return allTags

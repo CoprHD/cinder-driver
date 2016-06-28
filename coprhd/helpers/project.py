@@ -25,7 +25,7 @@ class Project(common.CoprHDResource):
     URI_PROJECT = '/projects/{0}'
 
     def project_query(self, name):
-        """Retrieves UUID of project based on its name
+        """Retrieves UUID of project based on its name.
 
         Parameters:
             name: name of project
@@ -51,10 +51,10 @@ class Project(common.CoprHDResource):
                        project_detail['name'] == project_name):
                         return project_detail['id']
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, (_(
-                                 "Project: %s not found"), project_name))
+                                 "Project: %s not found") % project_name))
 
     def project_list(self, tenant_name):
-        """Makes REST API call and retrieves projects based on tenant UUID
+        """Makes REST API call and retrieves projects based on tenant UUID.
 
         Parameters: None
         Returns:
@@ -74,7 +74,7 @@ class Project(common.CoprHDResource):
         return []
 
     def project_show_by_uri(self, uri):
-        """Makes REST API call and retrieves project derails based on UUID
+        """Makes REST API call and retrieves project derails based on UUID.
 
         Parameters:
             uri: UUID of project

@@ -25,7 +25,7 @@ class VirtualArray(common.CoprHDResource):
     URI_VIRTUALARRAY_URI = '/vdc/varrays/{0}'
 
     def varray_query(self, name):
-        """Returns the UID of the varray specified by the name"""
+        """Returns the UID of the varray specified by the name."""
         if common.is_uri(name):
             return name
 
@@ -37,10 +37,10 @@ class VirtualArray(common.CoprHDResource):
                 return varray['id']
 
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                 (_("varray %s: not found"), name))
+                                 (_("varray %s: not found") % name))
 
     def varray_list(self, vdcname=None):
-        """Returns all the varrays in a vdc
+        """Returns all the varrays in a vdc.
 
         Parameters:
         vdcname : Name of the Virtual Data Center
@@ -66,7 +66,7 @@ class VirtualArray(common.CoprHDResource):
         return returnlst
 
     def varray_show(self, label):
-        """Makes REST API call to retrieve varray details based on its name"""
+        """Makes REST API call to retrieve varray details based on name."""
         uri = self.varray_query(label)
 
         (s, h) = common.service_json_request(

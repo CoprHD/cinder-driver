@@ -110,12 +110,13 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     def update_consistencygroup(self, context, group,
                                 add_volumes, remove_volumes):
         """Updates volumes in consistency group."""
-        return self.common.update_consistencygroup(self, context, group,
-                                                   add_volumes, remove_volumes)
+        return self.common.update_consistencygroup(group, add_volumes,
+                                                   remove_volumes)
 
-    def delete_consistencygroup(self, context, group):
+    def delete_consistencygroup(self, context, group, volumes):
         """Deletes a consistency group."""
-        return self.common.delete_consistencygroup(self, context, group, True)
+        return self.common.delete_consistencygroup(context, group,
+                                                   volumes, True)
 
     def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""
@@ -278,8 +279,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         if r.status_code != 200 and "errorCode" in sdc_id:
             msg = (_("Error getting sdc id from ip %(sdc_ip)s:"
                      " %(sdc_id_message)s") % {'sdc_ip': sdc_ip,
-                                              'sdc_id_message': sdc_id[
-                                                  'message']})
+                                               'sdc_id_message': sdc_id[
+                                                   'message']})
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
         LOG.info(_LI("ScaleIO sdc id is %s"), sdc_id)

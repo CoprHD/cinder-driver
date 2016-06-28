@@ -16,34 +16,34 @@
 
 class URIHelper(object):
 
-    """This map will be a map of maps
+    """This map will be a map of maps.
 
     e.g for project component type, it will hold a map
     of its operations vs their uris
     """
     COMPONENT_TYPE_VS_URIS_MAP = dict()
-    """Volume URIs"""
+    """Volume URIs."""
     VOLUME_URIS_MAP = dict()
     URI_VOLUMES = '/block/volumes'
     URI_VOLUME = URI_VOLUMES + '/{0}'
     URI_VOLUME_TASK_LIST = URI_VOLUME + '/tasks'
     URI_VOLUME_TASK = URI_VOLUME_TASK_LIST + '/{1}'
 
-    """Consistencygroup URIs"""
+    """Consistencygroup URIs."""
     CG_URIS_MAP = dict()
     URI_CGS = '/block/consistency-groups'
     URI_CG = URI_CGS + '/{0}'
     URI_CG_TASK_LIST = URI_CG + '/tasks'
     URI_CG_TASK = URI_CG_TASK_LIST + '/{1}'
 
-    """Export Group URIs"""
+    """Export Group URIs."""
     # Map to hold all export group uris
     EXPORT_GROUP_URIS_MAP = dict()
     URI_EXPORT_GROUP_TASKS_LIST = '/block/exports/{0}/tasks'
     URI_EXPORT_GROUP_TASK = URI_EXPORT_GROUP_TASKS_LIST + '/{1}'
 
     def __init__(self):
-        """During initialization of the class, lets fill all the maps"""
+        """During initialization of the class, lets fill all the maps."""
         self.__fillExportGroupMap()
         self.__fillVolumeMap()
         self.__fillConsistencyGroupMap()
@@ -77,7 +77,7 @@ class URIHelper(object):
 
         return None
 
-"""Defining the singleton instance
+"""Defining the singleton instance.
 
 Use this instance any time the access is required for this module/class
 """

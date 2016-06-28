@@ -27,7 +27,7 @@ class Host(common.CoprHDResource):
     URI_HOSTS_SEARCH_BY_NAME = "/compute/hosts/search?name={0}"
 
     def query_by_name(self, host_name, tenant_name=None):
-        """Search host matching the host_name and tenant if tenant_name is provided
+        """Search host matching host_name and tenant if tenant_name provided.
 
         tenant_name is optional
         """
@@ -40,10 +40,10 @@ class Host(common.CoprHDResource):
                     return hostUri
 
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, (_(
-                                 "Host with name: %s not found"), host_name))
+                                 "Host with name: %s not found") % host_name))
 
     def list_initiators(self, host_name):
-        """Lists all initiators for the given host
+        """Lists all initiators for the given host.
 
         Parameters
             host_name : The name of the host
@@ -65,7 +65,7 @@ class Host(common.CoprHDResource):
         return common.get_node_value(o, 'initiator')
 
     def list_all(self, tenant_name):
-        """Gets the ids and self links for all compute elements"""
+        """Gets the ids and self links for all compute elements."""
         restapi = self.URI_COMPUTE_HOST
         tenant_obj = tenant.Tenant(self.ipaddr, self.port)
         if tenant_name is None:
@@ -83,7 +83,7 @@ class Host(common.CoprHDResource):
         return o['host']
 
     def show_by_uri(self, uri):
-        """Makes REST API call to retrieve Host details based on its UUID"""
+        """Makes REST API call to retrieve Host details based on its UUID."""
         (s, h) = common.service_json_request(self.ipaddr, self.port, "GET",
                                              Host.URI_HOST_DETAILS.format(uri),
                                              None)
@@ -95,7 +95,7 @@ class Host(common.CoprHDResource):
         return o
 
     def search_by_name(self, host_name):
-        """Search host by its name"""
+        """Search host by its name."""
         (s, h) = common.service_json_request(
             self.ipaddr, self.port, "GET",
             self.URI_HOSTS_SEARCH_BY_NAME.format(host_name), None)

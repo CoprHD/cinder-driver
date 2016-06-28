@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Contains some commonly used utility methods"""
+"""Contains some commonly used utility methods."""
 import cookielib
 import json
 import re
@@ -69,7 +69,7 @@ def _decode_dict(data):
 
 
 def json_decode(rsp):
-    """Used to decode the JSON encoded response"""
+    """Used to decode the JSON encoded response."""
 
     o = ""
     try:
@@ -82,7 +82,7 @@ def json_decode(rsp):
 
 def service_json_request(ip_addr, port, http_method, uri, body,
                          contenttype='application/json', customheaders=None):
-    """Used to make an HTTP request and get the response
+    """Used to make an HTTP request and get the response.
 
     The message body is encoded in JSON format
     Parameters:
@@ -130,7 +130,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
                                        cookies=cookiejar)
         else:
             raise CoprHdError(CoprHdError.HTTP_ERR,
-                              (_("Unknown/Unsupported HTTP method: %s"),
+                              (_("Unknown/Unsupported HTTP method: %s") %
                                http_method))
 
         if (response.status_code == requests.codes['ok'] or
@@ -205,7 +205,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
         raise CoprHdError(CoprHdError.HTTP_ERR,
                           (_("HTTP code: %(status_code)s"
                              ", %(reason)s"
-                             " [%(error_msg)s]"), {
+                             " [%(error_msg)s]") % {
                               'status_code': six.text_type(
                                   response.status_code),
                               'reason': six.text_type(
@@ -224,7 +224,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
 
 
 def is_uri(name):
-    """Checks whether the name is a URI or not
+    """Checks whether the name is a URI or not.
 
     Returns:
         True if name is URI, False otherwise
@@ -237,7 +237,7 @@ def is_uri(name):
 
 
 def format_json_object(obj):
-    """Formats JSON object to make it readable by proper indentation
+    """Formats JSON object to make it readable by proper indentation.
 
     Parameters:
         obj - JSON object
@@ -248,7 +248,7 @@ def format_json_object(obj):
 
 
 def get_parent_child_from_xpath(name):
-    """Returns the parent and child elements from XPath"""
+    """Returns the parent and child elements from XPath."""
     if '/' in name:
         (pname, label) = name.rsplit('/', 1)
     else:
@@ -258,7 +258,7 @@ def get_parent_child_from_xpath(name):
 
 
 def to_bytes(in_str):
-    """Converts a size to bytes
+    """Converts a size to bytes.
 
     Parameters:
         in_str - a number suffixed with a unit: {number}{unit}
@@ -298,7 +298,7 @@ def to_bytes(in_str):
 
 
 def get_list(json_object, parent_node_name, child_node_name=None):
-    """Returns a list of values from child_node_name
+    """Returns a list of values from child_node_name.
 
     If child_node is not given, then it will retrieve list from parent node
     """
@@ -322,7 +322,7 @@ def get_list(json_object, parent_node_name, child_node_name=None):
 
 
 def get_node_value(json_object, parent_node_name, child_node_name=None):
-    """Returns value of given child_node
+    """Returns value of given child_node.
 
     If child_node is not given, then value of parent node is returned
     returns None: If json_object or parent_node is not given,
@@ -350,7 +350,7 @@ def get_node_value(json_object, parent_node_name, child_node_name=None):
 
 def format_err_msg_and_raise(operation_type, component,
                              error_message, error_code):
-    """Method to format error message
+    """Method to format error message.
 
     @operation_type create, update, add, etc
     @component storagesystem, vpool, etc
@@ -358,7 +358,8 @@ def format_err_msg_and_raise(operation_type, component,
     @error_message Detailed error message
     """
 
-    formated_err_msg = (_("Error: Failed to %(operation_type)s %(component)s"),
+    formated_err_msg = (_("Error: Failed to %(operation_type)s"
+                          " %(component)s") %
                         {'operation_type': operation_type,
                          'component': component
                          })
@@ -371,7 +372,7 @@ def format_err_msg_and_raise(operation_type, component,
 
 
 def exit_gracefully(exit_status_code):
-    """Terminate the script execution with status code
+    """Terminate the script execution with status code.
 
     Ignoring the exit status code means the script execution completed
     successfully exit_status_code = 0, means success, its a default behavior
@@ -381,7 +382,7 @@ def exit_gracefully(exit_status_code):
 
 
 def search_by_tag(resource_search_uri, ipaddr, port):
-    """Fetches the list of resources with a given tag
+    """Fetches the list of resources with a given tag.
 
     Parameter resource_search_uri : The tag based search uri
                               Example: '/block/volumes/search?tag=tagexample1'
@@ -409,7 +410,8 @@ def search_by_tag(resource_search_uri, ipaddr, port):
         raise CoprHdError(CoprHdError.VALUE_ERR, (_("Search URI %s"
                                                     " is not in the expected"
                                                     " format, it should end"
-                                                    " with ?tag={0}"), strUri))
+                                                    " with ?tag={0}")
+                                                  % strUri))
 
 # Timeout handler for synchronous operations
 
@@ -456,7 +458,7 @@ def block_until_complete(component_type,
                 raise CoprHdError(CoprHdError.VALUE_ERR,
                                   (_("Task: %(task_id)s"
                                      " is failed with"
-                                     " error: %(error_message)s"),
+                                     " error: %(error_message)s") %
                                    {'task_id': task_id,
                                     'error_message': error_message
                                     }))
@@ -466,14 +468,14 @@ def block_until_complete(component_type,
             raise CoprHdError(CoprHdError.TIME_OUT,
                               (_("Task did not complete in %d secs."
                                  " Operation timed out. Task in CoprHD"
-                                 " will continue"), synctimeout))
+                                 " will continue") % synctimeout))
 
     return
 
 
 def get_task_by_resourceuri_and_taskId(component_type, resource_uri,
                                        task_id, ipAddr, port):
-    """Returns the single task details"""
+    """Returns the single task details."""
 
     task_uri_constant = singletonURIHelperInstance.getUri(
         component_type, "task")
@@ -488,7 +490,7 @@ def get_task_by_resourceuri_and_taskId(component_type, resource_uri,
 
 class CoprHdError(exception.VolumeBackendAPIException):
 
-    """Custom exception class used to report logical errors
+    """Custom exception class used to report logical errors.
 
     Attributes:
         err_code - String error code
@@ -514,7 +516,7 @@ class CoprHdError(exception.VolumeBackendAPIException):
 class CoprHDResource(object):
 
     def __init__(self, ipaddr, port):
-        """Constructor: takes IP address and port of the CoprHD instance
+        """Constructor: takes IP address and port of the CoprHD instance.
 
         These are needed to make http requests for REST API
         """

@@ -34,7 +34,7 @@ class ConsistencyGroup(common.CoprHDResource):
         '/block/consistency-groups/{0}/tags')
 
     def list(self, project_name, tenant):
-        """This function gives list of comma separated consistency group uris
+        """This function gives list of comma separated consistency group uris.
 
         Parameters:
             project_name: Name of the project path
@@ -62,7 +62,7 @@ class ConsistencyGroup(common.CoprHDResource):
         return congroups
 
     def show(self, name, project, tenant):
-        """This function will display the consistency group with details
+        """This function will display the consistency group with details.
 
         Parameters:
            name : Name of the consistency group
@@ -81,7 +81,7 @@ class ConsistencyGroup(common.CoprHDResource):
         return o
 
     def consistencygroup_query(self, name, project, tenant):
-        """This function will return consistency group id
+        """This function will return consistency group id.
 
         Parameters:
            name : Name/id of the consistency group
@@ -97,7 +97,7 @@ class ConsistencyGroup(common.CoprHDResource):
             if congroup and congroup['name'] == name:
                 return congroup['id']
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                 (_("Consistency Group %s: not found"), name))
+                                 (_("Consistency Group %s: not found") % name))
 
     # Blocks the operation until the task is complete/error out/timeout
     def check_for_sync(self, result, sync, synctimeout=0):
@@ -114,7 +114,7 @@ class ConsistencyGroup(common.CoprHDResource):
                 _("error: task list is empty, no task response found"))
 
     def create(self, name, project_name, tenant):
-        """This function will create the consistency group with the given name
+        """This function will create consistency group with the given name.
 
         Parameters:
            name : Name of the consistency group.
@@ -152,7 +152,7 @@ class ConsistencyGroup(common.CoprHDResource):
                 common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR)
 
     def delete(self, name, project, tenant, coprhdonly=False):
-        """This function marks a particular consistency group as delete
+        """This function marks a particular consistency group as delete.
 
         Parameters:
            name : Name of the consistency group
@@ -174,7 +174,7 @@ class ConsistencyGroup(common.CoprHDResource):
 
     def update(self, uri, project, tenant, add_volumes, remove_volumes,
                sync, synctimeout=0):
-        """Function used to add or remove volumes from consistency group
+        """Function used to add or remove volumes from consistency group.
 
         It will update the consistency  group with given volumes
         Parameters:
