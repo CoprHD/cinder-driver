@@ -416,7 +416,15 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         volume_data = get_test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume_data)
-        self.driver.initialize_connection(volume_data, connector_data)
+        res_initialize = self.driver.initialize_connection(volume_data, connector_data)
+        expected_initialize = {'driver_volume_type': 'iscsi',
+                               'data':{'target_lun': 3,
+                                       'target_portal': '10.10.10.10:22', 
+                                       'target_iqn': '50:00:09:73:00:18:95:19', 
+                                       'target_discovered': False, 
+                                       'volume_id': '1'}}
+        self.assertEqual(expected_initialize, res_initialize, 'Unexpected return data')
+        
         self.driver.terminate_connection(volume_data, connector_data)
         self.driver.delete_volume(volume_data)
 
@@ -531,6 +539,23 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         volume_data = get_test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume_data)
-        self.driver.initialize_connection(volume_data, connector_data)
-        self.driver.terminate_connection(volume_data, connector_data)
+        res_initiatlize = self.driver.initialize_connection(volume_data, connector_data)
+        expected_initialize = {'driver_volume_type': 'fibre_channel',
+                               'data':{'target_lun': 3,
+                                      'initiator_target_map': 
+                                      {'1234567890543211': ['1234567890123456', '1234567890123456'], 
+                                       '1234567890123456': ['1234567890123456', '1234567890123456']}, 
+                                      'target_wwn': ['1234567890123456', '1234567890123456'],
+                                      'target_discovered': False,
+                                      'volume_id': '1'}}
+        self.assertEqual(expected_initialize, res_initiatlize, 'Unexpected return data')
+        
+        res_terminate = self.driver.terminate_connection(volume_data, connector_data)
+        expected_terminate = {'driver_volume_type': 'fibre_channel',
+                              'data': {'initiator_target_map':
+                                        {'1234567890543211': ['1234567890123456', '1234567890123456'], 
+                                         '1234567890123456': ['1234567890123456', '1234567890123456']}, 
+                                       'target_wwn': ['1234567890123456', '1234567890123456']}}
+        self.assertEqual(expected_terminate, res_terminate, 'Unexpected return data')
+        
         self.driver.delete_volume(volume_data)
