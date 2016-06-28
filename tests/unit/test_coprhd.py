@@ -247,6 +247,10 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
                 self.volume_obj = Mock()
                 self.volume_obj.create.return_value = "volume_created"
                 self.volume_obj.volume_query.return_value = "volume_uri"
+                self.volume_obj.get_storageAttributes.return_value = ('block', 'volume_name') 
+                self.volume_obj.storage_resource_query.return_value = "volume_uri"
+                self.volume_obj.is_volume_detachable.return_value = False
+                self.volume_obj.volume_clone_detach.return_value = 'detached'
                 self.volume_obj.getTags.return_value \
                     = ["Openstack-vol", "Openstack-vol1"]
                 self.volume_obj.tag.return_value = "tagged"

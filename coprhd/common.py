@@ -724,13 +724,13 @@ class EMCCoprHDDriverCommon(object):
                     LOG.exception(_LE("Volume : {%s} clone failed"), name)
 
         try:
-            src_vol_size = src_vref.size
+            src_vol_size = src_vref['size']
         except AttributeError:
-            src_vol_size = src_vref.volume_size
+            src_vol_size = src_vref['volume_size']
 
-        if vol.size > src_vol_size:
+        if vol['size'] > src_vol_size:
             size_in_bytes = CoprHD_utils.to_bytes(
-                six.text_type(vol.size) + "G")
+                six.text_type(vol['size']) + "G")
             try:
                 self.volume_obj.expand(
                     self.configuration.coprhd_tenant +

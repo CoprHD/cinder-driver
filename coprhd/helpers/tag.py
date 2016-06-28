@@ -36,7 +36,7 @@ class Tag(common.CoprHDResource):
         o = common.json_decode(s)
         return o
     
-    def list_tags(ipaddr, port, resource_uri):
+    def list_tags(self, resource_uri):
         if resource_uri.__contains__("tag") is False:
             raise common.CoprHdError(
                 common.CoprHdError.VALUE_ERR, _("URI should end with /tag"))
