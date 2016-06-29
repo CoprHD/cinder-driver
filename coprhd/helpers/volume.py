@@ -54,8 +54,6 @@ class Volume(common.CoprHDResource):
     BLOCK = 'block'
     SNAPSHOTS = 'snapshots'
 
-    timeout = 300
-
     # Lists volumes in a project
     def list_volumes(self, project):
         """Makes REST API call to list volumes under a project.
