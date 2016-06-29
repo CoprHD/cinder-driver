@@ -39,6 +39,8 @@ IS_TASK_TIMEOUT = False
 global AUTH_TOKEN
 AUTH_TOKEN = None
 
+TASK_TIMEOUT = 300
+
 
 def _decode_list(data):
     rv = []
@@ -433,8 +435,8 @@ def block_until_complete(component_type,
     if synctimeout:
         t = threading.Timer(synctimeout, timeout_handler)
     else:
-        synctimeout = 300
-        t = threading.Timer(300, timeout_handler)
+        synctimeout = TASK_TIMEOUT
+        t = threading.Timer(synctimeout, timeout_handler)
     t.start()
     while True:
         out = get_task_by_resourceuri_and_taskId(

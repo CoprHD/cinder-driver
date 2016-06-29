@@ -43,7 +43,7 @@ class Snapshot(common.CoprHDResource):
     CG = 'consistency-groups'
     BLOCK = 'block'
 
-    isTimeout = False
+    is_timeout = False
     timeout = 300
 
     def snapshot_list_uri(self, otype, otypename, ouri):
@@ -130,7 +130,7 @@ class Snapshot(common.CoprHDResource):
         if synctimeout:
             t = threading.Timer(synctimeout, common.timeout_handler)
         else:
-            synctimeout = 300
+            synctimeout = self.timeout
             t = threading.Timer(synctimeout, common.timeout_handler)
         t.start()
         while True:
@@ -156,10 +156,10 @@ class Snapshot(common.CoprHDResource):
                         (_("Task: %(task_id)s is failed with error: "
                            "%(error_message)s") %
                          {'task_id': task_id,
-                          '.error_message': error_message}))
+                          'error_message': error_message}))
 
-            if self.isTimeout:
-                self.isTimeout = False
+            if self.is_timeout:
+                self.is_timeout = False
                 raise common.CoprHdError(common.CoprHdError.TIME_OUT,
                                          (_("Task did not complete in %d secs."
                                             " Operation timed out. Task in"

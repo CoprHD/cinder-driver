@@ -54,7 +54,6 @@ class Volume(common.CoprHDResource):
     BLOCK = 'block'
     SNAPSHOTS = 'snapshots'
 
-    isTimeout = False
     timeout = 300
 
     # Lists volumes in a project

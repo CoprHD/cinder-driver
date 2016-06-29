@@ -508,7 +508,7 @@ class EMCCoprHDDriverCommon(object):
                 snapshots_model_update.append(
                     {'id': snapshot['id'], 'status': 'available'})
 
-            model_update = {'status': fields.CGSnapshotStatus.AVAILABLE}
+            model_update = {'status': fields.ConsistencyGroupStatus.AVAILABLE}
 
             return model_update, snapshots_model_update
 
