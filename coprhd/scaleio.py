@@ -19,6 +19,7 @@
 import requests
 from six.moves import urllib
 
+from oslo_config import cfg
 from oslo_log import log as logging
 
 from cinder import exception
@@ -31,6 +32,31 @@ from cinder.volume.drivers.coprhd import common as coprhd_common
 
 LOG = logging.getLogger(__name__)
 
+scaleio_opts = [
+    cfg.StrOpt('coprhd_scaleio_rest_gateway_ip',
+               default='None',
+               help='Rest Gateway for Scaleio'),
+    cfg.PortOpt('coprhd_scaleio_rest_gateway_port',
+                default=4984,
+                help='Rest Gateway Port for Scaleio'),
+    cfg.StrOpt('coprhd_scaleio_rest_server_username',
+               default=None,
+               help='Username for Rest Gateway'),
+    cfg.StrOpt('coprhd_scaleio_rest_server_password',
+               default=None,
+               help='Rest Gateway Password',
+               secret=True),
+    cfg.BoolOpt('scaleio_verify_server_certificate',
+                default=False,
+                help='verify server certificate'),
+    cfg.StrOpt('scaleio_server_certificate_path',
+               default=None,
+               help='Server certificate path')
+]
+
+CONF = cfg.CONF
+CONF.register_opts(scaleio_opts)
+
 
 @interface.volumedriver
 class EMCCoprHDScaleIODriver(driver.VolumeDriver):
@@ -39,6 +65,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def __init__(self, *args, **kwargs):
         super(EMCCoprHDScaleIODriver, self).__init__(*args, **kwargs)
+        self.configuration.append_config_values(scaleio_opts)
         self.common = self._get_common_driver()
 
     def _get_common_driver(self):
@@ -49,6 +76,12 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def check_for_setup_error(self):
         self.common.check_for_setup_error()
+        if (self.configuration.scaleio_verify_server_certificate is True and
+                self.configuration.scaleio_server_certificate_path is None):
+            message = _("scaleio_verify_server_certificate is True but"
+                        " scaleio_server_certificate_path is not provided"
+                        " in cinder configuration")
+            raise exception.VolumeBackendAPIException(data=message)
 
     def create_volume(self, volume):
         """Creates a Volume."""
@@ -133,37 +166,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         pass
 
     def initialize_connection(self, volume, connector):
-        """Initializes the connection and returns connection info.
+        """Initializes the connection and returns connection info."""
 
-        the scaleio driver returns a driver_volume_type of 'scaleio'.
-        the format of the driver data is defined as:
-            :scaleIO_volname:    name of the volume
-            :hostIP:    The IP address of the openstack host to which we
-                want to export the scaleio volume.
-            :serverIP:     The IP address of the REST gateway of the ScaleIO.
-            :serverPort:   The port of the REST gateway of the ScaleIO.
-            :serverUsername: The username to access REST gateway of ScaleIO.
-            :serverPassword:    The password to access REST gateway of ScaleIO.
-            :iopsLimit:    iops limit.
-            :bandwidthLimit:    bandwidth Limit.
-
-        Example return value::
-
-            {
-                'driver_volume_type': 'scaleio'
-                'data': {
-                    'scaleIO_volname': vol_1,
-                    'hostIP': '10.63.20.12',
-                    'serverIP': '10.63.20.176',
-                    'serverPort': '443'
-                    'serverUsername': 'admin'
-                    'serverPassword': 'password'
-                    'iopsLimit': None
-                    'bandwidthLimit': None
-                }
-            }
-
-        """
         volname = self.common._get_resource_name(volume, False)
 
         properties = {}
@@ -254,9 +258,10 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                        server_password, sdc_ip):
         ip_encoded = urllib.parse.quote(sdc_ip, '')
         ip_double_encoded = urllib.parse.quote(ip_encoded, '')
-        request = ("https://" + server_ip + ":" + str(server_port) +
-                   "/api/types/Sdc/instances/getByIp::" +
-                   ip_double_encoded + "/")
+
+        request = ("https://%s:%s/api/types/Sdc/instances/getByIp::%s/" %
+                   (server_ip, str(server_port), ip_double_encoded))
+
         LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
 
         if self.configuration.scaleio_verify_server_certificate:
@@ -292,8 +297,9 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         if response.status_code == 401 or response.status_code == 403:
             LOG.info(
                 _LI("Token is invalid, going to re-login and get a new one"))
-            login_request = ("https://" + server_ip +
-                             ":" + str(server_port) + "/api/login")
+
+            login_request = ("https://%s:%s/api/login" %
+                             (server_ip, str(server_port)))
             if self.configuration.scaleio_verify_server_certificate:
                 verify_cert = (
                     self.configuration.scaleio_server_certificate_path)

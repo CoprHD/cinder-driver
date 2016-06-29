@@ -115,35 +115,8 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         pass
 
     def initialize_connection(self, volume, connector):
-        """Initializes the connection and returns connection info.
+        """Initializes the connection and returns connection info."""
 
-        the iscsi driver returns a driver_volume_type of 'iscsi'.
-        the format of the driver data is defined as:
-            :target_discovered:    boolean indicating
-            whether discovery was used
-            :target_iqn:    the IQN of the iSCSI target
-            :target_portal:    the portal of the iSCSI target
-            :target_lun:    the lun of the iSCSI target
-            :volume_id:    the id of the volume (currently used by xen)
-            :auth_method:, :auth_username:, :auth_password:
-                the authentication details. Right now,
-                either auth_method is not
-                present meaning no authentication, or auth_method == `CHAP`
-                meaning use CHAP with the specified credentials.
-
-        Example return value::
-
-            {
-                'driver_volume_type': 'iscsi'
-                'data': {
-                    'target_discovered': True,
-                    'target_iqn': 'iqn.2010-10.org.openstack:volume-00000001',
-                    'target_portal': '127.0.0.0.1:3260',
-                    'volume_id': 1,
-                }
-            }
-
-        """
         initiator_ports = []
         initiator_ports.append(connector['initiator'])
         itls = self.common.initialize_connection(volume,
@@ -155,8 +128,9 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         properties['volume_id'] = volume['id']
         if itls:
             properties['target_iqn'] = itls[0]['target']['port']
-            properties['target_portal'] = (itls[0]['target']['ip_address'] +
-                                           ':' + itls[0]['target']['tcp_port'])
+            properties['target_portal'] = '%s:%s' % (
+                itls[0]['target']['ip_address'],
+                itls[0]['target']['tcp_port'])
             properties['target_lun'] = itls[0]['hlu']
         auth = volume['provider_auth']
         if auth:
@@ -173,6 +147,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
 
     def terminate_connection(self, volume, connector, **kwargs):
         """Disallow connection from connector."""
+
         init_ports = []
         init_ports.append(connector['initiator'])
         self.common.terminate_connection(volume,
