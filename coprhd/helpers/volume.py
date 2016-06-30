@@ -194,7 +194,7 @@ class Volume(common.CoprHDResource):
             return result
 
     # Queries a volume given its name
-    def volume_query(self, name):
+    def volume_query(self, full_project_name, volume_name):
         """Makes REST API call to query the volume by name.
 
         Parameters:
@@ -202,21 +202,20 @@ class Volume(common.CoprHDResource):
         Returns:
             Volume details in JSON response payload
         """
-        if common.is_uri(name):
-            return name
+        if common.is_uri(volume_name):
+            return volume_name
 
-        (pname, label) = common.get_parent_child_from_xpath(name)
-        if not pname:
+        if not full_project_name:
             raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
                                      _("Project name not specified"))
-        uris = self.search_volumes(pname)
+        uris = self.search_volumes(full_project_name)
         for uri in uris:
             volume = self.show_by_uri(uri)
-            if volume and 'name' in volume and volume['name'] == label:
+            if volume and 'name' in volume and volume['name'] == volume_name:
                 return volume['id']
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
                                  (_("Volume"
-                                    "%s: not found") % label))
+                                    "%s: not found") % volume_name))
 
     def get_storageAttributes(self, volume_name, cg_name, snapshot_name=None):
         storageres_type = None
@@ -251,7 +250,7 @@ class Volume(common.CoprHDResource):
         resourceObj = None
 
         if Volume.BLOCK == storageres_type and volume_name is not None:
-            resUri = self.volume_query(resourcepath + volume_name)
+            resUri = self.volume_query(resourcepath, volume_name)
             if snapshot_name is not None:
 
                 from cinder.volume.drivers.coprhd.helpers.snapshot import (
@@ -337,9 +336,9 @@ class Volume(common.CoprHDResource):
             return o
 
     # To check whether a cloned volume is in detachable state or not
-    def is_volume_detachable(self, name):
+    def is_volume_detachable(self, full_project_name, name):
 
-        volume_uri = self.volume_query(name)
+        volume_uri = self.volume_query(full_project_name, name)
         vol = self.show_by_uri(volume_uri)
         # Filtering based on "replicaState" attribute value of Cloned volume.
         # If "replicaState" value is "SYNCHRONIZED" then only Cloned volume
@@ -353,9 +352,10 @@ class Volume(common.CoprHDResource):
             return False
         return False
 
-    def volume_clone_detach(self, resource_uri, name, sync, synctimeout=0):
+    def volume_clone_detach(self, resource_uri, full_project_name,
+                            name, sync, synctimeout=0):
 
-        volume_uri = self.volume_query(name)
+        volume_uri = self.volume_query(full_project_name, name)
 
         # consistency group
         if resource_uri.find("BlockConsistencyGroup") > 0:
@@ -379,10 +379,11 @@ class Volume(common.CoprHDResource):
             return o
 
     # Shows volume information given its name
-    def show(self, name):
+    def show(self, full_project_name, name):
         """Retrieves volume details based on volume name.
 
         Parameters:
+            full_project_name : project path of the volume
             name: name of the volume. If the volume is under a project,
             then full XPath needs to be specified.
             Example: If VOL1 is a volume under project PROJ1, then the name
@@ -392,25 +393,25 @@ class Volume(common.CoprHDResource):
         """
         if common.is_uri(name):
             return name
-        (pname, label) = common.get_parent_child_from_xpath(name)
-        if pname is None:
+        if full_project_name is None:
             raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
                                      (_("Volume %s : not found") %
                                       six.text_type(name)))
 
-        uris = self.search_volumes(pname)
+        uris = self.search_volumes(full_project_name)
 
         for uri in uris:
             volume = self.show_by_uri(uri)
-            if volume and 'name' in volume and volume['name'] == label:
+            if volume and 'name' in volume and volume['name'] == name:
                 return volume
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
                                  (_("Volume"
-                                    " %s : not found") % six.text_type(label)))
+                                    " %s : not found") % six.text_type(name)))
 
-    def expand(self, name, new_size, sync=False, synctimeout=0):
+    def expand(self, full_project_name, volume_name, new_size,
+               sync=False, synctimeout=0):
 
-        volume_detail = self.show(name)
+        volume_detail = self.show(full_project_name, volume_name)
         from decimal import Decimal
         new_size_in_gb = Decimal(Decimal(new_size) / (1024 * 1024 * 1024))
         current_size = Decimal(volume_detail["provisioned_capacity_gb"])
@@ -440,11 +441,12 @@ class Volume(common.CoprHDResource):
         return o
 
     # Deletes a volume given a volume name
-    def delete(self, name, sync=False,
+    def delete(self, full_project_name, name, sync=False,
                force_delete=False, coprhdonly=False, synctimeout=0):
         """Deletes a volume based on volume name.
 
         Parameters:
+            full_project_name : project name
             name        : name of volume to be deleted
             sync        : synchronous request
             force_delete : if true, it will force the delete of internal
@@ -455,7 +457,7 @@ class Volume(common.CoprHDResource):
                           exception is thrown
 
         """
-        volume_uri = self.volume_query(name)
+        volume_uri = self.volume_query(full_project_name, name)
         return self.delete_by_uri(volume_uri, sync, force_delete,
                                   coprhdonly, synctimeout)
 
@@ -525,7 +527,7 @@ class Volume(common.CoprHDResource):
         volumeurilist = []
 
         for item in namelist:
-            volume_uri = self.volume_query(prefix_path + "/" + item)
+            volume_uri = self.volume_query(prefix_path, item)
             volumeurilist.append(volume_uri)
 
         from cinder.volume.drivers.coprhd.helpers.virtualpool import (

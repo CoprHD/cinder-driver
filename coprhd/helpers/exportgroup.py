@@ -305,9 +305,9 @@ class ExportGroup(common.CoprHDResource):
                     (_("Please provide at least volume for parameter %s") %
                      resType))
             if resType == "volumes":
-                fullvolname = tenantname + "/" + projectname + "/"
-                fullvolname += copyParam[0]
-                copy['id'] = volumeObject.volume_query(fullvolname)
+                full_project_name = tenantname + "/" + projectname
+                copy['id'] = volumeObject.volume_query(
+                    full_project_name, copyParam[0])
             if len(copyParam) > 1:
                 copy['lun'] = copyParam[1]
             copyEntries.append(copy)

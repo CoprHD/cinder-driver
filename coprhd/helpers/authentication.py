@@ -14,7 +14,10 @@
 #    under the License.
 
 
-import cookielib
+try:
+    import cookielib as cookie_lib
+except ImportError:
+    import http.cookiejar as cookie_lib
 import six
 import socket
 
@@ -55,7 +58,7 @@ class Authentication(common.CoprHDResource):
         # requests for CoprHD REST APIs
         APISVC_PORT = 8443  # Port on which apisvc listens to incoming requests
 
-        cookiejar = cookielib.LWPCookieJar()
+        cookiejar = cookie_lib.LWPCookieJar()
         url = ('https://' + six.text_type(self.ipaddr) + ':' +
                six.text_type(self.port) + self.URI_AUTHENTICATION)
 

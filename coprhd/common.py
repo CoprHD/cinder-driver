@@ -338,12 +338,11 @@ class EMCCoprHDDriverCommon(object):
             for vol in volumes:
                 try:
                     vol_name = self._get_coprhd_volume_name(vol)
-                    full_project_name = ("%s/%s/%s" % (
+                    full_project_name = "%s/%s" % (
                         self.configuration.coprhd_tenant,
-                        self.configuration.coprhd_project,
-                        vol_name))
+                        self.configuration.coprhd_project)
 
-                    self.volume_obj.delete(full_project_name,
+                    self.volume_obj.delete(full_project_name, vol_name,
                                            sync=True,
                                            force_delete=True)
 
@@ -558,12 +557,12 @@ class EMCCoprHDDriverCommon(object):
 
         self.authenticate_user()
         name = self._get_resource_name(vol, truncate_name)
-        full_project_name = ("%s/%s/%s" % (
+        full_project_name = ("%s/%s" % (
             self.configuration.coprhd_tenant,
-            self.configuration.coprhd_project,
-            name))
+            self.configuration.coprhd_project))
 
-        vol_uri = self.volume_obj.volume_query(full_project_name)
+        vol_uri = self.volume_obj.volume_query(full_project_name,
+                                               name)
 
         self.set_tags_for_resource(
             CoprHD_vol.Volume.URI_TAG_VOLUME, vol_uri, vol, exemptTags)
@@ -669,17 +668,19 @@ class EMCCoprHDDriverCommon(object):
                 resource_id,
                 sync=True)
 
-            clone_vol_path = "%s/%s/%s" % (
+            full_project_name = "%s/%s" % (
                 self.configuration.coprhd_tenant,
-                self.configuration.coprhd_project,
-                name)
-            detachable = self.volume_obj.is_volume_detachable(clone_vol_path)
+                self.configuration.coprhd_project)
+
+            detachable = self.volume_obj.is_volume_detachable(
+                full_project_name, name)
             LOG.debug("Is volume detachable : %s",
                       six.text_type(detachable))
 
             # detach it from the source volume immediately after creation
             if detachable:
-                self.volume_obj.volume_clone_detach("", clone_vol_path, True)
+                self.volume_obj.volume_clone_detach(
+                    "", full_project_name, name, True)
 
         except IndexError as e:
             LOG.exception(_LE("Volume clone detach returned empty task list"))
@@ -702,8 +703,8 @@ class EMCCoprHDDriverCommon(object):
                 six.text_type(vol['size']) + "G")
             try:
                 self.volume_obj.expand(
-                    ("%s/%s/%s" % (self.configuration.coprhd_tenant,
-                                   self.configuration.coprhd_project, name)),
+                    ("%s/%s" % (self.configuration.coprhd_tenant,
+                                self.configuration.coprhd_project)), name,
                     size_in_bytes,
                     True)
             except CoprHD_utils.CoprHdError as e:
@@ -725,9 +726,8 @@ class EMCCoprHDDriverCommon(object):
 
         try:
             self.volume_obj.expand(
-                ("%s/%s/%s" % (self.configuration.coprhd_tenant,
-                               self.configuration.coprhd_project,
-                               volume_name)),
+                ("%s/%s" % (self.configuration.coprhd_tenant,
+                            self.configuration.coprhd_project)), volume_name,
                 size_in_bytes,
                 True)
         except CoprHD_utils.CoprHdError as e:
@@ -794,11 +794,10 @@ class EMCCoprHDDriverCommon(object):
                 six.text_type(volume['size']) + "G")
             try:
                 self.volume_obj.expand(
-                    ("%s/%s/%s" % (self.configuration.coprhd_tenant,
-                                   self.configuration.coprhd_project,
-                                   new_volume_name)),
-                    size_in_bytes,
-                    True)
+                    ("%s/%s" % (self.configuration.coprhd_tenant,
+                                self.configuration.coprhd_project)),
+                    new_volume_name, size_in_bytes, True)
+
             except CoprHD_utils.CoprHdError as e:
                 coprhd_err_msg = (_("Volume %(volume_name)s: expand failed"
                                     "\n%(err)s") %
@@ -815,11 +814,10 @@ class EMCCoprHDDriverCommon(object):
         self.authenticate_user()
         name = self._get_coprhd_volume_name(vol)
         try:
-            self.volume_obj.delete(
-                ("%s/%s/%s" % (self.configuration.coprhd_tenant,
-                               self.configuration.coprhd_project,
-                               name)),
-                sync=True)
+            full_project_name = ("%s/%s" % (
+                self.configuration.coprhd_tenant,
+                self.configuration.coprhd_project))
+            self.volume_obj.delete(full_project_name, name, sync=True)
         except CoprHD_utils.CoprHdError as e:
             if e.err_code == CoprHD_utils.CoprHdError.NOT_FOUND_ERR:
                 LOG.info(_LI(
@@ -1029,9 +1027,9 @@ class EMCCoprHDDriverCommon(object):
         try:
             self.authenticate_user()
             volumename = self._get_coprhd_volume_name(volume)
-            tenantproject = ("%s/%s" % (self.configuration.coprhd_tenant,
-                                        self.configuration.coprhd_project))
-            voldetails = self.volume_obj.show(tenantproject + '/' + volumename)
+            full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
+                                            self.configuration.coprhd_project))
+            voldetails = self.volume_obj.show(full_project_name, volumename)
             volid = voldetails['id']
 
             # find the exportgroups
@@ -1094,8 +1092,9 @@ class EMCCoprHDDriverCommon(object):
                 ]
         """
         volumename = self._get_coprhd_volume_name(volume)
-        fullname = self.configuration.coprhd_project + '/' + volumename
-        vol_uri = self.volume_obj.volume_query(fullname)
+        full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
+                                        self.configuration.coprhd_project))
+        vol_uri = self.volume_obj.volume_query(full_project_name, volumename)
 
         # The itl info shall be available at the first try since now export is
         # a synchronous call.  We are trying a few more times to accommodate

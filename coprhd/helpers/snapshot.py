@@ -181,7 +181,7 @@ class Snapshot(common.CoprHDResource):
         resourceObj = None
         if Snapshot.BLOCK == storageres_type and volume_name is not None:
             resourceObj = volume.Volume(self.ipaddr, self.port)
-            resUri = resourceObj.volume_query(resourcepath + volume_name)
+            resUri = resourceObj.volume_query(resourcepath, volume_name)
         elif Snapshot.BLOCK == storageres_type and cg_name is not None:
             resourceObj = consistencygroup.ConsistencyGroup(
                 self.ipaddr,

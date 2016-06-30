@@ -200,15 +200,17 @@ class ConsistencyGroup(common.CoprHDResource):
         volobj = Volume(self.ipaddr, self.port)
         if add_volumes:
             for volname in add_volumes:
-                fullvolname = tenant + "/" + project + "/" + volname
-                add_voluris.append(volobj.volume_query(fullvolname))
+                full_project_name = tenant + "/" + project
+                add_voluris.append(
+                    volobj.volume_query(full_project_name, volname))
             volumes = {'volume': add_voluris}
             parms = {'add_volumes': volumes}
 
         if remove_volumes:
             for volname in remove_volumes:
-                fullvolname = tenant + "/" + project + "/" + volname
-                remove_voluris.append(volobj.volume_query(fullvolname))
+                full_project_name = tenant + "/" + project
+                remove_voluris.append(
+                    volobj.volume_query(full_project_name, volname))
             volumes = {'volume': remove_voluris}
             parms = {'remove_volumes': volumes}
 
