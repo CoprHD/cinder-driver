@@ -138,6 +138,35 @@ fcitl_itl_list = {"itl": [{"hlu": 3,
                                       'ip_address': "10.10.10.10",
                                       'tcp_port': '22'}}]}
 
+scaleio_itl_list = {"itl":[{"hlu":-1,
+                            "initiator":{"id":"urn:storageos:Initiator:920aee",
+                                         "link":{"rel":"self",
+                                                 "href":"/compute/initiators"},
+                                         "port":"bfdf432500000004"},
+                            "export":{"id":"urn:storageos:ExportGroup:5449235",
+                                      "name":"10.108.225.109",
+                                      "link":{"rel":"self",
+                                              "href":"/block/exports/urn:stor"}},
+                            "device":{"id":"urn:storageos:Volume:b3624a83-3eb",
+                                      "link":{"rel":"self",
+                                              "href":"/block/volume"},
+                                      "wwn":"4F48CC4C27A43248092128B400000004"},
+                            "target":{}},
+                           {"hlu":-1,
+                            "initiator":{"id":"urn:storageos:Initiator:920aee",
+                                         "link":{"rel":"self",
+                                                 "href":"/compute/initiators/"},
+                                         "port":"bfdf432500000004"},
+                            "export":{"id":"urn:storageos:ExportGroup:5449235",
+                                      "name":"10.108.225.109",
+                                      "link":{"rel":"self",
+                                              "href":"/block/exports/urn:stor"}},
+                            "device":{"id":"urn:storageos:Volume:c014e96a-557",
+                                      "link":{"rel":"self",
+                                              "href":"/block/volumes/urn:stor"},
+                                      "wwn":"4F48CC4C27A43248092129320000000E"},
+                            "target":{}}]}
+
 
 def get_test_volume_data(volume_type_id):
     test_volume = {'name': 'test-vol1',
@@ -260,12 +289,16 @@ class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
             ["Openstack-vol", "Openstack-vol1"])
         self.volume_obj.tag.return_value = "tagged"
         self.volume_obj.clone.return_value = "volume-cloned"
+        
         if(self.protocol == "iSCSI"):
             self.volume_obj.get_exports_by_uri.return_value = (
                 iscsi_itl_list)
-        else:
+        elif(self.protocol == "FC"):
             self.volume_obj.get_exports_by_uri.return_value = (
                 fcitl_itl_list)
+        else:
+            self.volume_obj.get_exports_by_uri.return_value = (
+                scaleio_itl_list)            
 
         self.volume_obj.list_volumes.return_value = []
         self.volume_obj.show.return_value = {"id": "vol_id"}
@@ -292,7 +325,8 @@ class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
                                                 'name': "host1"}]
         self.host_obj.list_initiators.return_value = [
             {'name': "12:34:56:78:90:12:34:56"},
-            {'name': "12:34:56:78:90:54:32:11"}]
+            {'name': "12:34:56:78:90:54:32:11"},
+            {'name': "bfdf432500000004"}]
 
         self.hostinitiator_obj = Mock()
         self.varray_obj = Mock()
@@ -575,4 +609,146 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.assertEqual(
             expected_terminate, res_terminate, 'Unexpected return data')
 
+        self.driver.delete_volume(volume_data)
+
+
+class EMCCoprHDScaleIODriverTest(test.TestCase):
+
+    def setUp(self):
+        super(EMCCoprHDScaleIODriverTest, self).setUp()
+        self.create_coprhd_setup()
+
+    def create_coprhd_setup(self):
+
+        self.configuration = Mock()
+        self.configuration.coprhd_hostname = "10.10.10.10"
+        self.configuration.coprhd_port = "4443"
+        self.configuration.volume_backend_name = "EMCCoprHDFCDriver"
+        self.configuration.coprhd_username = "user-name"
+        self.configuration.coprhd_password = "password"
+        self.configuration.coprhd_tenant = "tenant"
+        self.configuration.coprhd_project = "project"
+        self.configuration.coprhd_varray = "varray"
+        self.configuration.coprhd_scaleio_rest_gateway_ip="10.10.10.11"
+        self.configuration.coprhd_scaleio_rest_gateway_port=443
+        self.configuration.coprhd_scaleio_rest_server_username="scaleio_username"
+        self.configuration.coprhd_scaleio_rest_server_password="scaleio_password"
+        self.configuration.scaleio_verify_server_certificate=False
+        self.configuration.scaleio_server_certificate_path="/etc/scaleio/certs"
+
+        self.volume_type_id = self.create_coprhd_volume_type()
+
+        from cinder.volume.drivers.coprhd import scaleio as coprhd_scaleio
+
+        self.stubs.Set(coprhd_scaleio.EMCCoprHDScaleIODriver,
+                       '_get_common_driver',
+                       self._get_mocked_common_driver)
+        self.stubs.Set(coprhd_scaleio.EMCCoprHDScaleIODriver,
+                       '_get_client_id',
+                       self._get_client_id)
+        self.driver = coprhd_scaleio.EMCCoprHDScaleIODriver(
+            configuration=self.configuration)
+
+    def tearDown(self):
+        self._cleanUp()
+        super(EMCCoprHDScaleIODriverTest, self).tearDown()
+
+    def _cleanUp(self):
+        self.delete_vipr_volume_type()
+
+    def create_coprhd_volume_type(self):
+        ctx = context.get_admin_context()
+        vipr_volume_type = volume_types.create(ctx,
+                                               "coprhd-volume-type",
+                                               {'CoprHD:VPOOL': 'vpool_vipr'})
+        volume_id = vipr_volume_type['id']
+        return volume_id
+
+    def _get_mocked_common_driver(self):
+        return MockedEMCCoprHDDriverCommon(
+            protocol="scaleio",
+            default_backend_name="EMCCoprHDScaleIODriver",
+            configuration=self.configuration)
+    
+    def _get_client_id(self, server_ip, server_port, server_username,
+                       server_password, sdc_ip):
+        return "bfdf432500000004"
+
+    def delete_vipr_volume_type(self):
+        ctx = context.get_admin_context()
+        volume_types.destroy(ctx, self.volume_type_id)
+
+    def test_create_destroy(self):
+        volume = get_test_volume_data(self.volume_type_id)
+
+        self.driver.create_volume(volume)
+        self.driver.delete_volume(volume)
+
+    def test_get_volume_stats(self):
+        vol_stats = self.driver.get_volume_stats(True)
+        self.assertTrue(vol_stats['free_capacity_gb'], 'unknown')
+
+    def test_create_volume_clone(self):
+
+        src_volume_data = get_test_volume_data(self.volume_type_id)
+        clone_volume_data = get_clone_volume_data(self.volume_type_id)
+        self.driver.create_volume(src_volume_data)
+        self.driver.create_cloned_volume(clone_volume_data, src_volume_data)
+        self.driver.delete_volume(src_volume_data)
+        self.driver.delete_volume(clone_volume_data)
+
+    def test_create_destroy_snapshot(self):
+
+        volume_data = get_test_volume_data(self.volume_type_id)
+        snapshot_data = get_test_snapshot_data(
+            get_source_test_volume_data(self.volume_type_id))
+
+        self.driver.create_volume(volume_data)
+        self.driver.create_snapshot(snapshot_data)
+        self.driver.delete_snapshot(snapshot_data)
+        self.driver.delete_volume(volume_data)
+
+    def test_create_volume_from_snapshot(self):
+        src_vol_data = get_source_test_volume_data(self.volume_type_id)
+        self.driver.create_volume(src_vol_data)
+
+        volume_data = get_test_volume_data(self.volume_type_id)
+        snapshot_data = get_test_snapshot_data(src_vol_data)
+
+        self.driver.create_snapshot(snapshot_data)
+        self.driver.create_volume_from_snapshot(volume_data, snapshot_data)
+
+        self.driver.delete_snapshot(snapshot_data)
+        self.driver.delete_volume(src_vol_data)
+        self.driver.delete_volume(volume_data)
+
+    def test_extend_volume(self):
+        volume_data = get_test_volume_data(self.volume_type_id)
+        self.driver.create_volume(volume_data)
+        self.driver.extend_volume(volume_data, 2)
+        self.driver.delete_volume(volume_data)
+
+    def test_initialize_and_terminate_connection(self):
+
+        connector_data = get_connector_data()
+        volume_data = get_test_volume_data(self.volume_type_id)
+
+        self.driver.create_volume(volume_data)
+        res_initiatlize = self.driver.initialize_connection(
+            volume_data, connector_data)
+        expected_initialize = {'data': {'bandwidthLimit': None,
+                                        'hostIP': '10.0.0.2',
+                                        'iopsLimit': None,
+                                        'scaleIO_volname': 'test-vol1',
+                                        'serverIP': '10.10.10.11',
+                                        'serverPassword': 'scaleio_password',
+                                        'serverPort': 443,
+                                        'serverToken': None,
+                                        'serverUsername': 'scaleio_username'},
+                               'driver_volume_type': 'scaleio'}
+        self.assertEqual(
+            expected_initialize, res_initiatlize, 'Unexpected return data')
+
+        self.driver.terminate_connection(
+            volume_data, connector_data)
         self.driver.delete_volume(volume_data)
