@@ -138,34 +138,47 @@ fcitl_itl_list = {"itl": [{"hlu": 3,
                                       'ip_address': "10.10.10.10",
                                       'tcp_port': '22'}}]}
 
-scaleio_itl_list = {"itl":[{"hlu":-1,
-                            "initiator":{"id":"urn:storageos:Initiator:920aee",
-                                         "link":{"rel":"self",
-                                                 "href":"/compute/initiators"},
-                                         "port":"bfdf432500000004"},
-                            "export":{"id":"urn:storageos:ExportGroup:5449235",
-                                      "name":"10.108.225.109",
-                                      "link":{"rel":"self",
-                                              "href":"/block/exports/urn:stor"}},
-                            "device":{"id":"urn:storageos:Volume:b3624a83-3eb",
-                                      "link":{"rel":"self",
-                                              "href":"/block/volume"},
-                                      "wwn":"4F48CC4C27A43248092128B400000004"},
-                            "target":{}},
-                           {"hlu":-1,
-                            "initiator":{"id":"urn:storageos:Initiator:920aee",
-                                         "link":{"rel":"self",
-                                                 "href":"/compute/initiators/"},
-                                         "port":"bfdf432500000004"},
-                            "export":{"id":"urn:storageos:ExportGroup:5449235",
-                                      "name":"10.108.225.109",
-                                      "link":{"rel":"self",
-                                              "href":"/block/exports/urn:stor"}},
-                            "device":{"id":"urn:storageos:Volume:c014e96a-557",
-                                      "link":{"rel":"self",
-                                              "href":"/block/volumes/urn:stor"},
-                                      "wwn":"4F48CC4C27A43248092129320000000E"},
-                            "target":{}}]}
+scaleio_itl_list = {"itl": [{"hlu": -1,
+                             "initiator": {"id":
+                                           "urn:storageos:Initiator:920aee",
+                                           "link": {"rel": "self",
+                                                    "href":
+                                                    "/compute/initiators"},
+                                           "port": "bfdf432500000004"},
+                             "export": {"id":
+                                        "urn:storageos:ExportGroup:5449235",
+                                        "name": "10.108.225.109",
+                                        "link": {"rel": "self",
+                                                 "href":
+                                                 "/block/exports/urn:stor"}},
+                             "device": {"id":
+                                        "urn:storageos:Volume:b3624a83-3eb",
+                                        "link": {"rel": "self",
+                                                 "href": "/block/volume"},
+                                        "wwn":
+                                        "4F48CC4C27A43248092128B400000004"},
+                             "target": {}},
+                            {"hlu": -1,
+                             "initiator": {"id":
+                                           "urn:storageos:Initiator:920aee",
+                                           "link": {"rel": "self",
+                                                    "href":
+                                                    "/compute/initiators/"},
+                                           "port": "bfdf432500000004"},
+                             "export": {"id":
+                                        "urn:storageos:ExportGroup:5449235",
+                                        "name": "10.108.225.109",
+                                        "link": {"rel": "self",
+                                                 "href":
+                                                 "/block/exports/urn:stor"}},
+                             "device": {"id":
+                                        "urn:storageos:Volume:c014e96a-557",
+                                        "link": {"rel": "self",
+                                                 "href":
+                                                 "/block/volumes/urn:stor"},
+                                        "wwn":
+                                        "4F48CC4C27A43248092129320000000E"},
+                             "target": {}}]}
 
 
 def get_test_volume_data(volume_type_id):
@@ -289,7 +302,7 @@ class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
             ["Openstack-vol", "Openstack-vol1"])
         self.volume_obj.tag.return_value = "tagged"
         self.volume_obj.clone.return_value = "volume-cloned"
-        
+
         if(self.protocol == "iSCSI"):
             self.volume_obj.get_exports_by_uri.return_value = (
                 iscsi_itl_list)
@@ -298,7 +311,7 @@ class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
                 fcitl_itl_list)
         else:
             self.volume_obj.get_exports_by_uri.return_value = (
-                scaleio_itl_list)            
+                scaleio_itl_list)
 
         self.volume_obj.list_volumes.return_value = []
         self.volume_obj.show.return_value = {"id": "vol_id"}
@@ -629,12 +642,15 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         self.configuration.coprhd_tenant = "tenant"
         self.configuration.coprhd_project = "project"
         self.configuration.coprhd_varray = "varray"
-        self.configuration.coprhd_scaleio_rest_gateway_ip="10.10.10.11"
-        self.configuration.coprhd_scaleio_rest_gateway_port=443
-        self.configuration.coprhd_scaleio_rest_server_username="scaleio_username"
-        self.configuration.coprhd_scaleio_rest_server_password="scaleio_password"
-        self.configuration.scaleio_verify_server_certificate=False
-        self.configuration.scaleio_server_certificate_path="/etc/scaleio/certs"
+        self.configuration.coprhd_scaleio_rest_gateway_ip = "10.10.10.11"
+        self.configuration.coprhd_scaleio_rest_gateway_port = 443
+        self.configuration.coprhd_scaleio_rest_server_username = (
+            "scaleio_username")
+        self.configuration.coprhd_scaleio_rest_server_password = (
+            "scaleio_password")
+        self.configuration.scaleio_verify_server_certificate = False
+        self.configuration.scaleio_server_certificate_path = (
+            "/etc/scaleio/certs")
 
         self.volume_type_id = self.create_coprhd_volume_type()
 
@@ -669,7 +685,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
             protocol="scaleio",
             default_backend_name="EMCCoprHDScaleIODriver",
             configuration=self.configuration)
-    
+
     def _get_client_id(self, server_ip, server_port, server_username,
                        server_password, sdc_ip):
         return "bfdf432500000004"
