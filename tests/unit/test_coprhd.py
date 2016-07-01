@@ -260,7 +260,8 @@ class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
 
     def _get_coprhd_volume_name(self, vol, verbose=False):
         if verbose is True:
-            return "coprhd_vol_name", "coprhd_vol_uri"
+            return {'volume_name': "coprhd_vol_name",
+                    'volume_uri': "coprhd_vol_uri"}
         else:
             return "coprhd_vol_name"
 
