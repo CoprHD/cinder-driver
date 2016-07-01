@@ -242,7 +242,7 @@ class Volume(common.CoprHDResource):
                                snapshot_name,
                                project,
                                tenant):
-        resourcepath = "/" + project + "/"
+        resourcepath = "/" + project
         if tenant is not None:
             resourcepath = tenant + resourcepath
 

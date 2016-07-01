@@ -1431,10 +1431,12 @@ class EMCCoprHDDriverCommon(object):
         vpool_name = new_type['extra_specs']['CoprHD:VPOOL']
 
         try:
+            full_project_name = "%s/%s" % (
+                self.configuration.coprhd_tenant,
+                self.configuration.coprhd_project)
+
             task = self.volume_obj.update(
-                self.configuration.coprhd_tenant +
-                "/" +
-                self.configuration.coprhd_project,
+                full_project_name,
                 volume_name,
                 vpool_name)
 

@@ -14,7 +14,10 @@
 #    under the License.
 
 """Contains some commonly used utility methods."""
-import cookielib
+try:
+    import cookielib as cookie_lib
+except ImportError:
+    import http.cookiejar as cookie_lib
 import json
 import re
 import six
@@ -114,7 +117,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
             protocol = "http://"
         url = protocol + ip_addr + ":" + str(port) + uri
 
-        cookiejar = cookielib.LWPCookieJar()
+        cookiejar = cookie_lib.LWPCookieJar()
         headers[SEC_AUTHTOKEN_HEADER] = AUTH_TOKEN
 
         if http_method == 'GET':
