@@ -239,7 +239,7 @@ class EMCCoprHDDriverCommon(object):
                 cgid = vol['consistencygroup_id']
                 if cgid:
                     CoprHD_cgid = self._get_coprhd_cgid(cgid)
-            except AttributeError:
+            except KeyError:
                 CoprHD_cgid = None
 
             full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
@@ -695,7 +695,7 @@ class EMCCoprHDDriverCommon(object):
 
         try:
             src_vol_size = src_vref['size']
-        except AttributeError:
+        except KeyError:
             src_vol_size = src_vref['volume_size']
 
         if vol['size'] > src_vol_size:
@@ -845,7 +845,7 @@ class EMCCoprHDDriverCommon(object):
                     CoprHD_utils.CoprHdError.SOS_FAILURE_ERR,
                     _("Snapshot can't be taken individually on a volume"
                       " that is part of a Consistency Group"))
-        except AttributeError:
+        except KeyError:
             LOG.info(_LI("No Consistency Group associated with the volume"))
 
         if self.configuration.coprhd_emulate_snapshot:
