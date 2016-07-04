@@ -153,13 +153,11 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""
-        return self.common.create_cgsnapshot(self, context,
-                                             cgsnapshot, snapshots, True)
+        return self.common.create_cgsnapshot(cgsnapshot, snapshots, True)
 
     def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
-        return self.common.delete_cgsnapshot(self, context,
-                                             cgsnapshot, snapshots, True)
+        return self.common.delete_cgsnapshot(cgsnapshot, snapshots, True)
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
@@ -168,7 +166,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     def initialize_connection(self, volume, connector):
         """Initializes the connection and returns connection info."""
 
-        volname = self.common._get_resource_name(volume, False)
+        volname = self.common._get_resource_name(volume, True)
 
         properties = {}
         properties['scaleIO_volname'] = volname

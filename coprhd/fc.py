@@ -104,13 +104,11 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
 
     def create_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Creates a cgsnapshot."""
-        return self.common.create_cgsnapshot(self, context,
-                                             cgsnapshot, snapshots)
+        return self.common.create_cgsnapshot(cgsnapshot, snapshots)
 
     def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
-        return self.common.delete_cgsnapshot(self, context,
-                                             cgsnapshot, snapshots)
+        return self.common.delete_cgsnapshot(cgsnapshot, snapshots)
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""

@@ -380,19 +380,19 @@ class EMCCoprHDDriverCommon(object):
                                          log_err_msg)
 
     @retry_wrapper
-    def create_cgsnapshot(self, driver, context, cgsnapshot, snapshots,
-                          truncate_name=False):
+    def create_cgsnapshot(self, cgsnapshot, snapshots, truncate_name=False):
         self.authenticate_user()
 
         snapshots_model_update = []
         cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
         cg_id = cgsnapshot['consistencygroup_id']
+        cg_group = cgsnapshot.get('consistencygroup')
         cg_name = None
         CoprHD_cgid = None
 
         if cg_id:
             CoprHD_cgid = self._get_coprhd_cgid(cg_id)
-            cg_name = self._get_consistencygroup_name(driver, context, cg_id)
+            cg_name = self._get_consistencygroup_name(cg_group)
 
         LOG.info(_LI('Start to create cgsnapshot for consistency group'
                      ': %(group_name)s'),
@@ -490,17 +490,17 @@ class EMCCoprHDDriverCommon(object):
                                          log_err_msg)
 
     @retry_wrapper
-    def delete_cgsnapshot(self, driver, context, cgsnapshot, snapshots,
-                          truncate_name=False):
+    def delete_cgsnapshot(self, cgsnapshot, snapshots, truncate_name=False):
         self.authenticate_user()
         cgsnapshot_id = cgsnapshot['id']
         cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
 
         snapshots_model_update = []
         cg_id = cgsnapshot['consistencygroup_id']
+        cg_group = cgsnapshot.get('consistencygroup')
 
         CoprHD_cgid = self._get_coprhd_cgid(cg_id)
-        cg_name = self._get_consistencygroup_name(driver, context, cg_id)
+        cg_name = self._get_consistencygroup_name(cg_group)
 
         model_update = {}
         LOG.info(_LI('Delete cgsnapshot %(snap_name)s for consistency group: '
@@ -600,7 +600,7 @@ class EMCCoprHDDriverCommon(object):
         # put all the openstack resource properties into the CoprHD resource
 
         try:
-            for prop, value in vars(resource).iteritems():
+            for prop, value in vars(resource).items():
                 try:
                     if prop in exemptTags:
                         continue
@@ -1169,10 +1169,8 @@ class EMCCoprHDDriverCommon(object):
                 CoprHD_utils.CoprHdError.NOT_FOUND_ERR,
                 (_("Consistency Group %s not found") % cgid))
 
-    def _get_consistencygroup_name(self, driver, context, cgid):
-        consisgrp = driver.db.consistencygroup_get(context, cgid)
-        cgname = consisgrp['name']
-        return cgname
+    def _get_consistencygroup_name(self, consisgrp):
+        return consisgrp['name']
 
     def _get_CoprHD_snapshot_name(self, snapshot, resUri):
         tagname = self.OPENSTACK_TAG + ":id:" + snapshot['id']
@@ -1248,7 +1246,7 @@ class EMCCoprHDDriverCommon(object):
         if type_id is not None:
             volume_type = volume_types.get_volume_type(ctxt, type_id)
             specs = volume_type.get('extra_specs')
-            for key, value in specs.iteritems():
+            for key, value in specs.items():
                 vpool[key] = value
 
         return vpool
