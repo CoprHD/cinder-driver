@@ -28,11 +28,11 @@ import threading
 import oslo_serialization
 import requests
 from requests import exceptions
-from cinder.volume.drivers.coprhd.helpers.urihelper import (
-    singletonURIHelperInstance)
 
 from cinder import exception
 from cinder.i18n import _
+from cinder.volume.drivers.coprhd.helpers.urihelper import (
+    singletonURIHelperInstance)
 
 
 PROD_NAME = 'storageos'
