@@ -963,7 +963,7 @@ class EMCCoprHDDriverCommon(object):
             foundgroupname = self._find_exportgroup(initiatorPorts)
             foundhostname = None
             if foundgroupname is None:
-                for i in xrange(len(initiatorPorts)):
+                for i in range(len(initiatorPorts)):
                     # check if this initiator is contained in any CoprHD Host
                     # object
                     LOG.debug(
@@ -1102,7 +1102,7 @@ class EMCCoprHDDriverCommon(object):
         # completed.
 
         itls = []
-        for x in xrange(MAX_RETRIES):
+        for x in range(MAX_RETRIES):
             exports = self.volume_obj.get_exports_by_uri(vol_uri)
             LOG.debug("Volume exports: ")
             LOG.info(vol_uri)

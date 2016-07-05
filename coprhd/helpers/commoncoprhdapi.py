@@ -285,21 +285,21 @@ def to_bytes(in_str):
     unit = match.group(2).upper()
     value = match.group(1)
 
-    size_count = long(value)
+    size_count = int(value)
     if unit in ['K', 'KB']:
-        multiplier = long(1024)
+        multiplier = int(1024)
     elif unit in ['M', 'MB']:
-        multiplier = long(1024 * 1024)
+        multiplier = int(1024 * 1024)
     elif unit in ['G', 'GB']:
-        multiplier = long(1024 * 1024 * 1024)
+        multiplier = int(1024 * 1024 * 1024)
     elif unit in ['T', 'TB']:
-        multiplier = long(1024 * 1024 * 1024 * 1024)
+        multiplier = int(1024 * 1024 * 1024 * 1024)
     elif unit == "":
         return size_count
     else:
         return None
 
-    size_in_bytes = long(size_count * multiplier)
+    size_in_bytes = int(size_count * multiplier)
     return size_in_bytes
 
 
