@@ -22,7 +22,6 @@ import json
 import re
 import six
 import socket
-import sys
 import threading
 
 import oslo_serialization
@@ -114,7 +113,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
 
     try:
         protocol = "https://"
-        if str(port) == '8080':
+        if port == 8080:
             protocol = "http://"
         url = protocol + ip_addr + ":" + str(port) + uri
 
@@ -375,16 +374,6 @@ def format_err_msg_and_raise(operation_type, component,
 
     formated_err_msg = formated_err_msg + "\nReason:" + error_message
     raise CoprHdError(error_code, formated_err_msg)
-
-
-def exit_gracefully(exit_status_code):
-    """Terminate the script execution with status code.
-
-    Ignoring the exit status code means the script execution completed
-    successfully exit_status_code = 0, means success, its a default behavior
-    exit_status_code = integer greater than zero, abnormal termination
-    """
-    sys.exit(exit_status_code)
 
 
 def search_by_tag(resource_search_uri, ipaddr, port):

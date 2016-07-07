@@ -147,8 +147,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
             properties['auth_username'] = auth_username
             properties['auth_password'] = auth_secret
 
-        LOG.debug('FC properties: ')
-        LOG.debug(properties)
+        LOG.debug('FC properties: %s', properties)
         return {
             'driver_volume_type': 'fibre_channel',
             'data': properties
@@ -177,8 +176,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
                     'target_wwn': target_wwns,
                     'initiator_target_map': initiator_target_map}}
 
-        LOG.debug('Return FC data: ')
-        LOG.debug(data)
+        LOG.debug('Return FC data: %s', data)
         return data
 
     def _build_initiator_target_map(self, itls, connector):

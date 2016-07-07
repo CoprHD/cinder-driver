@@ -59,8 +59,10 @@ class Authentication(common.CoprHDResource):
         APISVC_PORT = 8443  # Port on which apisvc listens to incoming requests
 
         cookiejar = cookie_lib.LWPCookieJar()
-        url = ('https://' + six.text_type(self.ipaddr) + ':' +
-               six.text_type(self.port) + self.URI_AUTHENTICATION)
+
+        url = ('https://%(ip)s:%(port)d%(uri)s' %
+               {'ip': self.ipaddr, 'port': self.port,
+                'uri': self.URI_AUTHENTICATION})
 
         try:
             if self.port == APISVC_PORT:
@@ -82,8 +84,8 @@ class Authentication(common.CoprHDResource):
                         location, headers=self.HEADERS, verify=False,
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
-                    if (not (login_response.status_code ==
-                             requests.codes['unauthorized'])):
+                    if (login_response.status_code !=
+                            requests.codes['unauthorized']):
                         raise common.CoprHdError(
                             common.CoprHdError.HTTP_ERR, (_("The"
                                                             " authentication"
@@ -97,7 +99,7 @@ class Authentication(common.CoprHDResource):
                         auth=(username, password), verify=False,
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
-                    if not login_response.status_code == SEC_REDIRECT:
+                    if login_response.status_code != SEC_REDIRECT:
                         raise common.CoprHdError(
                             common.CoprHdError.HTTP_ERR,
                             (_("Access forbidden: Authentication required")))
@@ -153,8 +155,8 @@ class Authentication(common.CoprHDResource):
                     (_("Incorrect port number. Load balanced port is: "
                        "%(lb_api_port)s, api service port is: "
                        "%(apisvc_port)s") %
-                     {'lb_api_port': six.text_type(LB_API_PORT),
-                        'apisvc_port': six.text_type(APISVC_PORT)}))
+                     {'lb_api_port': LB_API_PORT,
+                        'apisvc_port': APISVC_PORT}))
 
             if not authtoken:
                 details_str = self.extract_error_detail(login_response)

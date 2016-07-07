@@ -266,7 +266,7 @@ class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
         else:
             return "coprhd_vol_name"
 
-    def _get_CoprHD_snapshot_name(self, snapshot, resUri):
+    def _get_coprhd_snapshot_name(self, snapshot, resUri):
         return "coprhd_snapshot_name"
 
     def init_volume_api(self):

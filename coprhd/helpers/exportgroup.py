@@ -170,11 +170,7 @@ class ExportGroup(common.CoprHDResource):
 
                 if exportgrouptype and export_destination:
                     host_obj = host.Host(self.ipaddr, self.port)
-                    try:
-                        host_uri = host_obj.query_by_name(
-                            export_destination)
-                    except common.CoprHdError as ex:
-                        raise ex
+                    host_uri = host_obj.query_by_name(export_destination)
                     parms['hosts'] = [host_uri]
 
                 body = oslo_serialization.jsonutils.dumps(parms)

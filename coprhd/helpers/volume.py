@@ -19,7 +19,9 @@ import six
 from cinder.i18n import _
 from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
 from cinder.volume.drivers.coprhd.helpers import consistencygroup
+from cinder.volume.drivers.coprhd.helpers import project
 from cinder.volume.drivers.coprhd.helpers import virtualarray
+from cinder.volume.drivers.coprhd.helpers import virtualpool
 
 
 class Volume(common.CoprHDResource):
@@ -72,11 +74,10 @@ class Volume(common.CoprHDResource):
                 volumes.append(volume)
         return volumes
 
-    def search_volumes(self, project):
+    def search_volumes(self, project_name):
 
-        from cinder.volume.drivers.coprhd.helpers.project import Project
-        proj = Project(self.ipaddr, self.port)
-        project_uri = proj.project_query(project)
+        proj = project.Project(self.ipaddr, self.port)
+        project_uri = proj.project_query(project_name)
 
         (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "GET",
@@ -114,12 +115,12 @@ class Volume(common.CoprHDResource):
         return o
 
     # Creates a volume given label, project, vpool and size
-    def create(self, project, label, size, varray, vpool,
+    def create(self, project_name, label, size, varray, vpool,
                sync, consistencygroup, synctimeout=0):
         """Makes REST API call to create volume under a project.
 
         Parameters:
-            project          : name of the project under which the volume will
+            project_name     : name of the project under which the volume will
                                be created
             label            : name of volume
             size             : size of volume
@@ -134,13 +135,10 @@ class Volume(common.CoprHDResource):
             Created task details in JSON response payload
         """
 
-        from cinder.volume.drivers.coprhd.helpers.project import Project
-        proj_obj = Project(self.ipaddr, self.port)
-        project_uri = proj_obj.project_query(project)
+        proj_obj = project.Project(self.ipaddr, self.port)
+        project_uri = proj_obj.project_query(project_name)
 
-        from cinder.volume.drivers.coprhd.helpers.virtualpool import (
-            VirtualPool)
-        vpool_obj = VirtualPool(self.ipaddr, self.port)
+        vpool_obj = virtualpool.VirtualPool(self.ipaddr, self.port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")
 
         varray_obj = virtualarray.VirtualArray(self.ipaddr, self.port)
@@ -252,10 +250,8 @@ class Volume(common.CoprHDResource):
         if Volume.BLOCK == storageres_type and volume_name is not None:
             resUri = self.volume_query(resourcepath, volume_name)
             if snapshot_name is not None:
-
-                from cinder.volume.drivers.coprhd.helpers.snapshot import (
-                    Snapshot)
-                snapobj = Snapshot(self.ipaddr, self.port)
+                from cinder.volume.drivers.coprhd.helpers import snapshot
+                snapobj = snapshot.Snapshot(self.ipaddr, self.port)
                 resUri = snapobj.snapshot_query(storageres_type,
                                                 Volume.VOLUMES, resUri,
                                                 snapshot_name)
@@ -288,9 +284,8 @@ class Volume(common.CoprHDResource):
         Returns:
             Created task details in JSON response payload
         """
-
-        from cinder.volume.drivers.coprhd.helpers.snapshot import Snapshot
-        snap_obj = Snapshot(self.ipaddr, self.port)
+        from cinder.volume.drivers.coprhd.helpers import snapshot
+        snap_obj = snapshot.Snapshot(self.ipaddr, self.port)
         is_snapshot_clone = False
         clone_full_uri = None
 
@@ -530,10 +525,7 @@ class Volume(common.CoprHDResource):
             volume_uri = self.volume_query(prefix_path, item)
             volumeurilist.append(volume_uri)
 
-        from cinder.volume.drivers.coprhd.helpers.virtualpool import (
-            VirtualPool)
-
-        vpool_obj = VirtualPool(self.ipaddr, self.port)
+        vpool_obj = virtualpool.VirtualPool(self.ipaddr, self.port)
         vpool_uri = vpool_obj.vpool_query(vpool, "block")
 
         params = {
