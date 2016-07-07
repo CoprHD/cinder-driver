@@ -1,4 +1,3 @@
-
 # Copyright (c) 2012 - 2014 EMC Corporation, Inc.
 # All Rights Reserved.
 #
@@ -14,13 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from mock import Mock
 
 from cinder import context
 from cinder import test
-from cinder.volume import volume_types
-from mock import Mock
-
 from cinder.volume.drivers.coprhd import common as coprhd_common
+from cinder.volume.drivers.coprhd import fc as coprhd_fc
+from cinder.volume.drivers.coprhd import iscsi as coprhd_iscsi
+from cinder.volume.drivers.coprhd import scaleio as coprhd_scaleio
+from cinder.volume import volume_types
 
 '''
 Test Data required for mocking
@@ -376,8 +377,6 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
 
         self.volume_type_id = self.create_coprhd_volume_type()
 
-        from cinder.volume.drivers.coprhd import iscsi as coprhd_iscsi
-
         self.stubs.Set(coprhd_iscsi.EMCCoprHDISCSIDriver,
                        '_get_common_driver',
                        self._get_mocked_common_driver)
@@ -500,8 +499,6 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.configuration.coprhd_emulate_snapshot = False
 
         self.volume_type_id = self.create_coprhd_volume_type()
-
-        from cinder.volume.drivers.coprhd import fc as coprhd_fc
 
         self.stubs.Set(coprhd_fc.EMCCoprHDFCDriver,
                        '_get_common_driver',
@@ -654,8 +651,6 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
             "/etc/scaleio/certs")
 
         self.volume_type_id = self.create_coprhd_volume_type()
-
-        from cinder.volume.drivers.coprhd import scaleio as coprhd_scaleio
 
         self.stubs.Set(coprhd_scaleio.EMCCoprHDScaleIODriver,
                        '_get_common_driver',
