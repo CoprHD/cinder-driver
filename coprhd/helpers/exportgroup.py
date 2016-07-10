@@ -275,7 +275,6 @@ class ExportGroup(common.CoprHDResource):
         """Function to validate input volumes and return list of ids and luns.
 
         """
-
         copyEntries = []
         volumeObject = volume.Volume(self.ipaddr, self.port)
         for copy in resources:
