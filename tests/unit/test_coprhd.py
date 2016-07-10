@@ -1,4 +1,4 @@
-# Copyright (c) 2012 - 2014 EMC Corporation, Inc.
+# Copyright (c) 2012 - 2016 EMC Corporation, Inc.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -23,9 +23,9 @@ from cinder.volume.drivers.coprhd import iscsi as coprhd_iscsi
 from cinder.volume.drivers.coprhd import scaleio as coprhd_scaleio
 from cinder.volume import volume_types
 
-'''
+"""
 Test Data required for mocking
-'''
+"""
 export_group_details_data = {
     "inactive": False,
     "initiators": [{"creation_time": 1392194176020,
@@ -282,14 +282,6 @@ class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
             'display_name': 'source_test-vol1',
             'display_description': 'test volume',
             'volume_type_id': "vol_type_id-for-snap"}
-
-    '''
-    Mocking all CLI components methods is done here.
-    Mock is a powerful python library that helps to mock the test
-    data.
-    Refer -
-    http://www.voidspace.org.uk/python/mock/index.html#user-guide
-    '''
 
     def init_coprhd_api_components(self):
         self.volume_obj = Mock()

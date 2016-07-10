@@ -45,8 +45,7 @@ class Host(common.CoprHDResource):
     def list_initiators(self, host_name):
         """Lists all initiators for the given host.
 
-        Parameters
-            host_name : The name of the host
+        :param host_name: The name of the host
         """
         if not common.is_uri(host_name):
             hostUri = self.query_by_name(host_name, None)

@@ -77,10 +77,9 @@ class ExportGroup(common.CoprHDResource):
     def exportgroup_list(self, project_name, tenant):
         """This function gives list of export group uris separated by comma.
 
-        Parameters:
-            project_name: Name of the project path
-        return
-            returns with list of export group ids separated by comma
+        :param project_name: Name of the project path
+        :param tenant: Name of the tenant
+        :returns: list of export group ids separated by comma
         """
         if tenant is None:
             tenant = ""
@@ -109,13 +108,12 @@ class ExportGroup(common.CoprHDResource):
         return exportgroups
 
     def exportgroup_show(self, name, project, tenant, varray=None):
-        """This function display the Export group with details.
+        """This function displays the Export group with details.
 
-        Parameters:
-           name : Name of the export group
-           project: Name of the project
-        return
-            returns with Details of export group
+        :param name: Name of the export group
+        :param project: Name of the project
+        :param tenant: Name of the tenant
+        :returns: Details of export group
         """
         varrayuri = None
         if varray:
@@ -138,12 +136,12 @@ class ExportGroup(common.CoprHDResource):
                            exportgrouptype, export_destination=None):
         """This function creates the Export group with given name.
 
-        Parameters:
-           name : Name of the export group
-           project_name: Name of the project path
-           tenant: Container tenant name
-        return
-            returns with status of creation
+        :param name: Name of the export group
+        :param project_name: Name of the project path
+        :param tenant: Container tenant name
+        :param varray: Name of the virtual array
+        :param exportgrouptype: Type of the export group. Ex:Host etc
+        :returns: status of creation
         """
         # check for existence of export group.
         try:
@@ -193,10 +191,11 @@ class ExportGroup(common.CoprHDResource):
     def exportgroup_query(self, name, project, tenant, varrayuri=None):
         """Makes REST API call to query the exportgroup by name.
 
-        Parameters:
-            name : Name/id of the export group.
-        return
-            return with id of the export group.
+        :param name: Name/id of the export group
+        :param project: Name of the project
+        :param tenant: Name of the tenant
+        :param varrayuri: URI of the virtual array
+        :returns: id of the export group
         """
         if common.is_uri(name):
             return name
@@ -223,24 +222,21 @@ class ExportGroup(common.CoprHDResource):
                                 cg=None, synctimeout=0, varray=None):
         """Add volume to export group.
 
-        Parameters:
-           sync              : synchronous request
-           exportgroupname   : Name/id of the export group.
-           tenantname        : tenant name
-           maxpaths          : Maximum number of paths
-           minpaths          : Minimum number of paths
-           pathsperinitiator : Paths per initiator
-           projectname       : name of project
-           volumenames       : names of volumes that needs
+        :param sync              : synchronous request
+        :param exportgroupname   : Name/id of the export group
+        :param tenantname        : tenant name
+        :param maxpaths          : Maximum number of paths
+        :param minpaths          : Minimum number of paths
+        :param pathsperinitiator : Paths per initiator
+        :param projectname       : name of project
+        :param volumenames       : names of volumes that needs
                                to be added to exportgroup
-           cg                : consistency group
-           synctimeout       : Query for task status for "synctimeout" secs.
+        :param cg                : consistency group
+        :param synctimeout       : Query for task status for "synctimeout" secs
                                If the task doesn't complete in synctimeout
                                secs, an exception is thrown
-           varray            : Name of varray
-
-        return
-            return action result
+        :param varray            : Name of varray
+        :returns: action result
         """
         varrayuri = None
         if varray:
@@ -278,8 +274,6 @@ class ExportGroup(common.CoprHDResource):
                                 tenantname, projectname, blockTypeName):
         """Function to validate input volumes and return list of ids and luns.
 
-        input
-            list of volumes in the format name:lun
         """
 
         copyEntries = []
@@ -298,7 +292,7 @@ class ExportGroup(common.CoprHDResource):
             if not len(copyParam):
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
-                    (_("Please provide at least volume for parameter %s") %
+                    (_("Please provide at least one volume for parameter %s") %
                      resType))
             if resType == "volumes":
                 full_project_name = tenantname + "/" + projectname

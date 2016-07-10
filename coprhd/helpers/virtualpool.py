@@ -28,10 +28,10 @@ class VirtualPool(common.CoprHDResource):
 
         This function will take uri as input and returns with
         all parameters of VPOOL like label, urn and type.
-        parameters
-            uri : unique resource identifier.
-        return
-            returns with object contain all details of VPOOL.
+
+        :param vpooltype : Type of virtual pool {'block'}
+        :param uri : unique resource identifier of the vpool
+        :returns: object containing all the details of vpool
         """
 
         (s, h) = common.service_json_request(
@@ -50,11 +50,10 @@ class VirtualPool(common.CoprHDResource):
 
         This function will take the VPOOL name and type of VPOOL
         as input and get uri of the first occurance of given VPOOL.
-        parameters:
-             name : Name of the VPOOL.
-             vpooltype : Type of the VPOOL {'block' }
-        return
-            return with uri of the given vpool.
+
+        :param name: Name of the VPOOL
+        :param vpooltype: Type of the VPOOL {'block'}
+        :returns: uri of the given vpool
         """
         if common.is_uri(name):
             return name

@@ -16,11 +16,11 @@
 
 """Driver for EMC CoprHD ScaleIO volumes."""
 
-import requests
-from six.moves import urllib
-
 from oslo_config import cfg
 from oslo_log import log as logging
+import requests
+import six
+from six.moves import urllib
 
 from cinder import exception
 from cinder.i18n import _
@@ -258,7 +258,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         ip_double_encoded = urllib.parse.quote(ip_encoded, '')
 
         request = ("https://%s:%s/api/types/Sdc/instances/getByIp::%s/" %
-                   (server_ip, str(server_port), ip_double_encoded))
+                   (server_ip, six.text_type(server_port), ip_double_encoded))
 
         LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
 
@@ -297,7 +297,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                 _LI("Token is invalid, going to re-login and get a new one"))
 
             login_request = ("https://%s:%s/api/login" %
-                             (server_ip, str(server_port)))
+                             (server_ip, six.text_type(server_port)))
             if self.configuration.scaleio_verify_server_certificate:
                 verify_cert = (
                     self.configuration.scaleio_server_certificate_path)

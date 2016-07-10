@@ -36,10 +36,9 @@ class ConsistencyGroup(common.CoprHDResource):
     def list(self, project_name, tenant):
         """This function gives list of comma separated consistency group uris.
 
-        Parameters:
-            project_name: Name of the project path
-        return
-            returns with list of consistency group ids separated by comma
+        :param project_name: Name of the project path
+        :param tenant: Name of the tenant
+        :returns: list of consistency group ids separated by comma
         """
         if tenant is None:
             tenant = ""
@@ -64,12 +63,10 @@ class ConsistencyGroup(common.CoprHDResource):
     def show(self, name, project, tenant):
         """This function will display the consistency group with details.
 
-        Parameters:
-           name : Name of the consistency group
-           project: Name of the project
-           tenant: Name of the tenant
-        return
-            returns with details of consistency group
+        :param name : Name of the consistency group
+        :param project: Name of the project
+        :param tenant: Name of the tenant
+        :returns: details of consistency group
         """
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
@@ -83,10 +80,10 @@ class ConsistencyGroup(common.CoprHDResource):
     def consistencygroup_query(self, name, project, tenant):
         """This function will return consistency group id.
 
-        Parameters:
-           name : Name/id of the consistency group
-        return
-            return with id of the consistency group
+        :param name : Name/id of the consistency group
+        :param project: Name of the project
+        :param tenant: Name of the tenant
+        :returns: id of the consistency group
         """
         if common.is_uri(name):
             return name
@@ -116,12 +113,10 @@ class ConsistencyGroup(common.CoprHDResource):
     def create(self, name, project_name, tenant):
         """This function will create consistency group with the given name.
 
-        Parameters:
-           name : Name of the consistency group.
-           project_name: Name of the project path.
-           tenant: Container tenant name.
-        return
-            returns with status of creation.
+        :param name : Name of the consistency group
+        :param project_name: Name of the project path
+        :param tenant: Container tenant name
+        :returns: status of creation
         """
         # check for existence of consistency group.
         try:
@@ -154,12 +149,11 @@ class ConsistencyGroup(common.CoprHDResource):
     def delete(self, name, project, tenant, coprhdonly=False):
         """This function marks a particular consistency group as delete.
 
-        Parameters:
-           name : Name of the consistency group
-           project: Name of the project
-        return
-            return with status of the delete operation
-            false incase it fails to do delete
+        :param name: Name of the consistency group
+        :param project: Name of the project
+        :param tenant: Name of the tenant
+        :returns: status of the delete operation
+            false, incase it fails to do delete
         """
         params = ''
         if coprhdonly is True:
@@ -176,19 +170,18 @@ class ConsistencyGroup(common.CoprHDResource):
                sync, synctimeout=0):
         """Function used to add or remove volumes from consistency group.
 
-        It will update the consistency  group with given volumes
-        Parameters:
-           uri           : URI of the consistency group
-           project        : Name of the project path
-           tenant         : Container tenant name
-           add_volumes    : volumes to be added to the consistency group
-           remove_volumes : volumes to be removed from CG
-           sync           : synchronous request
-           synctimeout    : Query for task status for "synctimeout" secs. If
-                            the task doesn't complete in synctimeout secs, an
-                            exception is thrown
-        return
-            returns with status of creation
+        It will update the consistency group with given volumes
+
+        :param uri           : URI of the consistency group
+        :param project       : Name of the project path
+        :param tenant        : Container tenant name
+        :param add_volumes   : volumes to be added to the consistency group
+        :param remove_volumes: volumes to be removed from CG
+        :param sync          : synchronous request
+        :param synctimeout   : Query for task status for "synctimeout" secs.
+                               If the task doesn't complete in synctimeout
+                               secs, an exception is thrown
+        :returns: status of creation
         """
         if tenant is None:
             tenant = ""

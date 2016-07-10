@@ -20,13 +20,14 @@ except ImportError:
     import http.cookiejar as cookie_lib
 import json
 import re
-import six
 import socket
 import threading
 
 import oslo_serialization
+from oslo_utils import units
 import requests
 from requests import exceptions
+import six
 
 from cinder import exception
 from cinder.i18n import _
@@ -90,16 +91,15 @@ def service_json_request(ip_addr, port, http_method, uri, body,
     """Used to make an HTTP request and get the response.
 
     The message body is encoded in JSON format
-    Parameters:
-        ip_addr: IP address or host name of the server
-        port: port number of the server on which it
+
+    :param ip_addr: IP address or host name of the server
+    :param port: port number of the server on which it
             is listening to HTTP requests
-        http_method: one of GET, POST, PUT, DELETE
-        uri: the request URI
-        body: the request payload
-    Returns:
-        a tuple of two elements: (response body, response headers)
-    Throws: CoprHdError in case of HTTP errors with err_code 3
+    :param http_method: one of GET, POST, PUT, DELETE
+    :param uri: the request URI
+    :param body: the request payload
+    :returns: a tuple of two elements: (response body, response headers)
+    :raises: CoprHdError in case of HTTP errors with err_code 3
     """
 
     SEC_AUTHTOKEN_HEADER = 'X-SDS-AUTH-TOKEN'
@@ -115,7 +115,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
         protocol = "https://"
         if port == 8080:
             protocol = "http://"
-        url = protocol + ip_addr + ":" + str(port) + uri
+        url = protocol + ip_addr + ":" + six.text_type(port) + uri
 
         cookiejar = cookie_lib.LWPCookieJar()
         headers[SEC_AUTHTOKEN_HEADER] = AUTH_TOKEN
@@ -191,7 +191,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
 
             if 'code' in responseText:
                 errorCode = responseText['code']
-                error_msg = error_msg + "Error " + str(errorCode)
+                error_msg = error_msg + "Error " + six.text_type(errorCode)
 
             if 'details' in responseText:
                 errorDetails = responseText['details']
@@ -231,8 +231,8 @@ def service_json_request(ip_addr, port, http_method, uri, body,
 def is_uri(name):
     """Checks whether the name is a URI or not.
 
-    Returns:
-        True if name is URI, False otherwise
+    :param name: Name of the resource
+    :returns: True if name is URI, False otherwise
     """
     try:
         (urn, prod, trailer) = name.split(':', 2)
@@ -244,10 +244,8 @@ def is_uri(name):
 def format_json_object(obj):
     """Formats JSON object to make it readable by proper indentation.
 
-    Parameters:
-        obj - JSON object
-    Returns:
-        a string of  formatted JSON object
+    :param obj: JSON object
+    :returns: a string of  formatted JSON object
     """
     return oslo_serialization.jsonutils.dumps(obj, sort_keys=True, indent=3)
 
@@ -265,16 +263,14 @@ def get_parent_child_from_xpath(name):
 def to_bytes(in_str):
     """Converts a size to bytes.
 
-    Parameters:
-        in_str - a number suffixed with a unit: {number}{unit}
+    :param in_str: a number suffixed with a unit: {number}{unit}
                 units supported:
                 K, KB, k or kb - kilobytes
                 M, MB, m or mb - megabytes
                 G, GB, g or gb - gigabytes
                 T, TB, t or tb - terabytes
-    Returns:
-        number of bytes
-        None; if input is incorrect
+    :returns: number of bytes
+     None; if input is incorrect
     """
     match = re.search('^([0-9]+)([a-zA-Z]{0,2})$', in_str)
 
@@ -286,13 +282,13 @@ def to_bytes(in_str):
 
     size_count = int(value)
     if unit in ['K', 'KB']:
-        multiplier = int(1024)
+        multiplier = int(units.Ki)
     elif unit in ['M', 'MB']:
-        multiplier = int(1024 * 1024)
+        multiplier = int(units.Mi)
     elif unit in ['G', 'GB']:
-        multiplier = int(1024 * 1024 * 1024)
+        multiplier = int(units.Gi)
     elif unit in ['T', 'TB']:
-        multiplier = int(1024 * 1024 * 1024 * 1024)
+        multiplier = int(units.Ti)
     elif unit == "":
         return size_count
     else:
@@ -357,10 +353,10 @@ def format_err_msg_and_raise(operation_type, component,
                              error_message, error_code):
     """Method to format error message.
 
-    @operation_type create, update, add, etc
-    @component storagesystem, vpool, etc
-    @error_code Error code from the API call
-    @error_message Detailed error message
+    :param operation_type: create, update, add, etc
+    :param component: storagesystem, vpool, etc
+    :param error_code: Error code from the API call
+    :param error_message: Detailed error message
     """
 
     formated_err_msg = (_("Error: Failed to %(operation_type)s"
@@ -379,11 +375,13 @@ def format_err_msg_and_raise(operation_type, component,
 def search_by_tag(resource_search_uri, ipaddr, port):
     """Fetches the list of resources with a given tag.
 
-    Parameter resource_search_uri : The tag based search uri
+    :param resource_search_uri: The tag based search uri
                               Example: '/block/volumes/search?tag=tagexample1'
+    :param ipaddr: IP address of CoprHD host
+    :param port: Port number
     """
     # check if the URI passed has both project and name parameters
-    strUri = str(resource_search_uri)
+    strUri = six.text_type(resource_search_uri)
     if strUri.__contains__("search") and strUri.__contains__("?tag="):
         # Get the project URI
 

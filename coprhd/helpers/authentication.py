@@ -18,11 +18,11 @@ try:
     import cookielib as cookie_lib
 except ImportError:
     import http.cookiejar as cookie_lib
-import six
 import socket
 
 import requests
 from requests import exceptions
+import six
 
 from cinder.i18n import _
 from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
@@ -43,12 +43,9 @@ class Authentication(common.CoprHDResource):
         Authentication token is generated for the specified user after
         validation
 
-        Parameters:
-        username : Name of the user
-        password : Password for the user
-
-        Returns:
-            The authtoken
+        :param username: Name of the user
+        :param password: Password for the user
+        :returns: The authtoken
         """
 
         SEC_REDIRECT = 302

@@ -28,11 +28,9 @@ class Project(common.CoprHDResource):
     def project_query(self, name):
         """Retrieves UUID of project based on its name.
 
-        Parameters:
-            name: name of project
-        Returns: UUID of project
-        Throws:
-            CoprHdError - when project name is not found
+        :param name: name of project
+        :returns: UUID of project
+        :raises: CoprHdError - when project name is not found
         """
         if common.is_uri(name):
             return name
@@ -56,9 +54,8 @@ class Project(common.CoprHDResource):
     def project_list(self, tenant_name):
         """Makes REST API call and retrieves projects based on tenant UUID.
 
-        Parameters: None
-        Returns:
-            List of project UUIDs in JSON response payload
+        :param tenant_name: Name of the tenant
+        :returns: List of project UUIDs in JSON response payload
         """
         tenant_obj = tenant.Tenant(self.ipaddr, self.port)
         tenant_uri = tenant_obj.tenant_query(tenant_name)
@@ -75,10 +72,8 @@ class Project(common.CoprHDResource):
     def project_show_by_uri(self, uri):
         """Makes REST API call and retrieves project derails based on UUID.
 
-        Parameters:
-            uri: UUID of project
-        Returns:
-            Project details in JSON response payload
+        :param uri: UUID of project
+        :returns: Project details in JSON response payload
         """
 
         (s, h) = common.service_json_request(self.ipaddr, self.port,

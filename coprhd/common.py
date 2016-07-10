@@ -16,7 +16,6 @@
 import base64
 import binascii
 import random
-import six
 import string
 
 import eventlet
@@ -25,6 +24,7 @@ from oslo_log import log as logging
 from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import units
+import six
 
 from cinder import context
 from cinder import exception

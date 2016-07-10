@@ -14,6 +14,7 @@
 #    under the License.
 
 import oslo_serialization
+from oslo_utils import units
 import six
 
 from cinder.i18n import _
@@ -60,10 +61,8 @@ class Volume(common.CoprHDResource):
     def list_volumes(self, project):
         """Makes REST API call to list volumes under a project.
 
-        Parameters:
-            project: name of project
-        Returns:
-            List of volumes uuids in JSON response payload
+        :param project: name of project
+        :returns: List of volumes uuids in JSON response payload
         """
 
         volume_uris = self.search_volumes(project)
@@ -98,10 +97,8 @@ class Volume(common.CoprHDResource):
     def show_by_uri(self, uri):
         """Makes REST API call and retrieves volume details based on UUID.
 
-        Parameters:
-            uri: UUID of volume
-        Returns:
-            Volume details in JSON response payload
+        :param uri: UUID of volume
+        :returns: Volume details in JSON response payload
         """
 
         (s, h) = common.service_json_request(self.ipaddr, self.port,
@@ -119,20 +116,18 @@ class Volume(common.CoprHDResource):
                sync, consistencygroup, synctimeout=0):
         """Makes REST API call to create volume under a project.
 
-        Parameters:
-            project_name     : name of the project under which the volume will
-                               be created
-            label            : name of volume
-            size             : size of volume
-            varray           : name of varray
-            vpool            : name of vpool
-            sync             : synchronous request
-            consistencygroup : To create volume under a consistencygroup
-            synctimeout      : Query for task status for "synctimeout" secs.
-                               If the task doesn't complete in synctimeout
-                               secs, an exception is thrown
-        Returns:
-            Created task details in JSON response payload
+        :param project_name     : name of the project under which the volume
+                                  will be created
+        :param label            : name of volume
+        :param size             : size of volume
+        :param varray           : name of varray
+        :param vpool            : name of vpool
+        :param sync             : synchronous request
+        :param consistencygroup : To create volume under a consistencygroup
+        :param synctimeout      : Query for task status for "synctimeout" secs.
+                                  If the task doesn't complete in synctimeout
+                                  secs, an exception is thrown
+        :returns: Created task details in JSON response payload
         """
 
         proj_obj = project.Project(self.ipaddr, self.port)
@@ -195,10 +190,9 @@ class Volume(common.CoprHDResource):
     def volume_query(self, full_project_name, volume_name):
         """Makes REST API call to query the volume by name.
 
-        Parameters:
-            name: name of volume
-        Returns:
-            Volume details in JSON response payload
+        :param volume_name: name of volume
+        :param full_project_name: Full project path
+        :returns: Volume details in JSON response payload
         """
         if common.is_uri(volume_name):
             return volume_name
@@ -273,16 +267,13 @@ class Volume(common.CoprHDResource):
               sync, synctimeout=0):
         """Makes REST API call to clone volume.
 
-        Parameters:
-            new_vol_name     : name of volume
-            resource_uri      : uri of source volume
-            sync             : synchronous request
-            synctimeout      : Query for task status for "synctimeout" secs.
-                               If the task doesn't complete in synctimeout
-                               secs, an exception is thrown
-
-        Returns:
-            Created task details in JSON response payload
+        :param new_vol_name: name of volume
+        :param resource_uri: uri of source volume
+        :param sync        : synchronous request
+        :param synctimeout : Query for task status for "synctimeout" secs.
+                                 If the task doesn't complete in synctimeout
+                                 secs, an exception is thrown
+        :returns: Created task details in JSON response payload
         """
         from cinder.volume.drivers.coprhd.helpers import snapshot
         snap_obj = snapshot.Snapshot(self.ipaddr, self.port)
@@ -377,14 +368,12 @@ class Volume(common.CoprHDResource):
     def show(self, full_project_name, name):
         """Retrieves volume details based on volume name.
 
-        Parameters:
-            full_project_name : project path of the volume
-            name: name of the volume. If the volume is under a project,
+        :param full_project_name : project path of the volume
+        :param name: name of the volume. If the volume is under a project,
             then full XPath needs to be specified.
             Example: If VOL1 is a volume under project PROJ1, then the name
             of volume is PROJ1/VOL1
-        Returns:
-            Volume details in JSON response payload
+        :returns: Volume details in JSON response payload
         """
         if common.is_uri(name):
             return name
@@ -408,7 +397,7 @@ class Volume(common.CoprHDResource):
 
         volume_detail = self.show(full_project_name, volume_name)
         from decimal import Decimal
-        new_size_in_gb = Decimal(Decimal(new_size) / (1024 * 1024 * 1024))
+        new_size_in_gb = Decimal(Decimal(new_size) / (units.Gi))
         current_size = Decimal(volume_detail["provisioned_capacity_gb"])
         if new_size_in_gb <= current_size:
             raise common.CoprHdError(
@@ -440,14 +429,13 @@ class Volume(common.CoprHDResource):
                force_delete=False, coprhdonly=False, synctimeout=0):
         """Deletes a volume based on volume name.
 
-        Parameters:
-            full_project_name : project name
-            name        : name of volume to be deleted
-            sync        : synchronous request
-            force_delete : if true, it will force the delete of internal
+        :param full_project_name: project name
+        :param name        : name of volume to be deleted
+        :param sync        : synchronous request
+        :param force_delete: if true, it will force the delete of internal
                           volumes that have the SUPPORTS_FORCE flag
-            coprhdonly  : to delete volumes from coprHD only
-            synctimeout : Query for task status for "synctimeout" secs. If
+        :param coprhdonly : to delete volumes from coprHD only
+        :param synctimeout: Query for task status for "synctimeout" secs. If
                           the task doesn't complete in synctimeout secs, an
                           exception is thrown
 
@@ -459,12 +447,7 @@ class Volume(common.CoprHDResource):
     # Deletes a volume given a volume uri
     def delete_by_uri(self, uri, sync=False,
                       force_delete=False, coprhdonly=False, synctimeout=0):
-        """Deletes a volume based on volume uri.
-
-        Parameters:
-            uri: uri of volume
-        """
-
+        """Deletes a volume based on volume uri."""
         params = ''
         if force_delete:
             params += '&' if ('?' in params) else '?'
@@ -489,10 +472,8 @@ class Volume(common.CoprHDResource):
     def get_exports_by_uri(self, uri):
         """Makes REST API call to get exports info of a volume.
 
-        Parameters:
-            uri: URI of the volume
-        Returns:
-            Exports details in JSON response payload
+        :param uri: URI of the volume
+        :returns: Exports details in JSON response payload
         """
         (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "GET",
@@ -506,11 +487,9 @@ class Volume(common.CoprHDResource):
     def update(self, prefix_path, name, vpool):
         """Makes REST API call to update a volume information.
 
-        Parameters:
-            name: name of the volume to be updated
-            vpool: name of vpool
-        Returns
-            Created task details in JSON response payload
+        :param name: name of the volume to be updated
+        :param vpool: name of vpool
+        :returns: Created task details in JSON response payload
         """
         namelist = []
 

@@ -69,10 +69,8 @@ class Tenant(common.CoprHDResource):
     def tenant_list(self, uri=None):
         """Returns all the tenants under a parent tenant.
 
-        Parameters:
-            parent: The parent tenant name
-        Returns:
-                JSON payload of tenant list
+        :param uri: The parent tenant name
+        :returns: JSON payload of tenant list
         """
 
         if not uri:

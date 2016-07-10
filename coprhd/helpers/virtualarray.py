@@ -42,10 +42,8 @@ class VirtualArray(common.CoprHDResource):
     def varray_list(self, vdcname=None):
         """Returns all the varrays in a vdc.
 
-        Parameters:
-        vdcname : Name of the Virtual Data Center
-        Returns:
-                JSON payload of varray list
+        :param vdcname: Name of the Virtual Data Center
+        :returns: JSON payload of varray list
         """
         vdcrestapi = None
         if vdcname is not None:
