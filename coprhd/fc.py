@@ -23,7 +23,7 @@ from oslo_log import log as logging
 from cinder import interface
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
-from cinder.zonemanager import utils
+from cinder.zonemanager import utils as fczm_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Make sure volume is exported."""
         pass
 
-    @utils.AddFCZone
+    @fczm_utils.AddFCZone
     def initialize_connection(self, volume, connector):
         """Initializes the connection and returns connection info."""
 
@@ -153,7 +153,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
             'data': properties
         }
 
-    @utils.RemoveFCZone
+    @fczm_utils.RemoveFCZone
     def terminate_connection(self, volume, connector, **kwargs):
         """Driver entry point to detach a volume from an instance."""
 
