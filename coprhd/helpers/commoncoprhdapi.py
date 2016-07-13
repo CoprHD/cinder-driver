@@ -31,8 +31,7 @@ import six
 
 from cinder import exception
 from cinder.i18n import _
-from cinder.volume.drivers.coprhd.helpers.urihelper import (
-    singletonURIHelperInstance)
+from cinder.volume.drivers.coprhd.helpers import urihelper
 
 
 PROD_NAME = 'storageos'
@@ -77,7 +76,6 @@ def _decode_dict(data):
 def json_decode(rsp):
     """Used to decode the JSON encoded response."""
 
-    o = ""
     try:
         o = json.loads(rsp, object_hook=_decode_dict)
     except ValueError:
@@ -144,34 +142,34 @@ def service_json_request(ip_addr, port, http_method, uri, body,
 
         error_msg = None
         if response.status_code == 500:
-            responseText = json_decode(response.text)
-            errorDetails = ""
-            if 'details' in responseText:
-                errorDetails = responseText['details']
+            response_text = json_decode(response.text)
+            error_details = ""
+            if 'details' in response_text:
+                error_details = response_text['details']
             error_msg = (_("CoprHD internal server error. Error details: %s"),
-                         errorDetails)
+                         error_details)
         elif response.status_code == 401:
             error_msg = _("Access forbidden: Authentication required")
         elif response.status_code == 403:
             error_msg = ""
-            errorDetails = ""
-            errorDescription = ""
+            error_details = ""
+            error_description = ""
 
-            responseText = json_decode(response.text)
+            response_text = json_decode(response.text)
 
-            if 'details' in responseText:
-                errorDetails = responseText['details']
+            if 'details' in response_text:
+                error_details = response_text['details']
                 error_msg = (_("%(error_msg)s Error details:"
-                               " %(errorDetails)s"),
+                               " %(error_details)s"),
                              {'error_msg': error_msg,
-                              'errorDetails': errorDetails
+                              'error_details': error_details
                               })
-            elif 'description' in responseText:
-                errorDescription = responseText['description']
+            elif 'description' in response_text:
+                error_description = response_text['description']
                 error_msg = (_("%(error_msg)s Error description:"
-                               " %(errorDescription)s"),
+                               " %(error_description)s"),
                              {'error_msg': error_msg,
-                              'errorDescription': errorDescription
+                              'error_description': error_description
                               })
             else:
                 error_msg = _("Access forbidden: You don't have"
@@ -184,21 +182,21 @@ def service_json_request(ip_addr, port, http_method, uri, body,
             error_msg = six.text_type(response.text)
         elif response.status_code == 503:
             error_msg = ""
-            errorDetails = ""
-            errorDescription = ""
+            error_details = ""
+            error_description = ""
 
-            responseText = json_decode(response.text)
+            response_text = json_decode(response.text)
 
-            if 'code' in responseText:
-                errorCode = responseText['code']
-                error_msg = error_msg + "Error " + six.text_type(errorCode)
+            if 'code' in response_text:
+                errorCode = response_text['code']
+                error_msg = "Error " + six.text_type(errorCode)
 
-            if 'details' in responseText:
-                errorDetails = responseText['details']
-                error_msg = error_msg + ": " + errorDetails
-            elif 'description' in responseText:
-                errorDescription = responseText['description']
-                error_msg = error_msg + ": " + errorDescription
+            if 'details' in response_text:
+                error_details = response_text['details']
+                error_msg = error_msg + ": " + error_details
+            elif 'description' in response_text:
+                error_description = response_text['description']
+                error_msg = error_msg + ": " + error_description
             else:
                 error_msg = _("Service temporarily unavailable:"
                               " The server is temporarily unable to"
@@ -381,8 +379,8 @@ def search_by_tag(resource_search_uri, ipaddr, port):
     :param port: Port number
     """
     # check if the URI passed has both project and name parameters
-    strUri = six.text_type(resource_search_uri)
-    if strUri.__contains__("search") and strUri.__contains__("?tag="):
+    str_uri = six.text_type(resource_search_uri)
+    if 'search' in str_uri and '?tag=' in str_uri:
         # Get the project URI
 
         (s, h) = service_json_request(
@@ -404,7 +402,7 @@ def search_by_tag(resource_search_uri, ipaddr, port):
                                                     " is not in the expected"
                                                     " format, it should end"
                                                     " with ?tag={0}")
-                                                  % strUri))
+                                                  % str_uri))
 
 # Timeout handler for synchronous operations
 
@@ -423,11 +421,11 @@ def block_until_complete(component_type,
                          synctimeout=0):
     global IS_TASK_TIMEOUT
     IS_TASK_TIMEOUT = False
-    if synctimeout:
-        t = threading.Timer(synctimeout, timeout_handler)
-    else:
+
+    if not synctimeout:
         synctimeout = TASK_TIMEOUT
-        t = threading.Timer(synctimeout, timeout_handler)
+    t = threading.Timer(synctimeout, timeout_handler)
+
     t.start()
     while True:
         out = get_task_by_resourceuri_and_taskId(
@@ -470,7 +468,7 @@ def get_task_by_resourceuri_and_taskId(component_type, resource_uri,
                                        task_id, ipAddr, port):
     """Returns the single task details."""
 
-    task_uri_constant = singletonURIHelperInstance.getUri(
+    task_uri_constant = urihelper.singletonURIHelperInstance.getUri(
         component_type, "task")
     (s, h) = service_json_request(
         ipAddr, port, "GET",

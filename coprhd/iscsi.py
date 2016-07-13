@@ -95,7 +95,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         return self.common.delete_consistencygroup(context, group, volumes)
 
     def update_consistencygroup(self, context, group,
-                                add_volumes, remove_volumes):
+                                add_volumes=None, remove_volumes=None):
         """Updates volumes in consistency group."""
         return self.common.update_consistencygroup(group, add_volumes,
                                                    remove_volumes)

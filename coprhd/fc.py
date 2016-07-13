@@ -92,8 +92,8 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Creates a consistencygroup."""
         return self.common.create_consistencygroup(context, group)
 
-    def update_consistencygroup(self, context, group, add_volumes,
-                                remove_volumes):
+    def update_consistencygroup(self, context, group, add_volumes=None,
+                                remove_volumes=None):
         """Updates volumes in consistency group."""
         return self.common.update_consistencygroup(group, add_volumes,
                                                    remove_volumes)
@@ -150,7 +150,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         LOG.debug('FC properties: %s', properties)
         return {
             'driver_volume_type': 'fibre_channel',
-            'data': properties
+            'data': properties,
         }
 
     @fczm_utils.RemoveFCZone
