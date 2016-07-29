@@ -31,6 +31,7 @@ LOG = logging.getLogger(__name__)
 @interface.volumedriver
 class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     """CoprHD FC Driver."""
+    VERSION = "3.0.0.0"
 
     def __init__(self, *args, **kwargs):
         super(EMCCoprHDFCDriver, self).__init__(*args, **kwargs)

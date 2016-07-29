@@ -29,6 +29,7 @@ LOG = logging.getLogger(__name__)
 @interface.volumedriver
 class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
     """CoprHD iSCSI Driver."""
+    VERSION = "3.0.0.0"
 
     def __init__(self, *args, **kwargs):
         super(EMCCoprHDISCSIDriver, self).__init__(*args, **kwargs)

@@ -21,9 +21,9 @@ except ImportError:
 import json
 import re
 import socket
-import threading
 
 import oslo_serialization
+from oslo_utils import timeutils
 from oslo_utils import units
 import requests
 from requests import exceptions
@@ -37,7 +37,6 @@ from cinder.volume.drivers.coprhd.helpers import urihelper
 PROD_NAME = 'storageos'
 
 TIMEOUT_SEC = 20  # 20 SECONDS
-IS_TASK_TIMEOUT = False
 
 global AUTH_TOKEN
 AUTH_TOKEN = None
@@ -404,13 +403,6 @@ def search_by_tag(resource_search_uri, ipaddr, port):
                                                     " with ?tag={0}")
                                                   % str_uri))
 
-# Timeout handler for synchronous operations
-
-
-def timeout_handler():
-    global IS_TASK_TIMEOUT
-    IS_TASK_TIMEOUT = True
-
 
 # Blocks the operation until the task is complete/error out/timeout
 def block_until_complete(component_type,
@@ -419,30 +411,27 @@ def block_until_complete(component_type,
                          ipAddr,
                          port,
                          synctimeout=0):
-    global IS_TASK_TIMEOUT
-    IS_TASK_TIMEOUT = False
 
     if not synctimeout:
         synctimeout = TASK_TIMEOUT
-    t = threading.Timer(synctimeout, timeout_handler)
-
+    t = timeutils.StopWatch(duration=synctimeout)
     t.start()
-    while True:
+    while not t.expired():
         out = get_task_by_resourceuri_and_taskId(
             component_type, resource_uri, task_id, ipAddr, port)
 
         if out:
             if out["state"] == "ready":
 
-                    # cancel the timer and return
-                t.cancel()
+                # stop the timer and return
+                t.stop()
                 break
 
-            # if the status of the task is 'error' then cancel the timer
+            # if the status of the task is 'error' then stop the timer
             # and raise exception
             if out["state"] == "error":
-                # cancel the timer
-                t.cancel()
+                # stop the timer
+                t.stop()
                 if ("service_error" in out and
                         "details" in out["service_error"]):
                     error_message = out["service_error"]["details"]
@@ -454,12 +443,11 @@ def block_until_complete(component_type,
                                     'error_message': error_message
                                     }))
 
-        if IS_TASK_TIMEOUT:
-            IS_TASK_TIMEOUT = False
-            raise CoprHdError(CoprHdError.TIME_OUT,
-                              (_("Task did not complete in %d secs."
-                                 " Operation timed out. Task in CoprHD"
-                                 " will continue") % synctimeout))
+    else:
+        raise CoprHdError(CoprHdError.TIME_OUT,
+                          (_("Task did not complete in %d secs."
+                             " Operation timed out. Task in CoprHD"
+                             " will continue") % synctimeout))
 
     return
 

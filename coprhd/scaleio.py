@@ -61,6 +61,7 @@ CONF.register_opts(scaleio_opts)
 @interface.volumedriver
 class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     """CoprHD ScaleIO Driver."""
+    VERSION = "3.0.0.0"
     server_token = None
 
     def __init__(self, *args, **kwargs):
