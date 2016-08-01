@@ -43,6 +43,8 @@ AUTH_TOKEN = None
 
 TASK_TIMEOUT = 300
 
+URI_TASKS_BY_OPID = '/vdc/tasks/{0}'
+
 
 def _decode_list(data):
     rv = []
@@ -408,7 +410,7 @@ def search_by_tag(resource_search_uri, ipaddr, port):
 def block_until_complete(component_type,
                          resource_uri,
                          task_id,
-                         ipAddr,
+                         ipaddr,
                          port,
                          synctimeout=0):
 
@@ -417,8 +419,11 @@ def block_until_complete(component_type,
     t = timeutils.StopWatch(duration=synctimeout)
     t.start()
     while not t.expired():
-        out = get_task_by_resourceuri_and_taskId(
-            component_type, resource_uri, task_id, ipAddr, port)
+        if component_type == 'block':
+            out = show_task_opid(task_id, ipaddr, port)
+        else:
+            out = get_task_by_resourceuri_and_taskId(
+                component_type, resource_uri, task_id, ipaddr, port)
 
         if out:
             if out["state"] == "ready":
@@ -432,6 +437,7 @@ def block_until_complete(component_type,
             if out["state"] == "error":
                 # stop the timer
                 t.stop()
+                error_message = "Please see logs for more details"
                 if ("service_error" in out and
                         "details" in out["service_error"]):
                     error_message = out["service_error"]["details"]
@@ -452,14 +458,26 @@ def block_until_complete(component_type,
     return
 
 
+def show_task_opid(taskid, ipaddr, port):
+    (s, h) = service_json_request(
+        ipaddr, port,
+        "GET",
+        URI_TASKS_BY_OPID.format(taskid),
+        None)
+    if (not s):
+        return None
+    o = json_decode(s)
+    return o
+
+
 def get_task_by_resourceuri_and_taskId(component_type, resource_uri,
-                                       task_id, ipAddr, port):
+                                       task_id, ipaddr, port):
     """Returns the single task details."""
 
     task_uri_constant = urihelper.singletonURIHelperInstance.getUri(
         component_type, "task")
     (s, h) = service_json_request(
-        ipAddr, port, "GET",
+        ipaddr, port, "GET",
         task_uri_constant.format(resource_uri, task_id), None)
     if not s:
         return None

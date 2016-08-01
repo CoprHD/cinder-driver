@@ -14,7 +14,6 @@
 #    under the License.
 
 import oslo_serialization
-from oslo_utils import timeutils
 
 from cinder.i18n import _
 from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
@@ -106,56 +105,6 @@ class Snapshot(common.CoprHDResource):
             (_("snapshot with the name: "
                "%s Not Found") % snapshot_name))
 
-    def snapshot_show_task_opid(self, otype, snap, taskid):
-        (s, h) = common.service_json_request(
-            self.ipaddr, self.port,
-            "GET",
-            Snapshot.URI_SNAPSHOT_TASKS_BY_OPID.format(taskid),
-            None)
-        if (not s):
-            return None
-        o = common.json_decode(s)
-        return o
-
-    # Blocks the operation until the task is complete/error out/timeout
-    def block_until_complete(self, storageres_type, resuri,
-                             task_id, synctimeout=0):
-        if not synctimeout:
-            synctimeout = self.timeout
-        t = timeutils.StopWatch(duration=synctimeout)
-        t.start()
-        while not t.expired():
-            out = self.snapshot_show_task_opid(
-                storageres_type, resuri, task_id)
-
-            if out:
-                if out["state"] == "ready":
-                    # stop the timer and return
-                    t.stop()
-                    break
-                # if the status of the task is 'error' then stop the timer
-                # and raise exception
-                if out["state"] == "error":
-                    # stop the timer
-                    t.stop()
-                    error_message = "Please see logs for more details"
-                    if("service_error" in out and
-                       "details" in out["service_error"]):
-                        error_message = out["service_error"]["details"]
-                    raise common.CoprHdError(
-                        common.CoprHdError.VALUE_ERR,
-                        (_("Task: %(task_id)s is failed with error: "
-                           "%(error_message)s") %
-                         {'task_id': task_id,
-                          'error_message': error_message}))
-        else:
-            raise common.CoprHdError(common.CoprHdError.TIME_OUT,
-                                     (_("Task did not complete in %d secs."
-                                        " Operation timed out. Task in"
-                                        " CoprHD will continue") %
-                                      synctimeout))
-        return
-
     def storage_resource_query(self,
                                storageres_type,
                                volume_name,
@@ -242,10 +191,10 @@ class Snapshot(common.CoprHDResource):
 
         if sync:
             return (
-                self.block_until_complete(
+                common.block_until_complete(
                     otype,
                     task['resource']['id'],
-                    task["id"], synctimeout)
+                    task["id"], self.ipaddr, self.port, synctimeout)
             )
         else:
             return o
@@ -285,10 +234,10 @@ class Snapshot(common.CoprHDResource):
 
         if sync:
             return (
-                self.block_until_complete(
+                common.block_until_complete(
                     otype,
                     task['resource']['id'],
-                    task["id"], synctimeout)
+                    task["id"], self.ipaddr, self.port, synctimeout)
             )
         else:
             return o
