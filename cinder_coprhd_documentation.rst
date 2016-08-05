@@ -126,7 +126,7 @@ Cinder Driver, sharing the same virtual array and virtual storage pool.
     to take Snapshots.
 
 
-CoprHD Drivers – Single Backend
+CoprHD Drivers - Single Backend
 -------------------------------
 
 **Cinder.conf** 
@@ -200,7 +200,7 @@ Map the volume type created to appropriate backend driver::
   openstack volume type set <typename> --property volume_backend_name=<VOLUME_BACKEND_DRIVER>
 
 
-CoprHD Drivers – Multiple Backends
+CoprHD Drivers - Multiple Backends
 ----------------------------------
 
 **Cinder.conf**
@@ -262,17 +262,17 @@ Restart the cinder-volume service.
 
 Setup the volume-types and volume-type to volume-backend association::
 
-  openstack volume type create “CoprHD High Performance ISCSI”  
-  openstack volume type set “CoprHD High Performance ISCSI” --property  CoprHD:VPOOL=”High Performance ISCSI”
-  openstack volume type set “CoprHD High Performance ISCSI” --property  volume_backend_name= EMCCoprHDISCSIDriver
+  openstack volume type create "CoprHD High Performance ISCSI" 
+  openstack volume type set "CoprHD High Performance ISCSI" --property  CoprHD:VPOOL="High Performance ISCSI"
+  openstack volume type set "CoprHD High Performance ISCSI" --property  volume_backend_name= EMCCoprHDISCSIDriver
 
-  openstack volume type create “CoprHD High Performance FC”
-  openstack volume type set “CoprHD High Performance FC” --property  CoprHD:VPOOL=” High Performance FC”
-  openstack volume type set “CoprHD High Performance FC” --property  volume_backend_name= EMCCoprHDFCDriver
+  openstack volume type create "CoprHD High Performance FC"
+  openstack volume type set "CoprHD High Performance FC" --property  CoprHD:VPOOL="High Performance FC"
+  openstack volume type set "CoprHD High Performance FC" --property  volume_backend_name= EMCCoprHDFCDriver
 
-  openstack volume type create “CoprHD performance SIO”
-  openstack volume type set “CoprHD performance SIO” --property  CoprHD:VPOOL=” Scaled Perf”
-  openstack volume type set “CoprHD performance SIO” --property  volume_backend_name= EMCCoprHDScaleIODriver
+  openstack volume type create "CoprHD performance SIO"
+  openstack volume type set "CoprHD performance SIO" --property  CoprHD:VPOOL="Scaled Perf"
+  openstack volume type set "CoprHD performance SIO" --property  volume_backend_name= EMCCoprHDScaleIODriver
 
 
 ISCSI driver notes
