@@ -860,6 +860,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
                                         'hostIP': '10.0.0.2',
                                         'iopsLimit': None,
                                         'scaleIO_volname': 'test-vol1',
+                                        'scaleIO_volume_id': '1',
                                         'serverIP': '10.10.10.11',
                                         'serverPassword': 'scaleio_password',
                                         'serverPort': 443,

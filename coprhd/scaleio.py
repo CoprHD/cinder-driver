@@ -171,6 +171,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
         properties = {}
         properties['scaleIO_volname'] = volname
+        properties['scaleIO_volume_id'] = volume['provider_id']
         properties['hostIP'] = connector['ip']
         properties[
             'serverIP'] = self.configuration.coprhd_scaleio_rest_gateway_host
@@ -213,6 +214,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         volname = volume['display_name']
         properties = {}
         properties['scaleIO_volname'] = volname
+        properties['scaleIO_volume_id'] = volume['provider_id']
         properties['hostIP'] = connector['ip']
         properties[
             'serverIP'] = self.configuration.coprhd_scaleio_rest_gateway_host

@@ -758,7 +758,7 @@ class EMCCoprHDDriverCommon(object):
                       " that is part of a Consistency Group"))
         except KeyError as e:
             return
-            
+
         src_snapshot_name = None
         src_vol_ref = snapshot['volume']
         new_volume_name = self._get_resource_name(volume, truncate_name)
