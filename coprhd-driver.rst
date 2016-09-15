@@ -1,27 +1,14 @@
-====================================
-CoprHD FC, iSCSI and ScaleIO Drivers
-====================================
+=====================================
+CoprHD FC, iSCSI, and ScaleIO drivers
+=====================================
 
-Introduction
-System requirements
-Supported operations
-Driver Options
-Preparation
-ISCSI driver notes
-FC driver notes
-ScaleIO driver notes
-Consistency group configuration
-
-Introduction
-~~~~~~~~~~~~
-
-CoprHD is an open source software defined storage controller and API platform.
+CoprHD is an open source software-defined storage controller and API platform.
 It enables policy-based management and cloud automation of storage resources
 for block, object and file storage providers.
-For more details please see - http://coprhd.org/
+For more details please see `CoprHD <http://coprhd.org/>`_
 
 EMC ViPR Controller is the commercial offering of CoprHD. These same volume
-drivers can also be considered as EMC ViPR Controller Cinder drivers.
+drivers can also be considered as EMC ViPR Controller cinder drivers.
 
 
 System requirements
@@ -31,7 +18,7 @@ CoprHD version 3.0 is required. Refer to the CoprHD documentation for
 installation and configuration instructions.
 
 If you are using these drivers to integrate with EMC ViPR Controller, use
-EMC ViPR Controller 3.0
+EMC ViPR Controller 3.0.
 
 
 Supported operations
@@ -45,7 +32,7 @@ The following operations are supported:
 - Detach volume
 - Create snapshot
 - Delete snapshot
-- Get Volume Stats
+- Get volume stats
 - Copy image to volume
 - Copy volume to image
 - Clone volume
@@ -59,7 +46,7 @@ The following operations are supported:
 - Delete consistency group snapshot
 
 
-Driver Options
+Driver options
 ~~~~~~~~~~~~~~
 
 The following table contains the configuration options specific to the
@@ -71,213 +58,221 @@ CoprHD volume driver.
 Preparation
 ~~~~~~~~~~~
 
+This involves setting up the CoprHD environment first and then configuring
+the CoprHD cinder driver.
+
 CoprHD
 ------
 
 The CoprHD environment must meet specific configuration requirements to
-support the OpenStack Cinder Driver.
+support the OpenStack cinder driver.
 
 - CoprHD users must be assigned a Tenant Administrator role or a Project
   Administrator role for the Project being used. CoprHD roles are configured
-  by CoprHD Security Administrators.  Consult the CoprHD documentation for
+  by CoprHD Security Administrators. Consult the CoprHD documentation for
   details.
 
-- The following configuration must have been done by a CoprHD System
-  Administrator, using the CoprHD UI, CoprHD API, or CoprHD CLI
+- A CorprHD system administrator must execute the following configurations
+  using the CoprHD UI, CoprHD API, or CoprHD CLI:
 
-  - CoprHD Virtual Array should have been created.
-  - CoprHD Virtual Storage Pool should have been created.
+  - Create CoprHD virtual array
+  - Create CoprHD virtual storage pool
   - Virtual Array designated for iSCSI driver must have an IP network created
-    with appropriate IP storage ports.
-  - Designated tenant for use.
-  - Designated project for use.
+    with appropriate IP storage ports
+  - Designated tenant for use
+  - Designated project for use
 
-Please note each backend can be used to manage one virtual array and one
-virtual storage pool. However, the user can have multiple instances of CoprHD
-Cinder Driver, sharing the same virtual array and virtual storage pool.
+.. note:: Use each back end to manage one virtual array and one virtual
+          storage pool. However, the user can have multiple instances of
+          CoprHD cinder driver, sharing the same virtual array and virtual
+          storage pool.
 
-- A typical CoprHD virtual storage pool will have following values specified
+- A typical CoprHD virtual storage pool will have the following values
+  specified:
 
   - Storage Type: Block
   - Provisioning Type: Thin
   - Protocol: iSCSI/Fibre Channel(FC)/ScaleIO
   - Multi-Volume Consistency: DISABLED OR ENABLED
   - Maximum Native Snapshots: A value greater than 0 allows the OpenStack user
-    to take Snapshots.
+    to take Snapshots
 
 
-CoprHD Drivers - Single Backend
--------------------------------
+CoprHD drivers - Single back end
+--------------------------------
 
-**Cinder.conf**
+**cinder.conf**
 
-Modify /etc/cinder/cinder.conf by adding the following lines,
-substituting values for your environment:
+#. Modify ``/etc/cinder/cinder.conf`` by adding the following lines,
+   substituting values for your environment:
 
-.. code-block:: ini
+   .. code-block:: ini
 
     [coprhd-iscsi]
     volume_driver = cinder.volume.drivers.coprhd.iscsi.EMCCoprHDISCSIDriver
     volume_backend_name = coprhd-iscsi
-    coprhd_hostname=<CoprHD-Host-Name>
-    coprhd_port=4443
-    coprhd_username=<username>
-    coprhd_password=<password>
-    coprhd_tenant=<CoprHD-Tenant-Name>
-    coprhd_project=<CoprHD-Project-Name>
-    coprhd_varray=<CoprHD-Virtual-Array-Name>
-    coprhd_emulate_snapshot= True or False, True if the CoprHD vpool has VMAX or VPLEX as the backing storage
+    coprhd_hostname = <CoprHD-Host-Name>
+    coprhd_port = 4443
+    coprhd_username = <username>
+    coprhd_password = <password>
+    coprhd_tenant = <CoprHD-Tenant-Name>
+    coprhd_project = <CoprHD-Project-Name>
+    coprhd_varray = <CoprHD-Virtual-Array-Name>
+    coprhd_emulate_snapshot = True or False, True if the CoprHD vpool has VMAX or VPLEX as the backing storage
 
-Below fields are needed only for ScaleIO backend.
+#. If you use the ScaleIO back end, add the following lines:
 
-| coprhd_scaleio_rest_gateway_host=<IP or FQDN>
-| coprhd_scaleio_rest_gateway_port=443
-| coprhd_scaleio_rest_server_username=<username>
-| coprhd_scaleio_rest_server_password=<password>
-| scaleio_verify_server_certificate=True or False
-| scaleio_server_certificate_path=<path-of-certificate-for-validation>
+   .. code-block:: ini
 
-Also, add the above driver to the enabled_backends parameter::
+    coprhd_scaleio_rest_gateway_host = <IP or FQDN>
+    coprhd_scaleio_rest_gateway_port = 443
+    coprhd_scaleio_rest_server_username = <username>
+    coprhd_scaleio_rest_server_password = <password>
+    scaleio_verify_server_certificate = True or False
+    scaleio_server_certificate_path = <path-of-certificate-for-validation>
 
-  enabled_backends = coprhd-iscsi
+#. Specify the driver using the ``enabled_backends`` parameter::
 
-Note 1: To utilize the Fibre Channel Driver, replace the volume_driver
-line above with::
+     enabled_backends = coprhd-iscsi
 
-  volume_driver = cinder.volume.drivers.coprhd.fc.EMCCoprHDFCDriver
+   .. note:: To utilize the Fibre Channel driver, replace the
+             ``volume_driver`` line above with::
 
-Note 2: To utilize the ScaleIO Driver, replace the volume_driver line above
-with::
+                 volume_driver = cinder.volume.drivers.coprhd.fc.EMCCoprHDFCDriver
 
-  volume_driver = cinder.volume.drivers.coprhd.fc.EMCCoprHDScaleIODriver
+   .. note:: To utilize the ScaleIO driver, replace the ``volume_driver`` line
+             above with::
 
-Note 3: Set coprhd_emulate_snapshot to True, if the CoprHD vpool has VMAX or
-VPLEX as the backend storage. For these type of backend storages, when user
-tries to create a snapshot, an actual volume gets created in the backend.
+                 volume_driver = cinder.volume.drivers.coprhd.fc.EMCCoprHDScaleIODriver
 
-Modify the rpc_response_timeout value in /etc/cinder/cinder.conf to at least
-5 minutes. If this entry does not already exist within the cinder.conf file,
-please add it in the::
+   .. note:: Set ``coprhd_emulate_snapshot`` to True if the CoprHD vpool has
+             VMAX or VPLEX as the back-end storage. For these type of back-end
+             storages, when a user tries to create a snapshot, an actual volume
+             gets created in the back end.
 
-  [DEFAULT] section
-  rpc_response_timeout=300
+#. Modify the ``rpc_response_timeout`` value in ``/etc/cinder/cinder.conf`` to
+   at least 5 minutes. If this entry does not already exist within the
+   ``cinder.conf`` file, add it in the::
 
-Now, restart the cinder-volume service.
+     [DEFAULT] section
+     rpc_response_timeout = 300
 
-**Volume Type Creation and Extra Specs**
+#. Now, restart the ``cinder-volume`` service.
 
-Create OpenStack volume types with the openstack command::
+**Volume type creation and extra specs**
 
-  openstack volume type create  < typename>
+#. Create OpenStack volume types::
 
-Map the OpenStack volume type to the CoprHD Virtual Pool with the openstack
-command::
+     openstack volume type create <typename>
 
-  openstack volume type set <typename> --property CoprHD:VPOOL=<CoprHD-PoolName>
+#. Map the OpenStack volume type to the CoprHD virtual pool::
 
-Map the volume type created to appropriate backend driver::
+     openstack volume type set <typename> --property CoprHD:VPOOL=<CoprHD-PoolName>
 
-  openstack volume type set <typename> --property volume_backend_name=<VOLUME_BACKEND_DRIVER>
+#. Map the volume type created to appropriate back-end driver::
+
+     openstack volume type set <typename> --property volume_backend_name=<VOLUME_BACKEND_DRIVER>
 
 
-CoprHD Drivers - Multiple Backends
+CoprHD drivers - Multiple backends
 ----------------------------------
 
-**Cinder.conf**
+**cinder.conf**
 
-Add/modify the following entries if you are planning to use multiple back-end
-drivers::
+#. Add or modify the following entries if you are planning to use multiple
+   back-end drivers::
 
-  enabled_backends=coprhddriver-iscsi,coprhddriver-fc, coprhddriver-scaleio
+     enabled_backends=coprhddriver-iscsi,coprhddriver-fc, coprhddriver-scaleio
 
-Add the following at the end of the file:
+#. Add the following at the end of the file:
 
-.. code-block:: ini
+   .. code-block:: ini
 
-  [coprhddriver-iscsi]
-  volume_driver=cinder.volume.drivers.coprhd.iscsi.EMCCoprHDISCSIDriver
-  volume_backend_name=EMCCoprHDISCSIDriver
-  coprhd_hostname=<CoprHD Host Name>
-  coprhd_port=4443
-  coprhd_username=<username>
-  coprhd_password=<password>
-  coprhd_tenant=<CoprHD-Tenant-Name>
-  coprhd_project=<CoprHD-Project-Name>
-  coprhd_varray=<CoprHD-Virtual-Array-Name>
-
-
-  [coprhddriver-fc]
-  volume_driver=cinder.volume.drivers.coprhd.fc.EMCCoprHDFCDriver
-  volume_backend_name=EMCCoprHHDFCDriver
-  coprhd_hostname=<CoprHD Host Name>
-  coprhd_port=4443
-  coprhd_username=<username>
-  coprhd_password=<password>
-  coprhd_tenant=<CoprHD-Tenant-Name>
-  coprhd_project=<CoprHD-Project-Name>
-  coprhd_varray=<CoprHD-Virtual-Array-Name>
+    [coprhddriver-iscsi]
+    volume_driver = cinder.volume.drivers.coprhd.iscsi.EMCCoprHDISCSIDriver
+    volume_backend_name = EMCCoprHDISCSIDriver
+    coprhd_hostname = <CoprHD Host Name>
+    coprhd_port = 4443
+    coprhd_username = <username>
+    coprhd_password = <password>
+    coprhd_tenant = <CoprHD-Tenant-Name>
+    coprhd_project = <CoprHD-Project-Name>
+    coprhd_varray = <CoprHD-Virtual-Array-Name>
 
 
-  [coprhddriver-scaleio]
-  volume_driver = cinder.volume.drivers.coprhd.scaleio.EMCCoprHDScaleIODriver
-  volume_backend_name=EMCCoprHDScaleIODriver
-  coprhd_hostname=<CoprHD Host Name>
-  coprhd_port=4443
-  coprhd_username=<username>
-  coprhd_password=<password>
-  coprhd_tenant=<CoprHD-Tenant-Name>
-  coprhd_project=<CoprHD-Project-Name>
-  coprhd_varray=<CoprHD-Virtual-Array-Name>
-  coprhd_scaleio_rest_gateway_host=<ScaleIO Rest Gateway>
-  coprhd_scaleio_rest_gateway_port=443
-  coprhd_scaleio_rest_server_username=<rest gateway username>
-  coprhd_scaleio_rest_server_password=<rest gateway password>
-  scaleio_verify_server_certificate=True or False
-  scaleio_server_certificate_path=<certificate path>
+    [coprhddriver-fc]
+    volume_driver = cinder.volume.drivers.coprhd.fc.EMCCoprHDFCDriver
+    volume_backend_name = EMCCoprHHDFCDriver
+    coprhd_hostname = <CoprHD Host Name>
+    coprhd_port = 4443
+    coprhd_username = <username>
+    coprhd_password = <password>
+    coprhd_tenant = <CoprHD-Tenant-Name>
+    coprhd_project = <CoprHD-Project-Name>
+    coprhd_varray = <CoprHD-Virtual-Array-Name>
 
 
-Restart the cinder-volume service.
+    [coprhddriver-scaleio]
+    volume_driver = cinder.volume.drivers.coprhd.scaleio.EMCCoprHDScaleIODriver
+    volume_backend_name = EMCCoprHDScaleIODriver
+    coprhd_hostname = <CoprHD Host Name>
+    coprhd_port = 4443
+    coprhd_username = <username>
+    coprhd_password = <password>
+    coprhd_tenant = <CoprHD-Tenant-Name>
+    coprhd_project = <CoprHD-Project-Name>
+    coprhd_varray = <CoprHD-Virtual-Array-Name>
+    coprhd_scaleio_rest_gateway_host = <ScaleIO Rest Gateway>
+    coprhd_scaleio_rest_gateway_port = 443
+    coprhd_scaleio_rest_server_username = <rest gateway username>
+    coprhd_scaleio_rest_server_password = <rest gateway password>
+    scaleio_verify_server_certificate = True or False
+    scaleio_server_certificate_path = <certificate path>
 
 
-**Volume Type Creation and Extra Specs**
+#. Restart the ``cinder-volume`` service.
 
-Setup the volume-types and volume-type to volume-backend association::
+
+**Volume type creation and extra specs**
+
+Setup the ``volume-types`` and ``volume-type`` to ``volume-backend``
+association::
 
   openstack volume type create "CoprHD High Performance ISCSI"
-  openstack volume type set "CoprHD High Performance ISCSI" --property  CoprHD:VPOOL="High Performance ISCSI"
-  openstack volume type set "CoprHD High Performance ISCSI" --property  volume_backend_name= EMCCoprHDISCSIDriver
+  openstack volume type set "CoprHD High Performance ISCSI" --property CoprHD:VPOOL="High Performance ISCSI"
+  openstack volume type set "CoprHD High Performance ISCSI" --property volume_backend_name= EMCCoprHDISCSIDriver
 
   openstack volume type create "CoprHD High Performance FC"
-  openstack volume type set "CoprHD High Performance FC" --property  CoprHD:VPOOL="High Performance FC"
-  openstack volume type set "CoprHD High Performance FC" --property  volume_backend_name= EMCCoprHDFCDriver
+  openstack volume type set "CoprHD High Performance FC" --property CoprHD:VPOOL="High Performance FC"
+  openstack volume type set "CoprHD High Performance FC" --property volume_backend_name= EMCCoprHDFCDriver
 
   openstack volume type create "CoprHD performance SIO"
-  openstack volume type set "CoprHD performance SIO" --property  CoprHD:VPOOL="Scaled Perf"
-  openstack volume type set "CoprHD performance SIO" --property  volume_backend_name= EMCCoprHDScaleIODriver
+  openstack volume type set "CoprHD performance SIO" --property CoprHD:VPOOL="Scaled Perf"
+  openstack volume type set "CoprHD performance SIO" --property volume_backend_name= EMCCoprHDScaleIODriver
 
 
 ISCSI driver notes
 ~~~~~~~~~~~~~~~~~~
 
-* The openstack compute host must be added to the CoprHD along with its ISCSI
-  initiator
-* The ISCSI initiator must be associated with IP network on the CoprHD
+* The OpenStack compute host must be added to the CoprHD along with its ISCSI
+  initiator.
+* The ISCSI initiator must be associated with IP network on the CoprHD.
 
 
 FC driver notes
 ~~~~~~~~~~~~~~~
 
 * The OpenStack compute host must be attached to a VSAN or fabric discovered
-  by CoprHD
+  by CoprHD.
 * There is no need to perform any SAN zoning operations. CoprHD will perform
-  the necessary operations automatically as part of the provisioning process
+  the necessary operations automatically as part of the provisioning process.
 
 
 ScaleIO driver notes
 ~~~~~~~~~~~~~~~~~~~~
 
-* Please install the ScaleIO SDC on the openstack compute host
-* The OpenStack compute host must be added as the SDC to the ScaleIO MDS
+* Install the ScaleIO SDC on the OpenStack Compute host.
+* The OpenStack Compute host must be added as the SDC to the ScaleIO MDS
   using the below commands::
 
     /opt/emc/scaleio/sdc/bin/drv_cfg --add_mdm --ip List of MDM IPs
@@ -286,11 +281,7 @@ ScaleIO driver notes
     /opt/emc/scaleio/sdc/bin/drv_cfg --add_mdm --ip
     10.247.78.45,10.247.78.46,10.247.78.47
 
-Verify the above with the following command. It should list the above
-configuration.
-/opt/emc/scaleio/sdc/bin/drv_cfg --query_mdms
-
-This step has to be repeated whenever the SDC(openstack host in this case)
+This step has to be repeated whenever the SDC (OpenStack host in this case)
 is rebooted.
 
 
@@ -298,24 +289,24 @@ Consistency group configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To enable the support of consistency group and consistency group snapshot
-operations, use a text editor to edit the file /etc/cinder/policy.json and
+operations, use a text editor to edit the file ``/etc/cinder/policy.json`` and
 change the values of the below fields as specified. Upon editing the file,
-restart the c-api service::
+restart the ``c-api`` service::
 
   "consistencygroup:create" : "",
   "consistencygroup:delete": "",
   "consistencygroup:get": "",
   "consistencygroup:get_all": "",
   "consistencygroup:update": "",
-  "consistencygroup:create_cgsnapshot" : "group:nobody",
-  "consistencygroup:delete_cgsnapshot": "group:nobody",
-  "consistencygroup:get_cgsnapshot": "group:nobody",
-  "consistencygroup:get_all_cgsnapshots": "group:nobody",
+  "consistencygroup:create_cgsnapshot" : "",
+  "consistencygroup:delete_cgsnapshot": "",
+  "consistencygroup:get_cgsnapshot": "",
+  "consistencygroup:get_all_cgsnapshots": "",
 
 
-Names of resources in backend storage
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Names of resources in back-end storage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-All the resources like Volume, Consistency Group, Snapshot and Consistency
-Group Snapshot will use the display name in openstack for naming in the
-backend storage.
+All the resources like volume, consistency group, snapshot, and consistency
+group snapshot will use the display name in OpenStack for naming in the
+back-end storage.
