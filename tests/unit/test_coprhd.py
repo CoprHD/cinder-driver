@@ -16,6 +16,7 @@
 from mock import Mock
 
 from cinder import context
+from cinder import exception
 from cinder.objects import fields
 from cinder import test
 from cinder.volume.drivers.coprhd import common as coprhd_common
@@ -193,7 +194,9 @@ def get_test_volume_data(volume_type_id):
                    'project_id': 'project',
                    'display_name': 'test-vol1',
                    'display_description': 'test volume',
-                   'volume_type_id': volume_type_id}
+                   'volume_type_id': volume_type_id,
+                   'provider_id': '1',
+                   }
     return test_volume
 
 
@@ -261,7 +264,8 @@ def get_test_CG_snap_data(volume_type_id):
                         'consistencygroup_id': '123456789',
                         'status': fields.ConsistencyGroupStatus.AVAILABLE,
                         'snapshots': [],
-                        'consistencygroup': get_test_CG_data(volume_type_id)
+                        'consistencygroup': get_test_CG_data(volume_type_id),
+                        'cgsnapshot_id': '1',
                         }
     return test_CG_snapshot
 
@@ -397,9 +401,9 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
 
         self.volume_type_id = self.create_coprhd_volume_type()
 
-        self.stubs.Set(coprhd_iscsi.EMCCoprHDISCSIDriver,
-                       '_get_common_driver',
-                       self._get_mocked_common_driver)
+        self.mock_object(coprhd_iscsi.EMCCoprHDISCSIDriver,
+                         '_get_common_driver',
+                         self._get_mocked_common_driver)
         self.driver = coprhd_iscsi.EMCCoprHDISCSIDriver(
             configuration=self.configuration)
 
@@ -564,9 +568,9 @@ class EMCCoprHDFCDriverTest(test.TestCase):
 
         self.volume_type_id = self.create_coprhd_volume_type()
 
-        self.stubs.Set(coprhd_fc.EMCCoprHDFCDriver,
-                       '_get_common_driver',
-                       self._get_mocked_common_driver)
+        self.mock_object(coprhd_fc.EMCCoprHDFCDriver,
+                         '_get_common_driver',
+                         self._get_mocked_common_driver)
         self.driver = coprhd_fc.EMCCoprHDFCDriver(
             configuration=self.configuration)
 
@@ -637,6 +641,20 @@ class EMCCoprHDFCDriverTest(test.TestCase):
 
         self.driver.delete_snapshot(snapshot_data)
         self.driver.delete_volume(src_vol_data)
+        self.driver.delete_volume(volume_data)
+
+    def test_create_volume_from_cg_snapshot(self):
+        ctx = context.get_admin_context()
+
+        volume_data = get_test_volume_data(self.volume_type_id)
+        cg_snap_data = get_test_CG_snap_data(self.volume_type_id)
+
+        self.driver.create_cgsnapshot(ctx, cg_snap_data, [])
+        self.assertRaises(exception.VolumeBackendAPIException,
+                          self.driver.create_volume_from_snapshot,
+                          volume_data, cg_snap_data)
+
+        self.driver.delete_cgsnapshot(ctx, cg_snap_data, [])
         self.driver.delete_volume(volume_data)
 
     def test_extend_volume(self):
@@ -760,12 +778,12 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
 
         self.volume_type_id = self.create_coprhd_volume_type()
 
-        self.stubs.Set(coprhd_scaleio.EMCCoprHDScaleIODriver,
-                       '_get_common_driver',
-                       self._get_mocked_common_driver)
-        self.stubs.Set(coprhd_scaleio.EMCCoprHDScaleIODriver,
-                       '_get_client_id',
-                       self._get_client_id)
+        self.mock_object(coprhd_scaleio.EMCCoprHDScaleIODriver,
+                         '_get_common_driver',
+                         self._get_mocked_common_driver)
+        self.mock_object(coprhd_scaleio.EMCCoprHDScaleIODriver,
+                         '_get_client_id',
+                         self._get_client_id)
         self.driver = coprhd_scaleio.EMCCoprHDScaleIODriver(
             configuration=self.configuration)
 
