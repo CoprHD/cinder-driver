@@ -18,6 +18,7 @@
 
 from oslo_log import log as logging
 
+from cinder import interface
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
 
@@ -25,6 +26,7 @@ from cinder.volume.drivers.coprhd import common as coprhd_common
 LOG = logging.getLogger(__name__)
 
 
+@interface.volumedriver
 class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
     """CoprHD iSCSI Driver."""
     VERSION = "3.0.0.0"
