@@ -653,6 +653,16 @@ class EMCCoprHDDriverCommon(object):
                           " that is part of a Consistency Group"))
             except KeyError as e:
                 pass
+        else:
+            try:
+                if src_vref['cgsnapshot_id']:
+                    raise coprhd_utils.CoprHdError(
+                        coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
+                        _("Clone can't be taken individually on a volume"
+                          " that is part of a Consistency Group"))
+            except KeyError as e:
+                pass
+
         try:
             (storageres_type,
              storageres_typename) = self.volume_obj.get_storageAttributes(
@@ -862,7 +872,8 @@ class EMCCoprHDDriverCommon(object):
             LOG.info(_LI("No Consistency Group associated with the volume"))
 
         if self.configuration.coprhd_emulate_snapshot:
-            self.create_cloned_volume(snapshot, volume, True, truncate_name)
+            self.create_cloned_volume(
+                snapshot, volume, True, True, truncate_name)
             self.set_volume_tags(
                 snapshot, ['_volume', '_obj_volume_type'], truncate_name)
             return
