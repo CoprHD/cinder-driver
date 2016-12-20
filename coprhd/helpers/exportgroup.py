@@ -285,13 +285,13 @@ class ExportGroup(common.CoprHDResource):
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
                     (_("Please provide valid format volume:"
-                       " lun for parameter %s") %
+                       " lun for parameter %s") % 
                      resType))
             copy = dict()
             if not len(copyParam):
                 raise common.CoprHdError(
                     common.CoprHdError.CMD_LINE_ERR,
-                    (_("Please provide at least one volume for parameter %s") %
+                    (_("Please provide at least one volume for parameter %s") % 
                      resType))
             if resType == "volumes":
                 full_project_name = tenantname + "/" + projectname

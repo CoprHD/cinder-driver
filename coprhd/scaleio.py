@@ -261,7 +261,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         ip_encoded = urllib.parse.quote(sdc_ip, '')
         ip_double_encoded = urllib.parse.quote(ip_encoded, '')
 
-        request = ("https://%s:%s/api/types/Sdc/instances/getByIp::%s/" %
+        request = ("https://%s:%s/api/types/Sdc/instances/getByIp::%s/" % 
                    (server_ip, six.text_type(server_port), ip_double_encoded))
 
         LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
@@ -300,7 +300,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             LOG.info(
                 _LI("Token is invalid, going to re-login and get a new one"))
 
-            login_request = ("https://%s:%s/api/login" %
+            login_request = ("https://%s:%s/api/login" % 
                              (server_ip, six.text_type(server_port)))
             if self.configuration.scaleio_verify_server_certificate:
                 verify_cert = (

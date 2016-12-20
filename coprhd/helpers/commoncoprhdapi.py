@@ -41,6 +41,9 @@ TIMEOUT_SEC = 20  # 20 SECONDS
 global AUTH_TOKEN
 AUTH_TOKEN = None
 
+global VERIFY_CERT
+VERIFY_CERT = False
+
 TASK_TIMEOUT = 300
 
 URI_TASKS_BY_OPID = '/vdc/tasks/{0}'
@@ -110,6 +113,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
     if customheaders:
         headers.update(customheaders)
 
+
     try:
         protocol = "https://"
         if port == 8080:
@@ -120,21 +124,20 @@ def service_json_request(ip_addr, port, http_method, uri, body,
         headers[SEC_AUTHTOKEN_HEADER] = AUTH_TOKEN
 
         if http_method == 'GET':
-            response = requests.get(url, headers=headers, verify=False,
+            response = requests.get(url, headers=headers, verify=VERIFY_CERT,
                                     cookies=cookiejar)
         elif http_method == 'POST':
             response = requests.post(url, data=body, headers=headers,
-                                     verify=False, cookies=cookiejar)
+                                     verify=VERIFY_CERT, cookies=cookiejar)
         elif http_method == 'PUT':
             response = requests.put(url, data=body, headers=headers,
-                                    verify=False, cookies=cookiejar)
+                                    verify=VERIFY_CERT, cookies=cookiejar)
         elif http_method == 'DELETE':
-
-            response = requests.delete(url, headers=headers, verify=False,
+            response = requests.delete(url, headers=headers, verify=VERIFY_CERT,
                                        cookies=cookiejar)
         else:
             raise CoprHdError(CoprHdError.HTTP_ERR,
-                              (_("Unknown/Unsupported HTTP method: %s") %
+                              (_("Unknown/Unsupported HTTP method: %s") % 
                                http_method))
 
         if (response.status_code == requests.codes['ok'] or
@@ -359,7 +362,7 @@ def format_err_msg_and_raise(operation_type, component,
     """
 
     formated_err_msg = (_("Error: Failed to %(operation_type)s"
-                          " %(component)s") %
+                          " %(component)s") % 
                         {'operation_type': operation_type,
                          'component': component
                          })
@@ -444,7 +447,7 @@ def block_until_complete(component_type,
                 raise CoprHdError(CoprHdError.VALUE_ERR,
                                   (_("Task: %(task_id)s"
                                      " is failed with"
-                                     " error: %(error_message)s") %
+                                     " error: %(error_message)s") % 
                                    {'task_id': task_id,
                                     'error_message': error_message
                                     }))

@@ -165,7 +165,7 @@ class Snapshot(common.CoprHDResource):
             raise common.CoprHdError(
                 common.CoprHdError.ENTRY_ALREADY_EXISTS_ERR,
                 (_("Snapshot with name %(snaplabel)s"
-                   " already exists under %(typename)s") %
+                   " already exists under %(typename)s") % 
                  {'snaplabel': snaplabel,
                   'typename': typename
                   }))
