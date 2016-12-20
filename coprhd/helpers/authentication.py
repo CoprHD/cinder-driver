@@ -64,7 +64,7 @@ class Authentication(common.CoprHDResource):
         try:
             if self.port == APISVC_PORT:
                 login_response = requests.get(
-                    url, headers=self.HEADERS, verify=False,
+                    url, headers=self.HEADERS, verify=common.VERIFY_CERT,
                     auth=(username, password), cookies=cookiejar,
                     allow_redirects=False, timeout=common.TIMEOUT_SEC)
                 if login_response.status_code == SEC_REDIRECT:
@@ -78,7 +78,7 @@ class Authentication(common.CoprHDResource):
                                                             " provided")))
                     # Make the second request
                     login_response = requests.get(
-                        location, headers=self.HEADERS, verify=False,
+                        location, headers=self.HEADERS, verify=common.VERIFY_CERT,
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
                     if (login_response.status_code !=
@@ -93,7 +93,7 @@ class Authentication(common.CoprHDResource):
                     # Now provide the credentials
                     login_response = requests.get(
                         location, headers=self.HEADERS,
-                        auth=(username, password), verify=False,
+                        auth=(username, password), verify=common.VERIFY_CERT,
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
                     if login_response.status_code != SEC_REDIRECT:
@@ -121,7 +121,7 @@ class Authentication(common.CoprHDResource):
                     new_headers = self.HEADERS
                     new_headers[SEC_AUTHTOKEN_HEADER] = authtoken
                     login_response = requests.get(
-                        location, headers=new_headers, verify=False,
+                        location, headers=new_headers, verify=common.VERIFY_CERT,
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
                     if login_response.status_code != requests.codes['ok']:
@@ -134,7 +134,7 @@ class Authentication(common.CoprHDResource):
                                  'responsetext': login_response.text}))
             elif self.port == LB_API_PORT:
                 login_response = requests.get(
-                    url, headers=self.HEADERS, verify=False,
+                    url, headers=self.HEADERS, verify=common.VERIFY_CERT,
                     cookies=cookiejar, allow_redirects=False)
 
                 if(login_response.status_code ==
@@ -142,7 +142,8 @@ class Authentication(common.CoprHDResource):
                     # Now provide the credentials
                     login_response = requests.get(
                         url, headers=self.HEADERS, auth=(username, password),
-                        verify=False, cookies=cookiejar, allow_redirects=False)
+                        verify=common.VERIFY_CERT, cookies=cookiejar,
+                        allow_redirects=False)
                 authtoken = None
                 if SEC_AUTHTOKEN_HEADER in login_response.headers:
                     authtoken = login_response.headers[SEC_AUTHTOKEN_HEADER]
