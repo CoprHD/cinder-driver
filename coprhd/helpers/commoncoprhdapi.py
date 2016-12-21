@@ -132,7 +132,8 @@ def service_json_request(ip_addr, port, http_method, uri, body,
             response = requests.put(url, data=body, headers=headers,
                                     verify=VERIFY_CERT, cookies=cookiejar)
         elif http_method == 'DELETE':
-            response = requests.delete(url, headers=headers, verify=VERIFY_CERT,
+            response = requests.delete(url, headers=headers,
+                                       verify=VERIFY_CERT,
                                        cookies=cookiejar)
         else:
             raise CoprHdError(CoprHdError.HTTP_ERR,

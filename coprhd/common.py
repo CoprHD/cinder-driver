@@ -228,7 +228,8 @@ class EMCCoprHDDriverCommon(object):
             raise exception.VolumeBackendAPIException(data=message)
         elif (self.configuration.verify_server_certificate is True and
                 self.configuration.server_certificate_path is not None):
-            coprhd_utils.VERIFY_CERT = self.configuration.server_certificate_path
+            coprhd_utils.VERIFY_CERT = (
+                self.configuration.server_certificate_path)
 
     def authenticate_user(self):
         # we should check to see if we are already authenticated before blindly

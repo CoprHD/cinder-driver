@@ -78,7 +78,8 @@ class Authentication(common.CoprHDResource):
                                                             " provided")))
                     # Make the second request
                     login_response = requests.get(
-                        location, headers=self.HEADERS, verify=common.VERIFY_CERT,
+                        location, headers=self.HEADERS,
+                        verify=common.VERIFY_CERT,
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
                     if (login_response.status_code !=
@@ -121,7 +122,8 @@ class Authentication(common.CoprHDResource):
                     new_headers = self.HEADERS
                     new_headers[SEC_AUTHTOKEN_HEADER] = authtoken
                     login_response = requests.get(
-                        location, headers=new_headers, verify=common.VERIFY_CERT,
+                        location, headers=new_headers,
+                        verify=common.VERIFY_CERT,
                         cookies=cookiejar, allow_redirects=False,
                         timeout=common.TIMEOUT_SEC)
                     if login_response.status_code != requests.codes['ok']:

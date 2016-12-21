@@ -96,7 +96,7 @@ class Snapshot(common.CoprHDResource):
                     storageres_type,
                     resuri,
                     uri['id'])
-                if (False == common.get_node_value(snapshot, 'inactive') and
+                if (common.get_node_value(snapshot, 'inactive') is False and
                         snapshot['name'] == snapshot_name):
                     return snapshot['id']
 
