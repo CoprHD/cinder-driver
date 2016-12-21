@@ -24,7 +24,7 @@ class ConsistencyGroup(common.CoprHDResource):
 
     URI_CONSISTENCY_GROUP = "/block/consistency-groups"
     URI_CONSISTENCY_GROUPS_INSTANCE = URI_CONSISTENCY_GROUP + "/{0}"
-    URI_CONSISTENCY_GROUPS_DEACTIVATE = (URI_CONSISTENCY_GROUPS_INSTANCE +
+    URI_CONSISTENCY_GROUPS_DEACTIVATE = (URI_CONSISTENCY_GROUPS_INSTANCE + 
                                          "/deactivate")
     URI_CONSISTENCY_GROUPS_SEARCH = (
         '/block/consistency-groups/search?project={0}')

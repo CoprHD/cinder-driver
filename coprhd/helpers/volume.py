@@ -65,6 +65,7 @@ class Volume(common.CoprHDResource):
         :returns: List of volumes uuids in JSON response payload
         """
 
+
         volume_uris = self.search_volumes(project)
         volumes = []
         for uri in volume_uris:
@@ -77,6 +78,7 @@ class Volume(common.CoprHDResource):
 
         proj = project.Project(self.ipaddr, self.port)
         project_uri = proj.project_query(project_name)
+
 
         (s, h) = common.service_json_request(self.ipaddr, self.port,
                                              "GET",
@@ -330,7 +332,7 @@ class Volume(common.CoprHDResource):
         if(vol and 'protection' in vol and
                 'full_copies' in vol['protection'] and
                 'replicaState' in vol['protection']['full_copies']):
-            if(vol['protection']['full_copies']['replicaState'] ==
+            if(vol['protection']['full_copies']['replicaState'] == 
                'SYNCHRONIZED'):
                 return True
             return False
@@ -377,7 +379,7 @@ class Volume(common.CoprHDResource):
             return name
         if full_project_name is None:
             raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR,
-                                     (_("Volume %s : not found") %
+                                     (_("Volume %s : not found") % 
                                       six.text_type(name)))
 
         uris = self.search_volumes(full_project_name)

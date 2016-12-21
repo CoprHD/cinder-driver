@@ -113,6 +113,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
     if customheaders:
         headers.update(customheaders)
 
+
     try:
         protocol = "https://"
         if port == 8080:
@@ -136,7 +137,7 @@ def service_json_request(ip_addr, port, http_method, uri, body,
                                        cookies=cookiejar)
         else:
             raise CoprHdError(CoprHdError.HTTP_ERR,
-                              (_("Unknown/Unsupported HTTP method: %s") %
+                              (_("Unknown/Unsupported HTTP method: %s") % 
                                http_method))
 
         if (response.status_code == requests.codes['ok'] or
@@ -361,7 +362,7 @@ def format_err_msg_and_raise(operation_type, component,
     """
 
     formated_err_msg = (_("Error: Failed to %(operation_type)s"
-                          " %(component)s") %
+                          " %(component)s") % 
                         {'operation_type': operation_type,
                          'component': component
                          })
@@ -446,7 +447,7 @@ def block_until_complete(component_type,
                 raise CoprHdError(CoprHdError.VALUE_ERR,
                                   (_("Task: %(task_id)s"
                                      " is failed with"
-                                     " error: %(error_message)s") %
+                                     " error: %(error_message)s") % 
                                    {'task_id': task_id,
                                     'error_message': error_message
                                     }))

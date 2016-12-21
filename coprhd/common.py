@@ -188,7 +188,6 @@ class EMCCoprHDDriverCommon(object):
 
     def check_for_setup_error(self):
         # validate all of the coprhd_* configuration values
-
         if self.configuration.coprhd_hostname is None:
             message = _("coprhd_hostname is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
@@ -248,7 +247,6 @@ class EMCCoprHDDriverCommon(object):
 
     def create_volume(self, vol, driver, truncate_name=False):
         self.authenticate_user()
-
         name = self._get_resource_name(vol, truncate_name)
         size = int(vol['size']) * units.Gi
 
@@ -284,7 +282,6 @@ class EMCCoprHDDriverCommon(object):
     @retry_wrapper
     def create_consistencygroup(self, context, group, truncate_name=False):
         self.authenticate_user()
-
         name = self._get_resource_name(group, truncate_name)
 
         try:
@@ -847,7 +844,6 @@ class EMCCoprHDDriverCommon(object):
     @retry_wrapper
     def delete_volume(self, vol):
         self.authenticate_user()
-
         name = self._get_coprhd_volume_name(vol)
         try:
             full_project_name = ("%s/%s" % (
@@ -1060,7 +1056,6 @@ class EMCCoprHDDriverCommon(object):
     @retry_wrapper
     def terminate_connection(self, volume, protocol, initiator_ports,
                              hostname):
-
         try:
             self.authenticate_user()
             volumename = self._get_coprhd_volume_name(volume)

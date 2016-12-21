@@ -16,7 +16,6 @@
 from cinder.i18n import _
 from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
 
-
 class Tenant(common.CoprHDResource):
 
     URI_SERVICES_BASE = ''
