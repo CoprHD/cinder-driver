@@ -41,6 +41,9 @@ TIMEOUT_SEC = 20  # 20 SECONDS
 global AUTH_TOKEN
 AUTH_TOKEN = None
 
+global VERIFY_CERT
+VERIFY_CERT = False
+
 TASK_TIMEOUT = 300
 
 URI_TASKS_BY_OPID = '/vdc/tasks/{0}'
@@ -120,17 +123,16 @@ def service_json_request(ip_addr, port, http_method, uri, body,
         headers[SEC_AUTHTOKEN_HEADER] = AUTH_TOKEN
 
         if http_method == 'GET':
-            response = requests.get(url, headers=headers, verify=False,
+            response = requests.get(url, headers=headers, verify=VERIFY_CERT,
                                     cookies=cookiejar)
         elif http_method == 'POST':
             response = requests.post(url, data=body, headers=headers,
-                                     verify=False, cookies=cookiejar)
+                                     verify=VERIFY_CERT, cookies=cookiejar)
         elif http_method == 'PUT':
             response = requests.put(url, data=body, headers=headers,
-                                    verify=False, cookies=cookiejar)
+                                    verify=VERIFY_CERT, cookies=cookiejar)
         elif http_method == 'DELETE':
-
-            response = requests.delete(url, headers=headers, verify=False,
+            response = requests.delete(url, headers=headers, verify=VERIFY_CERT,
                                        cookies=cookiejar)
         else:
             raise CoprHdError(CoprHdError.HTTP_ERR,

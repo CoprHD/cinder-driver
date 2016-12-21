@@ -80,7 +80,14 @@ volume_opts = [
     cfg.BoolOpt('coprhd_emulate_snapshot',
                 default=False,
                 help='True | False to indicate if the storage array '
-                'in CoprHD is VMAX or VPLEX')
+                'in CoprHD is VMAX or VPLEX'),
+    cfg.BoolOpt('verify_server_certificate',
+                default=False,
+                help='Verify server certificate, by default certificate '
+                'verification is not performed'),
+    cfg.StrOpt('server_certificate_path',
+               default=None,
+               help='Server certificate path')
 ]
 
 CONF = cfg.CONF
@@ -135,6 +142,7 @@ class EMCCoprHDDriverCommon(object):
         self.configuration.append_config_values(volume_opts)
 
         self.init_coprhd_api_components()
+        self.verify_certificate()
 
         self.stats = {'driver_version': '3.0.0.0',
                       'free_capacity_gb': 'unknown',
@@ -147,7 +155,6 @@ class EMCCoprHDDriverCommon(object):
                       default_backend_name}
 
     def init_coprhd_api_components(self):
-
         coprhd_utils.AUTH_TOKEN = None
 
         # instantiate coprhd api objects for later use
@@ -208,6 +215,20 @@ class EMCCoprHDDriverCommon(object):
         if self.configuration.coprhd_varray is None:
             message = _("coprhd_varray is not set in cinder configuration")
             raise exception.VolumeBackendAPIException(data=message)
+
+    def verify_certificate(self):
+        coprhd_utils.VERIFY_CERT = False
+        if (self.configuration.verify_server_certificate is False):
+            coprhd_utils.VERIFY_CERT = False
+        elif (self.configuration.verify_server_certificate is True and
+              self.configuration.server_certificate_path is None):
+            message = _("verify_server_certificate is True but"
+                        " server_certificate_path is not provided"
+                        " in cinder configuration")
+            raise exception.VolumeBackendAPIException(data=message)
+        elif (self.configuration.verify_server_certificate is True and
+                self.configuration.server_certificate_path is not None):
+            coprhd_utils.VERIFY_CERT = self.configuration.server_certificate_path
 
     def authenticate_user(self):
         # we should check to see if we are already authenticated before blindly
@@ -292,6 +313,7 @@ class EMCCoprHDDriverCommon(object):
     def update_consistencygroup(self, group, add_volumes,
                                 remove_volumes):
         self.authenticate_user()
+
         model_update = {'status': fields.ConsistencyGroupStatus.AVAILABLE}
         cg_uri = self._get_coprhd_cgid(group['id'])
         add_volnames = []
@@ -330,6 +352,7 @@ class EMCCoprHDDriverCommon(object):
     def delete_consistencygroup(self, context, group, volumes,
                                 truncate_name=False):
         self.authenticate_user()
+
         name = self._get_resource_name(group, truncate_name)
         volumes_model_update = []
 
@@ -494,6 +517,7 @@ class EMCCoprHDDriverCommon(object):
     @retry_wrapper
     def delete_cgsnapshot(self, cgsnapshot, snapshots, truncate_name=False):
         self.authenticate_user()
+
         cgsnapshot_id = cgsnapshot['id']
         cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
 
@@ -558,6 +582,7 @@ class EMCCoprHDDriverCommon(object):
             exempt_tags = []
 
         self.authenticate_user()
+
         name = self._get_resource_name(vol, truncate_name)
         full_project_name = ("%s/%s" % (
             self.configuration.coprhd_tenant,
@@ -640,6 +665,7 @@ class EMCCoprHDDriverCommon(object):
     def create_cloned_volume(self, vol, src_vref, truncate_name=False):
         """Creates a clone of the specified volume."""
         self.authenticate_user()
+
         name = self._get_resource_name(vol, truncate_name)
         srcname = self._get_coprhd_volume_name(src_vref)
 
@@ -720,6 +746,7 @@ class EMCCoprHDDriverCommon(object):
     def expand_volume(self, vol, new_size):
         """expands the volume to new_size specified."""
         self.authenticate_user()
+
         volume_name = self._get_coprhd_volume_name(vol)
         size_in_bytes = coprhd_utils.to_bytes("%sG" % new_size)
 
@@ -1365,6 +1392,7 @@ class EMCCoprHDDriverCommon(object):
     def update_volume_stats(self):
         """Retrieve stats info."""
         LOG.debug("Updating volume stats")
+
         self.authenticate_user()
 
         try:
@@ -1385,6 +1413,7 @@ class EMCCoprHDDriverCommon(object):
             if len(vpairs) > 0:
                 free_gb = 0.0
                 used_gb = 0.0
+
                 for vpair in vpairs:
                     if vpair:
                         (s, h) = coprhd_utils.service_json_request(
@@ -1414,6 +1443,7 @@ class EMCCoprHDDriverCommon(object):
     def retype(self, ctxt, volume, new_type, diff, host):
         """changes the vpool type."""
         self.authenticate_user()
+
         volume_name = self._get_coprhd_volume_name(volume)
         vpool_name = new_type['extra_specs']['CoprHD:VPOOL']
 

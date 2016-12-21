@@ -199,7 +199,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         for i in range(len(connector['wwpns'])):
             initiator_port = ':'.join(re.findall(
                 '..',
-                connector['wwpns'][i])).upper()   # Add ":" every two digits
+                connector['wwpns'][i])).upper()  # Add ":" every two digits
             init_ports.append(initiator_port)
 
         return init_ports
