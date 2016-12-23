@@ -637,8 +637,8 @@ class EMCCoprHDDriverCommon(object):
         return self.tag_obj.list_tags(formattedUri)
 
     @retry_wrapper
-    def create_cloned_volume(self, vol, src_vref, isVMAXVol=None,
-                             isClone=True, truncate_name=False):
+    def create_cloned_volume(self, vol, src_vref, truncate_name=False,
+                             isVMAXSnapshot=False, isClone=True):
         """Creates a clone of the specified volume."""
         self.authenticate_user()
         name = self._get_resource_name(vol, truncate_name)
@@ -705,18 +705,16 @@ class EMCCoprHDDriverCommon(object):
             self._raise_or_log_exception(e.err_code, coprhd_err_msg,
                                          log_err_msg)
 
-        if isVMAXVol:
+        if isVMAXSnapshot:
             return
 
         if isClone:
-            new_vol_size = vol['size']
             src_vol_size = src_vref['size']
         else:
-            new_vol_size = vol['size']
             src_vol_size = src_vref['volume_size']
 
-        if new_vol_size > src_vol_size:
-            size_in_bytes = coprhd_utils.to_bytes("%sG" % new_vol_size)
+        if vol['size'] > src_vol_size:
+            size_in_bytes = coprhd_utils.to_bytes("%sG" % vol['size'])
             try:
                 self.volume_obj.expand(
                     ("%s/%s" % (self.configuration.coprhd_tenant,
@@ -765,7 +763,7 @@ class EMCCoprHDDriverCommon(object):
 
         if self.configuration.coprhd_emulate_snapshot:
             self.create_cloned_volume(
-                volume, snapshot, False, False, truncate_name)
+                volume, snapshot, truncate_name, False, False)
             return
 
         if snapshot.get('cgsnapshot_id'):
@@ -873,7 +871,7 @@ class EMCCoprHDDriverCommon(object):
 
         if self.configuration.coprhd_emulate_snapshot:
             self.create_cloned_volume(
-                snapshot, volume, True, True, truncate_name)
+                snapshot, volume, truncate_name, True, True)
             self.set_volume_tags(
                 snapshot, ['_volume', '_obj_volume_type'], truncate_name)
             return
