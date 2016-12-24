@@ -637,31 +637,28 @@ class EMCCoprHDDriverCommon(object):
         return self.tag_obj.list_tags(formattedUri)
 
     @retry_wrapper
-    def create_cloned_volume(self, vol, src_vref, truncate_name=False,
-                             isVMAXSnapshot=False, isClone=True):
+    def create_cloned_volume(
+            self, vol, src_vref, truncate_name=False, isVMAXSnapshot=False):
         """Creates a clone of the specified volume."""
         self.authenticate_user()
         name = self._get_resource_name(vol, truncate_name)
         srcname = self._get_coprhd_volume_name(src_vref)
 
-        if isClone:
-            try:
-                if src_vref['consistencygroup_id']:
-                    raise coprhd_utils.CoprHdError(
-                        coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
-                        _("Clone can't be taken individually on a volume"
-                          " that is part of a Consistency Group"))
-            except KeyError as e:
-                pass
-        else:
+        part_of_cg = False
+        try:
+            if src_vref['consistencygroup_id']:
+                part_of_cg = True
+        except AttributeError as e:
             try:
                 if src_vref['cgsnapshot_id']:
-                    raise coprhd_utils.CoprHdError(
-                        coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
-                        _("Clone can't be taken individually on a volume"
-                          " that is part of a Consistency Group"))
-            except KeyError as e:
+                    part_of_cg = True
+            except AttributeError as e:
                 pass
+        if part_of_cg:
+            raise coprhd_utils.CoprHdError(
+                coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
+                _("Clone can't be taken individually on a volume"
+                  " that is part of a Consistency Group"))
 
         try:
             (storageres_type,
@@ -705,13 +702,13 @@ class EMCCoprHDDriverCommon(object):
             self._raise_or_log_exception(e.err_code, coprhd_err_msg,
                                          log_err_msg)
 
+        try:
+            src_vol_size = src_vref['size']
+        except AttributeError:
+            src_vol_size = src_vref['volume_size']
+
         if isVMAXSnapshot:
             return
-
-        if isClone:
-            src_vol_size = src_vref['size']
-        else:
-            src_vol_size = src_vref['volume_size']
 
         if vol['size'] > src_vol_size:
             size_in_bytes = coprhd_utils.to_bytes("%sG" % vol['size'])
@@ -763,7 +760,7 @@ class EMCCoprHDDriverCommon(object):
 
         if self.configuration.coprhd_emulate_snapshot:
             self.create_cloned_volume(
-                volume, snapshot, truncate_name, False, False)
+                volume, snapshot, truncate_name)
             return
 
         if snapshot.get('cgsnapshot_id'):
@@ -871,7 +868,7 @@ class EMCCoprHDDriverCommon(object):
 
         if self.configuration.coprhd_emulate_snapshot:
             self.create_cloned_volume(
-                snapshot, volume, truncate_name, True, True)
+                snapshot, volume, truncate_name, True)
             self.set_volume_tags(
                 snapshot, ['_volume', '_obj_volume_type'], truncate_name)
             return
