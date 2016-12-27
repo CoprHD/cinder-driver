@@ -46,6 +46,7 @@ from cinder.volume.drivers.coprhd.helpers import tag as coprhd_tag
 from cinder.volume.drivers.coprhd.helpers import (
     virtualarray as coprhd_varray)
 from cinder.volume.drivers.coprhd.helpers import volume as coprhd_vol
+from cinder.volume.drivers.coprhd.helpers import virtualpool as coprhd_vpool
 from cinder.volume import volume_types
 
 
@@ -159,6 +160,10 @@ class EMCCoprHDDriverCommon(object):
 
         # instantiate coprhd api objects for later use
         self.volume_obj = coprhd_vol.Volume(
+            self.configuration.coprhd_hostname,
+            self.configuration.coprhd_port)
+
+        self.vpool_obj = coprhd_vpool.VirtualPool(
             self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
 
@@ -845,7 +850,11 @@ class EMCCoprHDDriverCommon(object):
     @retry_wrapper
     def delete_volume(self, vol):
         self.authenticate_user()
-        name = self._get_coprhd_volume_name(vol)
+        name = self._get_coprhd_volume_name(vol, False, True)
+
+        if name is None:
+            return
+
         try:
             full_project_name = ("%s/%s" % (
                 self.configuration.coprhd_tenant,
@@ -1232,7 +1241,8 @@ class EMCCoprHDDriverCommon(object):
                 rslt[0])
             return rslt_snap['name']
 
-    def _get_coprhd_volume_name(self, vol, verbose=False):
+    def _get_coprhd_volume_name(self, vol, verbose=False,
+                                isVolDel=False):
         tagname = self.OPENSTACK_TAG + ":id:" + vol['id']
         rslt = coprhd_utils.search_by_tag(
             coprhd_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
@@ -1256,6 +1266,10 @@ class EMCCoprHDDriverCommon(object):
                 return {'volume_name': rslt_vol['name'], 'volume_uri': rslt[0]}
             else:
                 return rslt_vol['name']
+
+        elif isVolDel:
+            return
+
         else:
             raise coprhd_utils.CoprHdError(
                 coprhd_utils.CoprHdError.NOT_FOUND_ERR,
@@ -1269,8 +1283,12 @@ class EMCCoprHDDriverCommon(object):
 
         if truncate_name and len(name) > 31:
             name = self._id_to_base64(resource.id)
+            return name
 
-        return name
+        if len(name) > 91:
+            return resource['id']
+        else:
+            return name + "-" + resource['id']
 
     def _get_vpool(self, volume):
         vpool = {}
@@ -1469,3 +1487,28 @@ class EMCCoprHDDriverCommon(object):
                            volume_name)
             self._raise_or_log_exception(e.err_code, coprhd_err_msg,
                                          log_err_msg)
+
+    def _determine_zoning_type(self, vpoolname):
+        """Determines SAN zoning type based on the vpool provided,
+          returns 'True' for automatic zoning & 'False' for manual zoning
+
+        :param vpoolname: Name of the vpool
+        :returns: 'True' or 'False' """
+
+        self.authenticate_user()
+        vpool_uri = self.vpool_obj.vpool_query(vpoolname, "block")
+        vpool_details = self.vpool_obj.vpool_show_uri("block", vpool_uri)
+
+        try:
+            if(len(vpool_details["varrays"]) > 1):
+                raise coprhd_utils.CoprHdError(
+                    coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
+                    _("Vpool is associated with more than one varray,"
+                      "only single varray is supported"))
+        except KeyError:
+            pass
+
+        varray_details = self.varray_obj.varray_show(
+            vpool_details["varrays"][0]['id'])
+
+        return varray_details['auto_san_zoning']
