@@ -1286,7 +1286,7 @@ class EMCCoprHDDriverCommon(object):
             return name
 
         if len(name) > 91:
-            return resource['id']
+            return name[0:91]+"-"+resource['id']
         else:
             return name + "-" + resource['id']
 
