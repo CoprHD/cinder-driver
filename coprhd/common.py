@@ -45,8 +45,8 @@ from cinder.volume.drivers.coprhd.helpers import tag as coprhd_tag
 
 from cinder.volume.drivers.coprhd.helpers import (
     virtualarray as coprhd_varray)
-from cinder.volume.drivers.coprhd.helpers import volume as coprhd_vol
 from cinder.volume.drivers.coprhd.helpers import virtualpool as coprhd_vpool
+from cinder.volume.drivers.coprhd.helpers import volume as coprhd_vol
 from cinder.volume import volume_types
 
 
@@ -97,6 +97,7 @@ CONF.register_opts(volume_opts)
 URI_VPOOL_VARRAY_CAPACITY = '/block/vpools/{0}/varrays/{1}/capacity'
 URI_BLOCK_EXPORTS_FOR_INITIATORS = '/block/exports?initiators={0}'
 EXPORT_RETRY_COUNT = 5
+MAX_NAME_LENGTH = 91
 
 
 def retry_wrapper(func):
@@ -1268,7 +1269,7 @@ class EMCCoprHDDriverCommon(object):
                 return rslt_vol['name']
 
         elif isVolDel:
-            return
+            return None
 
         else:
             raise coprhd_utils.CoprHdError(
@@ -1285,8 +1286,11 @@ class EMCCoprHDDriverCommon(object):
             name = self._id_to_base64(resource.id)
             return name
 
-        if len(name) > 91:
-            return name[0:91]+"-"+resource['id']
+        elif truncate_name:
+            return name
+
+        elif len(name) > MAX_NAME_LENGTH:
+            return name[0:91] + "-" + resource['id']
         else:
             return name + "-" + resource['id']
 
@@ -1488,25 +1492,21 @@ class EMCCoprHDDriverCommon(object):
             self._raise_or_log_exception(e.err_code, coprhd_err_msg,
                                          log_err_msg)
 
-    def _determine_zoning_type(self, vpoolname):
-        """Determines SAN zoning type based on the vpool provided,
-          returns 'True' for automatic zoning & 'False' for manual zoning
+    def determine_zoning_type(self, vpool_name):
+        """Determines SAN zoning type based on the vpool provided.
 
         :param vpoolname: Name of the vpool
         :returns: 'True' or 'False' """
 
         self.authenticate_user()
-        vpool_uri = self.vpool_obj.vpool_query(vpoolname, "block")
+        vpool_uri = self.vpool_obj.vpool_query(vpool_name, "block")
         vpool_details = self.vpool_obj.vpool_show_uri("block", vpool_uri)
 
-        try:
-            if(len(vpool_details["varrays"]) > 1):
-                raise coprhd_utils.CoprHdError(
-                    coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Vpool is associated with more than one varray,"
-                      "only single varray is supported"))
-        except KeyError:
-            pass
+        if(len(vpool_details["varrays"]) > 1):
+            raise coprhd_utils.CoprHdError(
+                coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
+                _("Vpool is associated with more than one varray,"
+                  "only single varray is supported"))
 
         varray_details = self.varray_obj.varray_show(
             vpool_details["varrays"][0]['id'])
