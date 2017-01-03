@@ -96,6 +96,7 @@ CONF.register_opts(volume_opts)
 URI_VPOOL_VARRAY_CAPACITY = '/block/vpools/{0}/varrays/{1}/capacity'
 URI_BLOCK_EXPORTS_FOR_INITIATORS = '/block/exports?initiators={0}'
 EXPORT_RETRY_COUNT = 5
+MAX_NAME_LENGTH = 91
 
 
 def retry_wrapper(func):
@@ -1269,8 +1270,14 @@ class EMCCoprHDDriverCommon(object):
 
         if truncate_name and len(name) > 31:
             name = self._id_to_base64(resource.id)
+            return name
 
-        return name
+        elif truncate_name:
+            return name
+        elif len(name) > MAX_NAME_LENGTH:
+            return name[0:91] + "-" + resource['id']
+        else:
+            return name + "-" + resource['id']
 
     def _get_vpool(self, volume):
         vpool = {}
