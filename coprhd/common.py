@@ -222,10 +222,7 @@ class EMCCoprHDDriverCommon(object):
             coprhd_utils.VERIFY_CERT = False
         elif (self.configuration.verify_server_certificate is True and
               self.configuration.server_certificate_path is None):
-            message = _("verify_server_certificate is True but"
-                        " server_certificate_path is not provided"
-                        " in cinder configuration")
-            raise exception.VolumeBackendAPIException(data=message)
+            coprhd_utils.VERIFY_CERT = True
         elif (self.configuration.verify_server_certificate is True and
                 self.configuration.server_certificate_path is not None):
             coprhd_utils.VERIFY_CERT = (
