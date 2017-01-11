@@ -841,9 +841,10 @@ class EMCCoprHDDriverCommon(object):
                                              log_err_msg)
 
     @retry_wrapper
-    def delete_volume(self, vol):
+    def delete_volume(self, vol, truncate_name=False):
         self.authenticate_user()
-        name = self._get_coprhd_volume_name(vol)
+        name = self._get_coprhd_volume_name(vol, False, truncate_name)
+
         try:
             full_project_name = ("%s/%s" % (
                 self.configuration.coprhd_tenant,
@@ -1230,7 +1231,8 @@ class EMCCoprHDDriverCommon(object):
                 rslt[0])
             return rslt_snap['name']
 
-    def _get_coprhd_volume_name(self, vol, verbose=False):
+    def _get_coprhd_volume_name(self, vol, verbose=False,
+                                truncate_name=False):
         tagname = self.OPENSTACK_TAG + ":id:" + vol['id']
         rslt = coprhd_utils.search_by_tag(
             coprhd_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
@@ -1254,10 +1256,18 @@ class EMCCoprHDDriverCommon(object):
                 return {'volume_name': rslt_vol['name'], 'volume_uri': rslt[0]}
             else:
                 return rslt_vol['name']
+
+        if truncate_name and len(vol['display_name']) > 31:
+            name = self._id_to_base64(vol.id)
+            return name
+
+        if truncate_name:
+            return vol['display_name']
         else:
-            raise coprhd_utils.CoprHdError(
-                coprhd_utils.CoprHdError.NOT_FOUND_ERR,
-                (_("Volume %s not found") % vol['display_name']))
+            if len(vol['display_name']) > MAX_NAME_LENGTH:
+                return vol['display_name'][0:91] + "-" + vol['id']
+            else:
+                return vol['display_name'] + "-" + vol['id']
 
     def _get_resource_name(self, resource, truncate_name=False):
         name = resource.get('display_name', None)
