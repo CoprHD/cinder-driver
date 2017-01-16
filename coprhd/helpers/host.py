@@ -24,6 +24,10 @@ class Host(common.CoprHDResource):
     URI_HOST_DETAILS = "/compute/hosts/{0}"
     URI_HOST_LIST_INITIATORS = "/compute/hosts/{0}/initiators"
     URI_COMPUTE_HOST = "/compute/hosts"
+    URI_SEARCH_HOSTS_BY_TAG = "/compute/hosts/search?tag={0}"
+    URI_HOST_DEACTIVATE = URI_HOST_DETAILS + '/deactivate?detach_storage=true'
+    URI_SEARCH_INITIATORS_BY_TAG = '/compute/initiators/search?tag={0}'
+    URI_INITIATOR_DEACTIVATE = '/compute/initiators/{0}/deactivate'
 
     def query_by_name(self, host_name, tenant_name=None):
         """Search host matching host_name and tenant if tenant_name provided.
@@ -91,3 +95,26 @@ class Host(common.CoprHDResource):
         if inactive:
             return None
         return o
+
+    def delete_host(self, host_uri, detach_storage=True):
+        '''
+        Makes a REST API call to delete a host by its UUID
+        '''
+
+        (s, h) = common.service_json_request(
+            self.ipaddr, self.port, "POST",
+            Host.URI_HOST_DEACTIVATE.format(host_uri),
+            None)
+
+        return
+
+    def delete_initiator(self, initiator_uri):
+        '''
+        Makes a REST API call to delete an initiator by its UUID
+        '''
+        (s, h) = common.service_json_request(
+            self.ipaddr, self.port, "POST",
+            Host.URI_INITIATOR_DEACTIVATE.format(initiator_uri),
+            None)
+
+        return

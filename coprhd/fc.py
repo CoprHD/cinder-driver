@@ -178,7 +178,26 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
                     'target_wwn': target_wwns,
                     'initiator_target_map': initiator_target_map}}
 
-        LOG.debug('Return FC data: %s', data)
+            LOG.debug('Return FC data: %s', data)
+
+        if volumes_count == 0:
+            host_uri = self.common.get_coprhd_host_name(connector)
+
+            if host_uri:
+                self.common.delete_host(host_uri)
+
+            host_initiators_list = []
+            host_initiators = self.common.get_coprhd_host_initiators(connector)
+
+            if host_initiators:
+                if len(host_initiators) > 1:
+                    host_initiators_list = host_initiators
+                    for host_initiator in host_initiators_list:
+                        self.common.delete_host_initiators(host_initiator)
+
+                elif len(host_initiators) == 1:
+                    self.common.delete_host_initiators(host_initiators[0])
+
         return data
 
     def _build_initiator_target_map(self, itls, connector):

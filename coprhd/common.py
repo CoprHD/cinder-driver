@@ -1242,6 +1242,34 @@ class EMCCoprHDDriverCommon(object):
                 rslt[0])
             return rslt_snap['name']
 
+    def get_coprhd_host_name(self, resource, verbose=False):
+
+        tagname = self.OPENSTACK_TAG + resource['host']
+
+        rslt = coprhd_utils.search_by_tag(
+            coprhd_host.Host.URI_SEARCH_HOSTS_BY_TAG.format(tagname),
+            self.configuration.coprhd_hostname,
+            self.configuration.coprhd_port)
+
+        if len(rslt) > 0:
+            return rslt[0]
+        else:
+            return None
+
+    def get_coprhd_host_initiators(self, resource, verbose=False):
+
+        tagname = self.OPENSTACK_TAG + resource['host']
+
+        rslt = coprhd_utils.search_by_tag(
+            coprhd_host.Host.URI_SEARCH_INITIATORS_BY_TAG.format(tagname),
+            self.configuration.coprhd_hostname,
+            self.configuration.coprhd_port)
+
+        if len(rslt) > 0:
+            return rslt
+        else:
+            return None
+
     def _get_coprhd_volume_name(self, vol, verbose=False,
                                 truncate_name=False):
         tagname = self.OPENSTACK_TAG + ":id:" + vol['id']
@@ -1494,3 +1522,13 @@ class EMCCoprHDDriverCommon(object):
                            volume_name)
             self._raise_or_log_exception(e.err_code, coprhd_err_msg,
                                          log_err_msg)
+
+    def delete_host(self, uri):
+        """Deletes a Host based on URI"""
+
+        self.host_obj.delete_host(uri)
+
+    def delete_host_initiators(self, uri):
+        """Deletes an initiator based on URI"""
+
+        self.host_obj.delete_initiator(uri)
