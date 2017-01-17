@@ -125,11 +125,12 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         properties['target_discovered'] = False
         properties['target_wwn'] = []
 
-        init_ports = self._build_initport_list(connector)
+        init_ports, init_nodes = self._build_initport_initnode_list(connector)
         itls = self.common.initialize_connection(volume,
                                                  'FC',
                                                  init_ports,
-                                                 connector['host'])
+                                                 init_nodes,
+                                                 connector)
 
         target_wwns = None
         initiator_target_map = None
@@ -163,7 +164,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         itls = self.common.terminate_connection(volume,
                                                 'FC',
                                                 init_ports,
-                                                connector['host'])
+                                                connector)
 
         volumes_count = self.common.get_exports_count_by_initiators(init_ports)
         if volumes_count > 0:
@@ -222,3 +223,18 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     def retype(self, ctxt, volume, new_type, diff, host):
         """Change the volume type."""
         return self.common.retype(ctxt, volume, new_type, diff, host)
+
+    def _build_initport_initnode_list(self, connector):
+        initPorts = []
+        initNodes = []
+        for i in xrange(len(connector['wwpns'])):
+            initiatorNode = ':'.join(re.findall(
+                '..',
+                connector['wwnns'][i])).upper()   # Add ":" every two digits
+            initiatorPort = ':'.join(re.findall(
+                '..',
+                connector['wwpns'][i])).upper()   # Add ":" every two digits
+            initPorts.append(initiatorPort)
+            initNodes.append(initiatorNode)
+
+        return initPorts, initNodes

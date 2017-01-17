@@ -117,12 +117,16 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
     def initialize_connection(self, volume, connector):
         """Initializes the connection and returns connection info."""
 
+        initiator_nodes = []
+        initiator_node = None
+        initiator_nodes.append(initiator_node)
         initiator_ports = []
         initiator_ports.append(connector['initiator'])
         itls = self.common.initialize_connection(volume,
                                                  'iSCSI',
                                                  initiator_ports,
-                                                 connector['host'])
+                                                 initiator_nodes,
+                                                 connector)
         properties = {}
         properties['target_discovered'] = False
         properties['volume_id'] = volume['id']
@@ -153,7 +157,7 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         self.common.terminate_connection(volume,
                                          'iSCSI',
                                          init_ports,
-                                         connector['host'])
+                                         connector)
 
     def get_volume_stats(self, refresh=False):
         """Get volume status.

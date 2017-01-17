@@ -29,6 +29,7 @@ class ExportGroup(common.CoprHDResource):
     URI_EXPORT_GROUPS_SHOW = URI_EXPORT_GROUP + "/{0}"
     URI_EXPORT_GROUP_SEARCH = '/block/exports/search'
     URI_EXPORT_GROUP_UPDATE = '/block/exports/{0}'
+    URI_EG_TAGS = '/block/exports/{0}/tags'
 
     def exportgroup_remove_volumes_by_uri(self, exportgroup_uri,
                                           volume_id_list, sync=False,
@@ -301,3 +302,40 @@ class ExportGroup(common.CoprHDResource):
                 copy['lun'] = copyParam[1]
             copyEntries.append(copy)
         return copyEntries
+
+    def update(self, exportgroupname, projectname, tenantname, varray,
+               resourcetype, resource_operation, resource_list):
+        """Export group update operation.
+
+        :param exportgroupname   : Name of the export group
+        :param projectname       : name of project
+        :param tenantname        : tenant name
+        :param varray            : Name of varray
+        :param resourcetype      : "host_changes" or "initiator_changes"
+        :param resource_operation: "add" or "remove" host or initiator
+        :param resource_list : List of resources to add or remove
+        :returns: action result
+        """
+        varrayuri = None
+        if varray:
+            varrayObject = virtualarray.VirtualArray(
+                self.ipaddr, self.port)
+            varrayuri = varrayObject.varray_query(varray)
+        exportgroup_uri = self.exportgroup_query(exportgroupname,
+                                                 projectname,
+                                                 tenantname,
+                                                 varrayuri)
+        # get volume uri
+        if tenantname is None:
+            tenantname = ""
+        params = {}
+        add_or_remove_dict = {}
+        if resource_operation == "add":
+            add_or_remove_dict['add'] = resource_list
+        elif resource_operation == "remove":
+            add_or_remove_dict['remove'] = resource_list
+        if resourcetype == "initiator_changes":
+            params['initiator_changes'] = add_or_remove_dict
+
+        o = self.send_json_request(exportgroup_uri, params)
+        return self.check_for_sync(o, sync, synctimeout)
