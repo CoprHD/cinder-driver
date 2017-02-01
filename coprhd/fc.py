@@ -222,7 +222,3 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     def retype(self, ctxt, volume, new_type, diff, host):
         """Change the volume type."""
         return self.common.retype(ctxt, volume, new_type, diff, host)
-
-    def get_volume_info(self, volume_refs, filter_sets):
-        """Ingest CoprHD volumes into IBM PowerVC"""
-        return self.common.get_volume_info(volume_refs, filter_sets)
