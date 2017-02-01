@@ -38,6 +38,7 @@ class Volume(common.CoprHDResource):
     URI_EXPAND = URI_VOLUME + '/expand'
     URI_TAG_VOLUME = URI_VOLUME + "/tags"
     URI_VOLUME_CHANGE_VPOOL = URI_VOLUMES + "/vpool-change"
+    URI_VOLUME_POOL = URI_VOLUME + '/storage-pool'
 
     # Protection REST APIs - clone
     URI_VOLUME_PROTECTION_FULLCOPIES = (
@@ -491,7 +492,7 @@ class Volume(common.CoprHDResource):
         """
         namelist = []
 
-        if type(name) is list:
+        if isinstance(name, list):
             namelist = name
         else:
             namelist.append(name)
@@ -519,3 +520,16 @@ class Volume(common.CoprHDResource):
 
         o = common.json_decode(s)
         return o
+
+    def get_volume_storage_pool(self, vol_uri):
+        """Makes REST API call to get storage pool of volume based on URI.
+
+        :param vol_uri: URI of the volume whose storage pool is required.
+        :returns Storage pool of the given volume"""
+
+        (s, h) = common.service_json_request(self.ipaddr, self.port,
+                                             "GET",
+                                             Volume.URI_VOLUME_POOL.format(
+                                                 vol_uri),
+                                             None)
+        return common.json_decode(s)

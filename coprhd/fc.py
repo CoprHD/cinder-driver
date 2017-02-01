@@ -24,10 +24,13 @@ from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
 from cinder.zonemanager import utils as fczm_utils
 
+from powervc_cinder.volume import discovery_driver
+
 LOG = logging.getLogger(__name__)
 
 
-class EMCCoprHDFCDriver(driver.FibreChannelDriver):
+class EMCCoprHDFCDriver(discovery_driver.VolumeDiscoveryDriver,
+                        driver.FibreChannelDriver):
     """CoprHD FC Driver."""
     VERSION = "3.0.0.0"
 
@@ -222,3 +225,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     def retype(self, ctxt, volume, new_type, diff, host):
         """Change the volume type."""
         return self.common.retype(ctxt, volume, new_type, diff, host)
+
+    def get_volume_info(self, volume_refs, filter_sets):
+        """Ingest CoprHD volumes into IBM PowerVC"""
+        return self.common.get_volume_info(volume_refs, filter_sets)
