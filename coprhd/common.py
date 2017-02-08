@@ -1508,7 +1508,11 @@ class EMCCoprHDDriverCommon(object):
 
         list_result = [{'name': volume['device_label'],
                         'status': 'available',
-                        'size':int(float(volume['requested_capacity_gb']))
+                        'size': int(float(volume['requested_capacity_gb'])),
+                        'restricted_metadata':
+                        {'vdisk_id': volume['native_id'],
+                         'vdisk_name': volume['device_label'],
+                         'vdisk_uid': volume['wwn']},
                         }
                        for volume in list_volumes
                        if volume['varray']['id'] == varray_uri]

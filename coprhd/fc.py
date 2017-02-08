@@ -227,5 +227,5 @@ class EMCCoprHDFCDriver(discovery_driver.VolumeDiscoveryDriver,
         return self.common.retype(ctxt, volume, new_type, diff, host)
 
     def get_volume_info(self, volume_refs, filter_sets):
-        """Ingest CoprHD volumes into IBM PowerVC"""
+        """Retrieves list of volumes for PowerVC volume-onboarding."""
         return self.common.get_volume_info(volume_refs, filter_sets)
