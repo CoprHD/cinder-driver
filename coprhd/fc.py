@@ -181,13 +181,13 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
             LOG.debug('Return FC data: %s', data)
 
         if volumes_count == 0:
-            host_uri = self.common.get_coprhd_host_name(connector)
+            host_uri = self.common.search_host_by_tags(connector)
 
             if host_uri:
                 self.common.delete_host(host_uri)
 
             host_initiators_list = []
-            host_initiators = self.common.get_coprhd_host_initiators(connector)
+            host_initiators = self.common.search_host_initiators(connector)
 
             if host_initiators:
                 if len(host_initiators) > 1:

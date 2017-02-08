@@ -1242,7 +1242,7 @@ class EMCCoprHDDriverCommon(object):
                 rslt[0])
             return rslt_snap['name']
 
-    def get_coprhd_host_name(self, resource, verbose=False):
+    def search_host_by_tags(self, resource, verbose=False):
 
         tagname = self.OPENSTACK_TAG + resource['host']
 
@@ -1256,7 +1256,7 @@ class EMCCoprHDDriverCommon(object):
         else:
             return None
 
-    def get_coprhd_host_initiators(self, resource, verbose=False):
+    def search_host_initiators(self, resource, verbose=False):
 
         tagname = self.OPENSTACK_TAG + resource['host']
 
