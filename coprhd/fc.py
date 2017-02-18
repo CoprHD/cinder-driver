@@ -24,13 +24,17 @@ from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
 from cinder.zonemanager import utils as fczm_utils
 
-from powervc_cinder.volume import discovery_driver
+try:
+    from powervc_cinder.volume import discovery_driver
+    discovery_driver = discovery_driver.VolumeDiscoveryDriver
+except ImportError:
+    discovery_driver = object
 
 LOG = logging.getLogger(__name__)
 
 
-class EMCCoprHDFCDriver(discovery_driver.VolumeDiscoveryDriver,
-                        driver.FibreChannelDriver):
+class EMCCoprHDFCDriver(driver.FibreChannelDriver,
+                        discovery_driver):
     """CoprHD FC Driver."""
     VERSION = "3.0.0.0"
 

@@ -1271,14 +1271,8 @@ class EMCCoprHDDriverCommon(object):
         if truncate_name and len(vol['display_name']) > 31:
             name = self._id_to_base64(vol.id)
             return name
-
-        if truncate_name:
-            return vol['display_name']
         else:
-            if len(vol['display_name']) > MAX_NAME_LENGTH:
-                return vol['display_name'][0:91] + "-" + vol['id']
-            else:
-                return vol['display_name'] + "-" + vol['id']
+            return vol['display_name']
 
     def _get_resource_name(self, resource, truncate_name=False):
         name = resource.get('display_name', None)
@@ -1506,7 +1500,7 @@ class EMCCoprHDDriverCommon(object):
 
         list_volumes = self.volume_obj.list_volumes(project)
 
-        list_result = [{'name': volume['device_label'],
+        list_result = [{'name': volume['name'],
                         'status': 'available',
                         'size': int(float(volume['requested_capacity_gb'])),
                         'restricted_metadata':
