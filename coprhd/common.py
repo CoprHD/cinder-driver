@@ -16,6 +16,7 @@
 import base64
 import binascii
 import random
+import re
 import string
 
 import eventlet
@@ -96,6 +97,7 @@ CONF.register_opts(volume_opts)
 URI_VPOOL_VARRAY_CAPACITY = '/block/vpools/{0}/varrays/{1}/capacity'
 URI_BLOCK_EXPORTS_FOR_INITIATORS = '/block/exports?initiators={0}'
 EXPORT_RETRY_COUNT = 5
+MAX_NAME_LENGTH = 91
 
 
 def retry_wrapper(func):
@@ -593,6 +595,50 @@ class EMCCoprHDDriverCommon(object):
             coprhd_vol.Volume.URI_TAG_VOLUME, vol_uri, vol, exempt_tags)
 
     @retry_wrapper
+    def set_host_tags(self, connector, truncate_name=False):
+               
+        self.authenticate_user()
+        
+        host_resource_id = self.host_obj.query_by_name(
+                            connector['host'])
+        add_tags = []
+        tagname = self.OPENSTACK_TAG + connector['host']
+        add_tags.append(tagname)
+        
+        try:
+            self.tag_obj.tag_resource(
+                coprhd_host.Host.URI_HOST_TAGS,
+                host_resource_id,
+                add_tags,
+                None)
+        except coprhd_utils.CoprHdError as e:
+            if e.err_code == coprhd_utils.CoprHdError.SOS_FAILURE_ERR:
+                LOG.debug(
+                    "Adding the tag failed. CoprHdError: %s", e.msg)
+    
+    @retry_wrapper
+    def set_initiator_tags(self, host_name, resource_id, truncate_name=False):
+        
+        self.authenticate_user()
+        
+        add_tags = []
+        tagname = self.OPENSTACK_TAG + host_name
+                
+        add_tags.append(tagname)
+                   
+        try:
+            self.tag_obj.tag_resource(
+                coprhd_host.Host.URI_INITIATOR_TAGS,
+                resource_id,
+                add_tags,
+                None)
+        except coprhd_utils.CoprHdError as e:
+            if e.err_code == coprhd_utils.CoprHdError.SOS_FAILURE_ERR:
+                LOG.debug(
+                    "Adding the tag failed. CoprHdError: %s", e.msg)
+   
+
+    @retry_wrapper
     def set_tags_for_resource(self, uri, resource_id, resource,
                               exempt_tags=None):
         if exempt_tags is None:
@@ -609,7 +655,6 @@ class EMCCoprHDDriverCommon(object):
             if cTag.startswith(self.OPENSTACK_TAG):
                 remove_tags.append(cTag)
 
-        # Remove existing tags if any
         try:
             if remove_tags:
                 self.tag_obj.tag_resource(uri,
@@ -618,7 +663,7 @@ class EMCCoprHDDriverCommon(object):
                                           remove_tags)
         except coprhd_utils.CoprHdError as e:
             if e.err_code == coprhd_utils.CoprHdError.SOS_FAILURE_ERR:
-                LOG.debug("CoprHdError removing the tag:\n %s", e.msg)
+                LOG.debug("CoprHdError adding the tag:\n %s", e.msg)
 
         # now add the tags for the resource
         add_tags = []
@@ -661,21 +706,29 @@ class EMCCoprHDDriverCommon(object):
         return self.tag_obj.list_tags(formattedUri)
 
     @retry_wrapper
-    def create_cloned_volume(self, vol, src_vref, truncate_name=False):
+    def create_cloned_volume(self, vol, src_vref, truncate_name=False,
+                             isVMAXSnapshot=False):
         """Creates a clone of the specified volume."""
         self.authenticate_user()
 
         name = self._get_resource_name(vol, truncate_name)
         srcname = self._get_coprhd_volume_name(src_vref)
 
+        part_of_cg = False
         try:
             if src_vref['consistencygroup_id']:
-                raise coprhd_utils.CoprHdError(
-                    coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
-                    _("Clone can't be taken individually on a volume"
-                      " that is part of a Consistency Group"))
-        except KeyError as e:
-            pass
+                part_of_cg = True
+        except AttributeError as e:
+            try:
+                if src_vref['cgsnapshot_id']:
+                    part_of_cg = True
+            except AttributeError as e:
+                pass
+        if part_of_cg:
+            raise coprhd_utils.CoprHdError(
+                coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
+                _("Clone can't be taken individually on a volume"
+                  " that is part of a Consistency Group"))
         try:
             (storageres_type,
              storageres_typename) = self.volume_obj.get_storageAttributes(
@@ -720,8 +773,11 @@ class EMCCoprHDDriverCommon(object):
 
         try:
             src_vol_size = src_vref['size']
-        except KeyError:
+        except AttributeError:
             src_vol_size = src_vref['volume_size']
+
+        if isVMAXSnapshot:
+            return
 
         if vol['size'] > src_vol_size:
             size_in_bytes = coprhd_utils.to_bytes("%sG" % vol['size'])
@@ -841,9 +897,10 @@ class EMCCoprHDDriverCommon(object):
                                              log_err_msg)
 
     @retry_wrapper
-    def delete_volume(self, vol):
+    def delete_volume(self, vol, truncate_name=False):
         self.authenticate_user()
-        name = self._get_coprhd_volume_name(vol)
+        name = self._get_coprhd_volume_name(vol, False, truncate_name)
+
         try:
             full_project_name = ("%s/%s" % (
                 self.configuration.coprhd_tenant,
@@ -880,7 +937,7 @@ class EMCCoprHDDriverCommon(object):
             LOG.info(_LI("No Consistency Group associated with the volume"))
 
         if self.configuration.coprhd_emulate_snapshot:
-            self.create_cloned_volume(snapshot, volume, truncate_name)
+            self.create_cloned_volume(snapshot, volume, truncate_name, True)
             self.set_volume_tags(
                 snapshot, ['_volume', '_obj_volume_type'], truncate_name)
             return
@@ -988,7 +1045,7 @@ class EMCCoprHDDriverCommon(object):
     def initialize_connection(self, volume, protocol, initiator_ports,
                               initiator_nodes,
                               connector):
-        """Makes REST API call and retrieves project derails based on UUID.
+        """Makes REST API call and retrieves project details based on UUID.
 
         :param volume: Name of the volume to attach
         :param protocol: Protocol ('fc', 'iscsi' or 'scaleio')
@@ -1001,18 +1058,21 @@ class EMCCoprHDDriverCommon(object):
         try:
             self.authenticate_user()
             volumename = self._get_coprhd_volume_name(volume)
+            
             foundgroupdetails = self._find_exportgroup(initiator_ports)
             if foundgroupdetails:
                 # Check if this export group has same, less or more than
                 # requested initiators.
                 initiators = foundgroupdetails['initiators']
-                if initiators is not None:
+                if len(initiators) > 0:
                     inits_eg = set()
                     for initiator in initiators:
                         inits_eg.add(initiator['initiator_port'])
                     if inits_eg == set(initiator_ports):
+                        
                         # Found an export group having exactly the same
                         # initiators, add volumes to it.
+                        # No tags would be set on initiators or Hosts.
                         LOG.debug(
                             "adding the volume to the exportgroup : %s",
                             volumename)
@@ -1024,12 +1084,20 @@ class EMCCoprHDDriverCommon(object):
                             self.configuration.coprhd_project, [volumename],
                             None, None)
                     elif inits_eg > set(initiator_ports):
+                        
+                        
+                        # In this case, initiators coming from the
+                        # connector are less than ones present in the EG.
                         # Now we create a new export group of Initiator type
                         # and add the requested initiator ports to it.
                         # First we fetch the initiator uris from the existing
                         # export group.
+                        # Tags should not be set on initiators because they
+                        # already existed in ViPR
+                                                 
                         init_ports_uri_list = self.get_init_ports_uri_list(
                             foundgroupdetails['initiators'], initiator_ports)
+                                                                        
                         exp_group_name = connector['host'] + 'SG'
                         # Create a unique name
                         exp_group_name = exp_group_name + '-' + ''.join(
@@ -1063,25 +1131,33 @@ class EMCCoprHDDriverCommon(object):
                             self.configuration.coprhd_project, [volumename],
                             None, None)
                     elif inits_eg < set(initiator_ports):
+                        
+                        # In this case, initiators coming from
+                        # connector are more than initiators present in EG. 
                         # Found an export group with less than requested
                         # initiators. We fetch the host from that export group
                         # & update the host with the remaining initiators.
                         # Then update the export group with those initiators.
                         # Get the host name from the foundgroupdetails
-                        export_group_hosts = foundgroupdetails['hosts']
-                        export_group_host_name = export_group_hosts[
-                            0]['host_name']
+                        # Tags should be set on the initiators which are
+                        # being newly added in ViPR from Cinder Driver.
+                                                                            
+                        export_group_host_name = foundgroupdetails['initiators'][0]['hostname']
+                                             
                         virt_inits_pair_wise = (
                             self._get_formatted_virt_inits(
                                 connector['phy_to_virt_initiators']))
                         # Add initiators to host and set tags for them
+                                                                       
                         self.add_initiator_pairs_to_host(
                             virt_inits_pair_wise,
                             export_group_host_name, protocol)
                         initiators = self.host_obj.list_initiators(
                             export_group_host_name)
+                                                                        
                         init_ports_uri_list = self.get_init_ports_uri_list(
                             initiators, initiator_ports)
+                                                                       
                         try:
                             self.exportgroup_obj.update(
                                 foundgroupdetails['name'],
@@ -1108,6 +1184,7 @@ class EMCCoprHDDriverCommon(object):
                             self.configuration.coprhd_project,
                             [volumename], None, None)
             else:
+                LOG.debug("No matching export group found")
                 # See if any host with the given initiators exists in CoprHD
                 foundhostdetails = self._find_host(initiator_ports)
                 if foundhostdetails:
@@ -1115,13 +1192,15 @@ class EMCCoprHDDriverCommon(object):
                     # initiators
                     initiators = self.host_obj.list_initiators(
                         foundhostdetails['id'])
-                    if initiators is not None:
+                    if len(initiators) > 0:
                         inits_eg = set()
                         for initiator in initiators:
-                            inits_eg.add(initiator['initiator_port'])
+                            inits_eg.add(initiator['name'])
                         if inits_eg == set(initiator_ports):
+                            
                             # Found host having exactly the same initiators,
                             # hence go ahead and create export group for it.
+                            # No tags should be set in this case.
                             LOG.debug(
                                 "creating exportgroup for host: %s",
                                 foundhostdetails['name'])
@@ -1147,10 +1226,12 @@ class EMCCoprHDDriverCommon(object):
                                 self.configuration.coprhd_project,
                                 [volumename], None, None)
                         elif inits_eg > set(initiator_ports):
+                            
                             # Found a host having more than the requested
                             # initiators. Now we go ahead and create an export
                             # group of Initiator type and add only the
                             # requested initiator ports to it.
+                            # No tags should be set in this case.
                             initiators = self.host_obj.list_initiators(
                                 foundhostdetails['id'])
                             init_ports_uri_list = self.get_init_ports_uri_list(
@@ -1186,6 +1267,7 @@ class EMCCoprHDDriverCommon(object):
                                 None, self.configuration.coprhd_project,
                                 [volumename], None, None)
                         elif inits_eg < set(initiator_ports):
+                            
                             # Found a host having less than the requested
                             # initiators. Update the host with the requested
                             # initiator ports
@@ -1220,6 +1302,7 @@ class EMCCoprHDDriverCommon(object):
                                 None, None, self.configuration.coprhd_project,
                                 [volumename], None, None)
                         elif inits_eg & set(initiator_ports):
+                            
                             # Found host having some of its initiators same as
                             # the requested initiators. Add all the requested
                             # initiators to this host and create an Initiator
@@ -1265,15 +1348,17 @@ class EMCCoprHDDriverCommon(object):
                                 None, None, self.configuration.coprhd_project,
                                 [volumename], None, None)
                 else:
+                    
                     # No host containing any of the requested initiator was
                     # found. Therefore create a new host and add the requested
                     # initiators to it
+                    LOG.debug("No export group or host found. Creating new host and export group")
                     try:
                         self.host_obj.create(
                             connector['host'],
-                            'Linux',
+                            'AIX',
                             connector['host'],
-                            self.configuration.vipr_tenant,
+                            self.configuration.coprhd_tenant,
                             usessl=True,
                             osversion=None,
                             autodiscovery=False,
@@ -1284,12 +1369,9 @@ class EMCCoprHDDriverCommon(object):
                         )
                         LOG.info(_("Created host %s") % connector['host'])
                         # Set Openstack tags for the newly create host
-                        host_resource_id = self.host_obj.query_by_name(
-                            connector['host'])
-                        host_resource = {'host': connector['host']}
-                        self.set_tags_for_resource(
-                            coprhd_host.Host.URI_HOST_TAGS, host_resource_id,
-                            host_resource, None)
+                           
+                        self.set_host_tags(connector)
+                        
                     except coprhd_utils.CoprHdError:
                         # Host with the given host name already exists
                         pass
@@ -1298,6 +1380,15 @@ class EMCCoprHDDriverCommon(object):
                         connector['phy_to_virt_initiators'])
                     self.add_initiator_pairs_to_host(
                         virt_inits_pair_wise, connector['host'], protocol)
+                    LOG.debug("Added paired inits to host")
+                    LOG.debug(connector['host'])
+                    host_id = self.host_obj.query_by_name(
+                            connector['host'])
+                    initiators = self.host_obj.list_initiators(
+                                host_id)
+                    LOG.debug("the very new created host's initiators are:")
+                    LOG.debug(initiators)
+                    
                     # Now we create an export group of type Host and add this
                     # host to it, the host initiators will automatically be
                     # fetched create an export group for this host
@@ -1313,6 +1404,29 @@ class EMCCoprHDDriverCommon(object):
                         self.configuration.coprhd_varray,
                         'Host',
                         connector['host'])
+                    LOG.debug("Created an export group with name successfully")
+                    LOG.debug(newexpgroupname)
+                    # Update export group with host
+                    host_list = []
+                    id_of_host_created = self.host_obj.query_by_name(
+                            connector['host'])
+                    host_list.append(id_of_host_created)
+                    self.exportgroup_obj.update(
+                                newexpgroupname,
+                                self.configuration.coprhd_project,
+                                self.configuration.coprhd_tenant,
+                                self.configuration.coprhd_varray,
+                                "host_changes", "add",
+                                host_list)
+                    init_ports_uri_list = self.get_init_ports_uri_list(
+                                initiators, initiator_ports)
+                    self.exportgroup_obj.update(
+                                newexpgroupname,
+                                self.configuration.coprhd_project,
+                                self.configuration.coprhd_tenant,
+                                self.configuration.coprhd_varray,
+                                "initiator_changes", "add",
+                                init_ports_uri_list)
                     LOG.debug(
                         "adding the volume to the exportgroup : %s",
                         volumename)
@@ -1325,8 +1439,7 @@ class EMCCoprHDDriverCommon(object):
                 # CoprHD will perform the zoning. Hence setting the zoning_mode
                 # to a value other than 'fabric'
                 self.configuration.zoning_mode = "CoprHD"
-            else:
-                return self._find_device_info(volume, initiator_ports)
+            return self._find_device_info(volume, initiator_ports)
         except coprhd_utils.CoprHdError as e:
             raise coprhd_utils.CoprHdError(
                 coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
@@ -1519,7 +1632,8 @@ class EMCCoprHDDriverCommon(object):
                 rslt[0])
             return rslt_snap['name']
 
-    def _get_coprhd_volume_name(self, vol, verbose=False):
+    def _get_coprhd_volume_name(self, vol, verbose=False,
+                                truncate_name=False):
         tagname = self.OPENSTACK_TAG + ":id:" + vol['id']
         rslt = coprhd_utils.search_by_tag(
             coprhd_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
@@ -1543,10 +1657,12 @@ class EMCCoprHDDriverCommon(object):
                 return {'volume_name': rslt_vol['name'], 'volume_uri': rslt[0]}
             else:
                 return rslt_vol['name']
+
+        if truncate_name and len(vol['display_name']) > 31:
+            name = self._id_to_base64(vol.id)
+            return name
         else:
-            raise coprhd_utils.CoprHdError(
-                coprhd_utils.CoprHdError.NOT_FOUND_ERR,
-                (_("Volume %s not found") % vol['display_name']))
+            return vol['display_name']
 
     def _get_resource_name(self, resource, truncate_name=False):
         name = resource.get('display_name', None)
@@ -1556,8 +1672,14 @@ class EMCCoprHDDriverCommon(object):
 
         if truncate_name and len(name) > 31:
             name = self._id_to_base64(resource.id)
+            return name
 
-        return name
+        elif truncate_name:
+            return name
+        elif len(name) > MAX_NAME_LENGTH:
+            return name[0:91] + "-" + resource['id']
+        else:
+            return name + "-" + resource['id']
 
     def _get_vpool(self, volume):
         vpool = {}
@@ -1602,6 +1724,7 @@ class EMCCoprHDDriverCommon(object):
     @retry_wrapper
     def _find_exportgroup(self, initiator_ports):
         """Find exportgroup having same, more or less than given initiators."""
+
         foundgroupname = None
         grouplist = self.exportgroup_obj.exportgroup_list(
             self.configuration.coprhd_project,
@@ -1615,13 +1738,16 @@ class EMCCoprHDDriverCommon(object):
                 self.configuration.coprhd_project,
                 self.configuration.coprhd_tenant)
             if groupdetails is not None:
+                
                 if groupdetails['inactive']:
                     continue
                 initiators = groupdetails['initiators']
-                if initiators is not None:
+            
+                if len(initiators) > 0:
                     inits_eg = set()
                     for initiator in initiators:
                         inits_eg.add(initiator['initiator_port'])
+                        
                     if inits_eg == set(initiator_ports):
                         # Check the associated varray
                         if groupdetails['varray']:
@@ -1630,6 +1756,7 @@ class EMCCoprHDDriverCommon(object):
                                 varray_uri)
                             if varray_details['name'] == (
                                     self.configuration.coprhd_varray):
+                                
                                 foundexactgroupdetails = groupdetails
                     elif inits_eg > set(initiator_ports):
                         # Check the associated varray
@@ -1639,6 +1766,7 @@ class EMCCoprHDDriverCommon(object):
                                 varray_uri)
                             if varray_details['name'] == (
                                     self.configuration.coprhd_varray):
+                                
                                 foundmoregroupdetails = groupdetails
                     elif inits_eg < set(initiator_ports):
                         # Check the associated varray
@@ -1648,9 +1776,10 @@ class EMCCoprHDDriverCommon(object):
                                 varray_uri)
                             if varray_details['name'] == (
                                     self.configuration.coprhd_varray):
+                               
                                 foundlessgroupdetails = groupdetails
                     else:
-                        pass
+                        continue
 
         if foundexactgroupdetails:
             LOG.debug("Found exportgroup %s", foundexactgroupdetails['name'])
@@ -1678,10 +1807,11 @@ class EMCCoprHDDriverCommon(object):
 
         for host in hosts:
             initiators = self.host_obj.list_initiators(host['id'])
-            if initiators is not None:
+
+            if len(initiators) > 0:
                 inits_eg = set()
                 for initiator in initiators:
-                    inits_eg.add(initiator['initiator_port'])
+                    inits_eg.add(initiator['name'])
                 if inits_eg == set(initiator_ports):
                     foundexacthostdetails = host
                 elif inits_eg < set(initiator_ports):
@@ -1693,7 +1823,7 @@ class EMCCoprHDDriverCommon(object):
                     foundcommonhostdetails = host
                 else:
                     # No host containing ANY of the requested initiators found
-                    pass
+                    continue
         if foundexacthostdetails:
             return foundexacthostdetails
         elif foundmorehostdetails:
@@ -1838,9 +1968,11 @@ class EMCCoprHDDriverCommon(object):
         :returns: List of uris
         """
         init_ports_uri_list = []
+        
         for initiator in all_initiators:
             if initiator['name'] in initiator_ports:
-                init_ports_uri_list.add(initiator['id'])
+                init_ports_uri_list.append(initiator['id'])       
+        
         return init_ports_uri_list
 
     def add_initiator_pairs_to_host(self, virt_inits_pair_wise,
@@ -1882,21 +2014,101 @@ class EMCCoprHDDriverCommon(object):
                         host_name))
                 first_initiator_resource = {
                     'initiator': virt_inits_pair_wise[i]}
-                self.set_tags_for_resource(coprhd_host.Host.URI_INITIATOR_TAGS,
-                                           first_initiator_resource_id,
-                                           first_initiator_resource, None)
-                # Set tags for the second newly added initiator
-                # to the host
+                                
+                self.set_initiator_tags(host_name,first_initiator_resource_id)
+                                           
+                '''Set tags for the second newly added initiator
+                 to the host'''
                 second_initiator_resource_id = (
                     self.host_obj.query_initiator_by_name(
                         virt_inits_pair_wise[i + 1],
                         host_name))
                 second_initiator_resource = {
                     'initiator': virt_inits_pair_wise[i + 1]}
-                self.set_tags_for_resource(coprhd_host.Host.URI_INITIATOR_TAGS,
-                                           second_initiator_resource_id,
-                                           second_initiator_resource, None)
+                
+                self.set_initiator_tags(host_name,second_initiator_resource_id)
+                                           
 
             except coprhd_utils.CoprHdError as e:
                 pass
         return
+         
+
+    def _fetch_volume_info(self):
+        """Returns a list of all the volumes
+        which are present under a given varray"""
+
+        varray = self.configuration.coprhd_varray
+        varray_uri = self.varray_obj.varray_query(varray)
+
+        project = self.configuration.coprhd_project
+
+        list_volumes = self.volume_obj.list_volumes(project)
+
+        list_result = [{'name': volume['name'],
+                        'status': 'available',
+                        'size': int(float(volume['requested_capacity_gb'])),
+                        'restricted_metadata':
+                        {'vdisk_id': volume['native_id'],
+                         'vdisk_name': volume['device_label'],
+                         'vdisk_uid': volume['wwn']},
+                        }
+                       for volume in list_volumes
+                       if volume['varray']['id'] == varray_uri]
+
+        return list_result
+
+    @retry_wrapper
+    def get_volume_info(self, vol_refs=None, filter_set=None):
+        """Return volume information from the backend.
+
+        :param vol_refs: Dictionary containing k2udid,
+        pg83NAA and uuid.
+        :param filter_set: Dictionary containing data
+        on which volumes would be filtered.
+        :returns Volume details in JSON response payload
+        """
+
+        self.authenticate_user()
+
+        volume_list = self._fetch_volume_info()
+
+        full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
+                                        self.configuration.coprhd_project))
+
+        for volume in volume_list:
+            vol_uri = self.volume_obj.volume_query(
+                full_project_name, volume['name'])
+            exports = self.volume_obj.get_exports_by_uri(vol_uri)
+            storage_pool = self.volume_obj.get_volume_storage_pool(vol_uri)
+            volume['storage_pool'] = storage_pool['storage_pool']['name']
+            if exports['itl']:
+                volume['support'] = {
+                    'status': 'not_supported',
+                    'reasons': ['attached']}
+            else:
+                volume['support'] = {'status': 'supported'}
+            volume['mapped_wwpns'] = []
+            target_wwn = []
+            host_name = []
+            target_LUN = []
+            for itl in exports['itl']:
+                initiator_ports = itl['initiator']['port']
+                volume['mapped_wwpns'].append(initiator_ports)
+                try:
+                    storage_wwpns = itl['target']['port']
+                    target_wwn.append(storage_wwpns)
+                except KeyError:
+                    pass
+                host_names = itl['export']['name']
+                host_name.append(host_names)
+                target_LUNs = itl['hlu']
+                target_LUN.append(target_LUNs)
+            connection_info = {}
+            connection_info['source_wwn'] = volume['mapped_wwpns']
+            connection_info['target_wwn'] = target_wwn
+            connection_info['host_name'] = host_name
+            connection_info['target_LUN'] = target_LUN
+            volume['connection_info'] = connection_info
+
+        return volume_list

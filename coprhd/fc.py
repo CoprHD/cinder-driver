@@ -24,10 +24,14 @@ from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
 from cinder.zonemanager import utils as fczm_utils
 
+from powervc_cinder.volume import discovery_driver
+
+
 LOG = logging.getLogger(__name__)
 
 
-class EMCCoprHDFCDriver(driver.FibreChannelDriver):
+class EMCCoprHDFCDriver(driver.FibreChannelDriver,
+                        discovery_driver.VolumeDiscoveryDriver):
     """CoprHD FC Driver."""
     VERSION = "3.0.0.0"
 
@@ -119,13 +123,14 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     @fczm_utils.AddFCZone
     def initialize_connection(self, volume, connector):
         """Initializes the connection and returns connection info."""
-
+        
         properties = {}
         properties['volume_id'] = volume['id']
         properties['target_discovered'] = False
         properties['target_wwn'] = []
 
         init_ports, init_nodes = self._build_initport_initnode_list(connector)
+                     
         itls = self.common.initialize_connection(volume,
                                                  'FC',
                                                  init_ports,
@@ -238,3 +243,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
             initNodes.append(initiatorNode)
 
         return initPorts, initNodes
+
+    def get_volume_info(self, volume_refs, filter_sets):
+        """Retrieves list of volumes for PowerVC volume-onboarding."""
+        return self.common.get_volume_info(volume_refs, filter_sets)

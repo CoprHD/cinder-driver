@@ -14,6 +14,7 @@
 #    under the License.
 
 import oslo_serialization
+from oslo_log import log as logging
 
 from cinder.i18n import _
 from cinder.volume.drivers.coprhd.helpers import commoncoprhdapi as common
@@ -22,6 +23,7 @@ from cinder.volume.drivers.coprhd.helpers import project
 from cinder.volume.drivers.coprhd.helpers import virtualarray
 from cinder.volume.drivers.coprhd.helpers import volume
 
+LOG = logging.getLogger(__name__)
 
 class ExportGroup(common.CoprHDResource):
 
@@ -179,7 +181,7 @@ class ExportGroup(common.CoprHDResource):
                                                      body)
 
                 o = common.json_decode(s)
-                return o
+                return self.check_for_sync(o, True, 0)
             else:
                 raise
 
@@ -304,7 +306,7 @@ class ExportGroup(common.CoprHDResource):
         return copyEntries
 
     def update(self, exportgroupname, projectname, tenantname, varray,
-               resourcetype, resource_operation, resource_list):
+               resourcetype, resource_operation, resource_list, sync=True, synctimeout=0):
         """Export group update operation.
 
         :param exportgroupname   : Name of the export group
@@ -336,6 +338,10 @@ class ExportGroup(common.CoprHDResource):
             add_or_remove_dict['remove'] = resource_list
         if resourcetype == "initiator_changes":
             params['initiator_changes'] = add_or_remove_dict
-
+        elif resourcetype == "host_changes":
+            params['host_changes'] = add_or_remove_dict
+            
         o = self.send_json_request(exportgroup_uri, params)
         return self.check_for_sync(o, sync, synctimeout)
+
+

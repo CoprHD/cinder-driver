@@ -116,7 +116,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
     def delete_volume(self, volume):
         """Deletes an volume."""
-        self.common.delete_volume(volume)
+        self.common.delete_volume(volume, True)
 
     def create_snapshot(self, snapshot):
         """Creates a snapshot."""
