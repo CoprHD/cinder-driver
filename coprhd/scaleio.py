@@ -188,6 +188,9 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         properties['bandwidthLimit'] = None
         properties['serverToken'] = self.server_token
 
+        initiator_nodes = []
+        initiator_node = None
+        initiator_nodes.append(initiator_node)
         initiator_ports = []
         initiator_port = self._get_client_id(properties['serverIP'],
                                              properties['serverPort'],
@@ -200,7 +203,8 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         self.common.initialize_connection(volume,
                                           'scaleio',
                                           initiator_ports,
-                                          connector['host'])
+                                          initiator_nodes,
+                                          connector)
 
         dictobj = {
             'driver_volume_type': 'scaleio',
@@ -239,7 +243,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         self.common.terminate_connection(volume,
                                          'scaleio',
                                          init_ports,
-                                         connector['host'])
+                                         connector)
 
     def get_volume_stats(self, refresh=False):
         """Get volume status.
