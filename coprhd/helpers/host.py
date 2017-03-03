@@ -22,6 +22,7 @@ from cinder.volume.drivers.coprhd.helpers import tenant
 
 LOG = logging.getLogger(__name__)
 
+
 class Host(common.CoprHDResource):
 
     # All URIs for the Host operations
@@ -32,7 +33,6 @@ class Host(common.CoprHDResource):
     URI_PAIRED_INITIATORS = "/compute/hosts/{0}/paired-initiators"
     URI_HOST_TAGS = "/compute/hosts/{0}/tags"
     URI_INITIATOR_TAGS = "/compute/initiators/{0}/tags"
-
 
     def query_by_name(self, host_name, tenant_name=None):
         """Search host matching host_name and tenant if tenant_name provided.
@@ -145,15 +145,15 @@ class Host(common.CoprHDResource):
         if(isVirtual):
             request['virtual_machine'] = isVirtual
 
-        restapi = Host.URI_COMPUTE_HOST
+        host_create_uri = Host.URI_COMPUTE_HOST
         if(testconnection):
-            restapi = restapi + "?validate_connection=true"
+            host_create_uri = host_create_uri + "?validate_connection=true"
 
         body = json.dumps(request)
         (s, h) = common.service_json_request(
             self.ipaddr, self.port,
             "POST",
-            restapi,
+            host_create_uri,
             body)
         o = common.json_decode(s)
 
@@ -224,8 +224,6 @@ class Host(common.CoprHDResource):
         """
 
         hostUri = self.query_by_name(hostName)
-        LOG.debug("HOST URI:")
-        LOG.debug(hostUri)
         initiatorList = self.list_initiators(hostUri)
         # Match the name and return uri
         for initiator in initiatorList:
@@ -236,7 +234,7 @@ class Host(common.CoprHDResource):
             "Initiator with name " +
             initiatorName +
             " not found")
-        
+
     def get_tenant_id(self, tenantName):
         '''
          Fetch the tenant id
@@ -245,4 +243,3 @@ class Host(common.CoprHDResource):
         tenantId = tenantObj.get_tenant_by_name(tenantName)
 
         return tenantId
-

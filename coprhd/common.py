@@ -596,15 +596,15 @@ class EMCCoprHDDriverCommon(object):
 
     @retry_wrapper
     def set_host_tags(self, connector, truncate_name=False):
-               
+
         self.authenticate_user()
-        
+
         host_resource_id = self.host_obj.query_by_name(
-                            connector['host'])
+            connector['host'])
         add_tags = []
         tagname = self.OPENSTACK_TAG + connector['host']
         add_tags.append(tagname)
-        
+
         try:
             self.tag_obj.tag_resource(
                 coprhd_host.Host.URI_HOST_TAGS,
@@ -614,18 +614,18 @@ class EMCCoprHDDriverCommon(object):
         except coprhd_utils.CoprHdError as e:
             if e.err_code == coprhd_utils.CoprHdError.SOS_FAILURE_ERR:
                 LOG.debug(
-                    "Adding the tag failed. CoprHdError: %s", e.msg)
-    
+                    "Adding tags to Host failed. CoprHdError: %s", e.msg)
+
     @retry_wrapper
     def set_initiator_tags(self, host_name, resource_id, truncate_name=False):
-        
+
         self.authenticate_user()
-        
+
         add_tags = []
         tagname = self.OPENSTACK_TAG + host_name
-                
+
         add_tags.append(tagname)
-                   
+
         try:
             self.tag_obj.tag_resource(
                 coprhd_host.Host.URI_INITIATOR_TAGS,
@@ -635,8 +635,7 @@ class EMCCoprHDDriverCommon(object):
         except coprhd_utils.CoprHdError as e:
             if e.err_code == coprhd_utils.CoprHdError.SOS_FAILURE_ERR:
                 LOG.debug(
-                    "Adding the tag failed. CoprHdError: %s", e.msg)
-   
+                    "Adding tags to Initiator failed. CoprHdError: %s", e.msg)
 
     @retry_wrapper
     def set_tags_for_resource(self, uri, resource_id, resource,
@@ -1058,7 +1057,7 @@ class EMCCoprHDDriverCommon(object):
         try:
             self.authenticate_user()
             volumename = self._get_coprhd_volume_name(volume)
-            
+
             foundgroupdetails = self._find_exportgroup(initiator_ports)
             if foundgroupdetails:
                 # Check if this export group has same, less or more than
@@ -1069,120 +1068,21 @@ class EMCCoprHDDriverCommon(object):
                     for initiator in initiators:
                         inits_eg.add(initiator['initiator_port'])
                     if inits_eg == set(initiator_ports):
-                        
-                        # Found an export group having exactly the same
-                        # initiators, add volumes to it.
-                        # No tags would be set on initiators or Hosts.
-                        LOG.debug(
-                            "adding the volume to the exportgroup : %s",
-                            volumename)
-                        self.exportgroup_obj.exportgroup_add_volumes(
-                            True,
-                            foundgroupdetails['name'],
-                            self.configuration.coprhd_tenant,
-                            None, None, None,
-                            self.configuration.coprhd_project, [volumename],
-                            None, None)
+                        self._found_eg_with_same_initiators(volumename,
+                                                            foundgroupdetails)
+
                     elif inits_eg > set(initiator_ports):
-                        
-                        
-                        # In this case, initiators coming from the
-                        # connector are less than ones present in the EG.
-                        # Now we create a new export group of Initiator type
-                        # and add the requested initiator ports to it.
-                        # First we fetch the initiator uris from the existing
-                        # export group.
-                        # Tags should not be set on initiators because they
-                        # already existed in ViPR
-                                                 
-                        init_ports_uri_list = self.get_init_ports_uri_list(
-                            foundgroupdetails['initiators'], initiator_ports)
-                                                                        
-                        exp_group_name = connector['host'] + 'SG'
-                        # Create a unique name
-                        exp_group_name = exp_group_name + '-' + ''.join(
-                            random.choice(string.ascii_uppercase +
-                                          string.digits)
-                            for x in range(6))
-                        # First create an empty export group of type Initiator
-                        self.exportgroup_obj.exportgroup_create(
-                            exp_group_name,
-                            self.configuration.coprhd_project,
-                            self.configuration.coprhd_tenant,
-                            self.configuration.coprhd_varray,
-                            'Initiator',
-                            None)
-                        # Update the above export group with requested
-                        # Initiators.
-                        self.exportgroup_obj.update(
-                            exp_group_name,
-                            self.configuration.coprhd_project,
-                            self.configuration.coprhd_tenant,
-                            self.configuration.coprhd_varray,
-                            "initiator_changes",
-                            "add",
-                            init_ports_uri_list)
-                        LOG.debug("adding the volume to the exportgroup : %s",
-                                  volumename)
-                        self.exportgroup_obj.exportgroup_add_volumes(
-                            True,
-                            exp_group_name, self.configuration.coprhd_tenant,
-                            None, None, None,
-                            self.configuration.coprhd_project, [volumename],
-                            None, None)
+                        self._found_eg_with_more_initiators(volumename,
+                                                            foundgroupdetails,
+                                                            initiator_ports,
+                                                            connector)
+
                     elif inits_eg < set(initiator_ports):
-                        
-                        # In this case, initiators coming from
-                        # connector are more than initiators present in EG. 
-                        # Found an export group with less than requested
-                        # initiators. We fetch the host from that export group
-                        # & update the host with the remaining initiators.
-                        # Then update the export group with those initiators.
-                        # Get the host name from the foundgroupdetails
-                        # Tags should be set on the initiators which are
-                        # being newly added in ViPR from Cinder Driver.
-                                                                            
-                        export_group_host_name = foundgroupdetails['initiators'][0]['hostname']
-                                             
-                        virt_inits_pair_wise = (
-                            self._get_formatted_virt_inits(
-                                connector['phy_to_virt_initiators']))
-                        # Add initiators to host and set tags for them
-                                                                       
-                        self.add_initiator_pairs_to_host(
-                            virt_inits_pair_wise,
-                            export_group_host_name, protocol)
-                        initiators = self.host_obj.list_initiators(
-                            export_group_host_name)
-                                                                        
-                        init_ports_uri_list = self.get_init_ports_uri_list(
-                            initiators, initiator_ports)
-                                                                       
-                        try:
-                            self.exportgroup_obj.update(
-                                foundgroupdetails['name'],
-                                self.configuration.coprhd_project,
-                                self.configuration.coprhd_tenant,
-                                self.configuration.coprhd_varray,
-                                "initiator_changes", "add",
-                                init_ports_uri_list)
-                        except SOSError as e:
-                            raise coprhd_utils.CoprHdError(
-                                coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
-                                (_("Export group (%(name)s) update"
-                                   " failed:\n%(err)s") %
-                                 {'name': foundgroupdetails['name'],
-                                 'err': six.text_type(e.msg)}))
-                        LOG.debug(
-                            "adding the volume to the exportgroup : %s",
-                            volumename)
-                        self.exportgroup_obj.exportgroup_add_volumes(
-                            True,
-                            foundgroupdetails['name'],
-                            self.configuration.coprhd_tenant,
-                            None, None, None,
-                            self.configuration.coprhd_project,
-                            [volumename], None, None)
+                        self._found_eg_with_less_initiators(volumename,
+                                                            foundgroupdetails,
+                                                            initiator_ports,
+                                                            connector,
+                                                            protocol)
             else:
                 LOG.debug("No matching export group found")
                 # See if any host with the given initiators exists in CoprHD
@@ -1197,244 +1097,25 @@ class EMCCoprHDDriverCommon(object):
                         for initiator in initiators:
                             inits_eg.add(initiator['name'])
                         if inits_eg == set(initiator_ports):
-                            
-                            # Found host having exactly the same initiators,
-                            # hence go ahead and create export group for it.
-                            # No tags should be set in this case.
-                            LOG.debug(
-                                "creating exportgroup for host: %s",
-                                foundhostdetails['name'])
-                            newexpgroupname = foundhostdetails['name'] + 'SG'
-                            newexpgroupname = newexpgroupname + '-' + ''.join(
-                                random.choice(string.ascii_uppercase +
-                                              string.digits)
-                                for x in range(6))
-                            self.exportgroup_obj.exportgroup_create(
-                                newexpgroupname,
-                                self.configuration.coprhd_project,
-                                self.configuration.coprhd_tenant,
-                                self.configuration.coprhd_varray,
-                                'Host',
-                                foundhostdetails['name'])
-                            LOG.debug(
-                                "adding the volume to the exportgroup : %s",
-                                volumename)
-                            self.exportgroup_obj.exportgroup_add_volumes(
-                                True, newexpgroupname,
-                                self.configuration.coprhd_tenant,
-                                None, None, None,
-                                self.configuration.coprhd_project,
-                                [volumename], None, None)
+                            self._found_host_with_same_initiators(
+                                foundhostdetails, volumename)
+
                         elif inits_eg > set(initiator_ports):
-                            
-                            # Found a host having more than the requested
-                            # initiators. Now we go ahead and create an export
-                            # group of Initiator type and add only the
-                            # requested initiator ports to it.
-                            # No tags should be set in this case.
-                            initiators = self.host_obj.list_initiators(
-                                foundhostdetails['id'])
-                            init_ports_uri_list = self.get_init_ports_uri_list(
-                                initiators, initiator_ports)
-                            exp_group_name = connector['host'] + 'SG'
-                            exp_group_name = exp_group_name + '-' + ''.join(
-                                random.choice(string.ascii_uppercase +
-                                              string.digits)
-                                for x in range(6))
-                            # First create an empty export group of type
-                            # Initiator
-                            self.exportgroup_obj.exportgroup_create(
-                                exp_group_name,
-                                self.configuration.coprhd_project,
-                                self.configuration.coprhd_tenant,
-                                self.configuration.coprhd_varray, 'Initiator',
-                                None)
-                            # Update the above export group with requested
-                            # Initiators
-                            self.exportgroup_obj.update(
-                                exp_group_name,
-                                self.configuration.coprhd_project,
-                                self.configuration.coprhd_tenant,
-                                self.configuration.coprhd_varray,
-                                "initiator_changes", "add",
-                                init_ports_uri_list)
-                            LOG.debug(
-                                "adding the volume to the exportgroup : %s",
-                                volumename)
-                            self.exportgroup_obj.exportgroup_add_volumes(
-                                True, exp_group_name,
-                                self.configuration.coprhd_tenant, None, None,
-                                None, self.configuration.coprhd_project,
-                                [volumename], None, None)
+                            self._found_host_with_more_initiators(
+                                foundhostdetails, initiator_ports, connector, volumename)
+
                         elif inits_eg < set(initiator_ports):
-                            
-                            # Found a host having less than the requested
-                            # initiators. Update the host with the requested
-                            # initiator ports
-                            virt_inits_pair_wise = (
-                                self._get_formatted_virt_inits(
-                                    connector['phy_to_virt_initiators']))
-                            # Add initiator pairs to host and set tags for them
-                            self.add_initiator_pairs_to_host(
-                                virt_inits_pair_wise, foundhostdetails['name'],
-                                protocol)
-                            # Now we create an export group of type Host and
-                            # add this updated host to it, the host initiators
-                            # will automatically be fetched.
-                            newexpgroupname = foundhostdetails['name'] + 'SG'
-                            newexpgroupname = newexpgroupname + '-' + ''.join(
-                                random.choice(string.ascii_uppercase +
-                                              string.digits)
-                                for x in range(6))
-                            self.exportgroup_obj.exportgroup_create(
-                                newexpgroupname,
-                                self.configuration.coprhd_project,
-                                self.configuration.coprhd_tenant,
-                                self.configuration.coprhd_varray,
-                                'Host',
-                                foundhostdetails['name'])
-                            LOG.debug(
-                                "adding the volume to the exportgroup : %s",
-                                volumename)
-                            self.exportgroup_obj.exportgroup_add_volumes(
-                                True, newexpgroupname,
-                                self.configuration.coprhd_tenant, None,
-                                None, None, self.configuration.coprhd_project,
-                                [volumename], None, None)
+                            self._found_host_with_less_initiators(
+                                connector, foundhostdetails, protocol, volumename)
+
                         elif inits_eg & set(initiator_ports):
-                            
-                            # Found host having some of its initiators same as
-                            # the requested initiators. Add all the requested
-                            # initiators to this host and create an Initiator
-                            # type export group with the requested initiators.
-                            virt_inits_pair_wise = (
-                                self._get_formatted_virt_inits(
-                                    connector['phy_to_virt_initiators']))
-                            self.add_initiator_pairs_to_host(
-                                virt_inits_pair_wise, foundhostdetails['name'],
-                                protocol)
-                            initiators = self.host_obj.list_initiators(
-                                foundhostdetails['id'])
-                            init_ports_uri_list = self.get_init_ports_uri_list(
-                                initiators, initiator_ports)
-                            exp_group_name = connector['host'] + 'SG'
-                            exp_group_name = exp_group_name + '-' + ''.join(
-                                random.choice(string.ascii_uppercase +
-                                              string.digits)
-                                for x in range(6))
-                            # First create an empty export group of type
-                            # Initiator
-                            self.exportgroup_obj.exportgroup_create(
-                                exp_group_name,
-                                self.configuration.coprhd_project,
-                                self.configuration.coprhd_tenant,
-                                self.configuration.coprhd_varray,
-                                'Initiator', None)
-                            # Update the above export group with requested
-                            # Initiators
-                            self.exportgroup_obj.update(
-                                exp_group_name,
-                                self.configuration.coprhd_project,
-                                self.configuration.coprhd_tenant,
-                                self.configuration.coprhd_varray,
-                                "initiator_changes", "add",
-                                init_ports_uri_list)
-                            LOG.debug(
-                                "adding the volume to the exportgroup : %s",
-                                volumename)
-                            self.exportgroup_obj.exportgroup_add_volumes(
-                                True, exp_group_name,
-                                self.configuration.coprhd_tenant, None,
-                                None, None, self.configuration.coprhd_project,
-                                [volumename], None, None)
+                            self._found_host_with_some_initiators(
+                                connector, foundhostdetails, protocol, initiator_ports, volumename)
                 else:
-                    
-                    # No host containing any of the requested initiator was
-                    # found. Therefore create a new host and add the requested
-                    # initiators to it
-                    LOG.debug("No export group or host found. Creating new host and export group")
-                    try:
-                        self.host_obj.create(
-                            connector['host'],
-                            'AIX',
-                            connector['host'],
-                            self.configuration.coprhd_tenant,
-                            usessl=True,
-                            osversion=None,
-                            autodiscovery=False,
-                            bootvolume=None,
-                            project=None,
-                            testconnection=None,
-                            isVirtual=True
-                        )
-                        LOG.info(_("Created host %s") % connector['host'])
-                        # Set Openstack tags for the newly create host
-                           
-                        self.set_host_tags(connector)
-                        
-                    except coprhd_utils.CoprHdError:
-                        # Host with the given host name already exists
-                        pass
-                    # Just add the requested initiators to it
-                    virt_inits_pair_wise = self._get_formatted_virt_inits(
-                        connector['phy_to_virt_initiators'])
-                    self.add_initiator_pairs_to_host(
-                        virt_inits_pair_wise, connector['host'], protocol)
-                    LOG.debug("Added paired inits to host")
-                    LOG.debug(connector['host'])
-                    host_id = self.host_obj.query_by_name(
-                            connector['host'])
-                    initiators = self.host_obj.list_initiators(
-                                host_id)
-                    LOG.debug("the very new created host's initiators are:")
-                    LOG.debug(initiators)
-                    
-                    # Now we create an export group of type Host and add this
-                    # host to it, the host initiators will automatically be
-                    # fetched create an export group for this host
-                    newexpgroupname = connector['host'] + 'SG'
-                    newexpgroupname = newexpgroupname + '-' + ''.join(
-                        random.choice(string.ascii_uppercase +
-                                      string.digits)
-                        for x in range(6))
-                    self.exportgroup_obj.exportgroup_create(
-                        newexpgroupname,
-                        self.configuration.coprhd_project,
-                        self.configuration.coprhd_tenant,
-                        self.configuration.coprhd_varray,
-                        'Host',
-                        connector['host'])
-                    LOG.debug("Created an export group with name successfully")
-                    LOG.debug(newexpgroupname)
-                    # Update export group with host
-                    host_list = []
-                    id_of_host_created = self.host_obj.query_by_name(
-                            connector['host'])
-                    host_list.append(id_of_host_created)
-                    self.exportgroup_obj.update(
-                                newexpgroupname,
-                                self.configuration.coprhd_project,
-                                self.configuration.coprhd_tenant,
-                                self.configuration.coprhd_varray,
-                                "host_changes", "add",
-                                host_list)
-                    init_ports_uri_list = self.get_init_ports_uri_list(
-                                initiators, initiator_ports)
-                    self.exportgroup_obj.update(
-                                newexpgroupname,
-                                self.configuration.coprhd_project,
-                                self.configuration.coprhd_tenant,
-                                self.configuration.coprhd_varray,
-                                "initiator_changes", "add",
-                                init_ports_uri_list)
-                    LOG.debug(
-                        "adding the volume to the exportgroup : %s",
-                        volumename)
-                    self.exportgroup_obj.exportgroup_add_volumes(
-                        True, newexpgroupname,
-                        self.configuration.coprhd_tenant,
-                        None, None, None, self.configuration.coprhd_project,
-                        [volumename], None, None)
+                    self._create_host_and_eg(connector, protocol,
+                                             initiator_ports,
+                                             volumename)
+
             if self.is_auto_zoning_configured():
                 # CoprHD will perform the zoning. Hence setting the zoning_mode
                 # to a value other than 'fabric'
@@ -1738,16 +1419,16 @@ class EMCCoprHDDriverCommon(object):
                 self.configuration.coprhd_project,
                 self.configuration.coprhd_tenant)
             if groupdetails is not None:
-                
+
                 if groupdetails['inactive']:
                     continue
                 initiators = groupdetails['initiators']
-            
+
                 if len(initiators) > 0:
                     inits_eg = set()
                     for initiator in initiators:
                         inits_eg.add(initiator['initiator_port'])
-                        
+
                     if inits_eg == set(initiator_ports):
                         # Check the associated varray
                         if groupdetails['varray']:
@@ -1756,7 +1437,7 @@ class EMCCoprHDDriverCommon(object):
                                 varray_uri)
                             if varray_details['name'] == (
                                     self.configuration.coprhd_varray):
-                                
+
                                 foundexactgroupdetails = groupdetails
                     elif inits_eg > set(initiator_ports):
                         # Check the associated varray
@@ -1766,7 +1447,7 @@ class EMCCoprHDDriverCommon(object):
                                 varray_uri)
                             if varray_details['name'] == (
                                     self.configuration.coprhd_varray):
-                                
+
                                 foundmoregroupdetails = groupdetails
                     elif inits_eg < set(initiator_ports):
                         # Check the associated varray
@@ -1776,7 +1457,7 @@ class EMCCoprHDDriverCommon(object):
                                 varray_uri)
                             if varray_details['name'] == (
                                     self.configuration.coprhd_varray):
-                               
+
                                 foundlessgroupdetails = groupdetails
                     else:
                         continue
@@ -1968,11 +1649,11 @@ class EMCCoprHDDriverCommon(object):
         :returns: List of uris
         """
         init_ports_uri_list = []
-        
+
         for initiator in all_initiators:
             if initiator['name'] in initiator_ports:
-                init_ports_uri_list.append(initiator['id'])       
-        
+                init_ports_uri_list.append(initiator['id'])
+
         return init_ports_uri_list
 
     def add_initiator_pairs_to_host(self, virt_inits_pair_wise,
@@ -2014,9 +1695,9 @@ class EMCCoprHDDriverCommon(object):
                         host_name))
                 first_initiator_resource = {
                     'initiator': virt_inits_pair_wise[i]}
-                                
-                self.set_initiator_tags(host_name,first_initiator_resource_id)
-                                           
+
+                self.set_initiator_tags(host_name, first_initiator_resource_id)
+
                 '''Set tags for the second newly added initiator
                  to the host'''
                 second_initiator_resource_id = (
@@ -2025,14 +1706,13 @@ class EMCCoprHDDriverCommon(object):
                         host_name))
                 second_initiator_resource = {
                     'initiator': virt_inits_pair_wise[i + 1]}
-                
-                self.set_initiator_tags(host_name,second_initiator_resource_id)
-                                           
+
+                self.set_initiator_tags(
+                    host_name, second_initiator_resource_id)
 
             except coprhd_utils.CoprHdError as e:
                 pass
         return
-         
 
     def _fetch_volume_info(self):
         """Returns a list of all the volumes
@@ -2112,3 +1792,442 @@ class EMCCoprHDDriverCommon(object):
             volume['connection_info'] = connection_info
 
         return volume_list
+
+    def _found_eg_with_same_initiators(self, volumename, foundgroupdetails):
+        """Exports volume to an export group
+
+        :param volumename: Name of volume to be exported
+        :param foundgroupdetails: Object containing details of export group
+        """
+
+        # Found an export group having exactly the same
+        # initiators, add volumes to it.
+        # No tags would be set on initiators or Hosts.
+
+        LOG.debug(
+            "adding the volume to the exportgroup : %s",
+            volumename)
+
+        self.exportgroup_obj.exportgroup_add_volumes(
+            True,
+            foundgroupdetails['name'],
+            self.configuration.coprhd_tenant,
+            None, None, None,
+            self.configuration.coprhd_project, [volumename],
+            None, None)
+
+        return
+
+    def _found_eg_with_more_initiators(self, volumename, foundgroupdetails,
+                                       initiator_ports, connector):
+        """Exports volume to a newly created EG
+
+        :param volumename: Name of volume to be exported
+        :param foundgroupdetails:Contains details of export group
+        :param initiator_ports: Details of initiator ports
+        :param connector: connector information
+        """
+        # In this case, initiators coming from the
+        # connector are less than ones present in the EG.
+        # Now we create a new export group of Initiator type
+        # and add the requested initiator ports to it.
+        # First we fetch the initiator uris from the existing
+        # export group.
+        # Tags should not be set on initiators because they
+        # already existed in ViPR
+
+        init_ports_uri_list = self.get_init_ports_uri_list(
+            foundgroupdetails['initiators'], initiator_ports)
+
+        exp_group_name = connector['host'] + 'SG'
+        # Create a unique name
+        exp_group_name = exp_group_name + '-' + ''.join(
+            random.choice(string.ascii_uppercase +
+                          string.digits)
+            for x in range(6))
+        # First create an empty export group of type Initiator
+        self.exportgroup_obj.exportgroup_create(
+            exp_group_name,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            'Initiator',
+            None)
+        # Update the above export group with requested
+        # Initiators.
+        self.exportgroup_obj.update(
+            exp_group_name,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            "initiator_changes",
+            "add",
+            init_ports_uri_list)
+        LOG.debug("adding the volume to the exportgroup : %s",
+                  volumename)
+        self.exportgroup_obj.exportgroup_add_volumes(
+            True,
+            exp_group_name, self.configuration.coprhd_tenant,
+            None, None, None,
+            self.configuration.coprhd_project, [volumename],
+            None, None)
+
+        return
+
+    def _found_eg_with_less_initiators(self, volumename, foundgroupdetails,
+                                       initiator_ports, connector,
+                                       protocol):
+        """Updates the initiators of existing EG
+
+        :param volumename: Name of volume to be exported
+        :param foundgroupdetails:Contains details of export group
+        :param initiator_ports: Details of initiator ports
+        :param connector: connector information
+        """
+        # In this case, initiators coming from
+        # connector are more than initiators present in EG.
+        # Found an export group with less than requested
+        # initiators. We fetch the host from that export group
+        # & update the host with the remaining initiators.
+        # Then update the export group with those initiators.
+        # Get the host name from the foundgroupdetails
+        # Tags should be set on the initiators which are
+        # being newly added in ViPR from Cinder Driver.
+
+        export_group_host_name = foundgroupdetails['initiators'][0]['hostname']
+
+        virt_inits_pair_wise = (
+            self._get_formatted_virt_inits(
+                connector['phy_to_virt_initiators']))
+        # Add initiators to host and set tags for them
+
+        self.add_initiator_pairs_to_host(
+            virt_inits_pair_wise,
+            export_group_host_name, protocol)
+        initiators = self.host_obj.list_initiators(
+            export_group_host_name)
+
+        init_ports_uri_list = self.get_init_ports_uri_list(
+            initiators, initiator_ports)
+
+        try:
+            self.exportgroup_obj.update(
+                foundgroupdetails['name'],
+                self.configuration.coprhd_project,
+                self.configuration.coprhd_tenant,
+                self.configuration.coprhd_varray,
+                "initiator_changes", "add",
+                init_ports_uri_list)
+        except SOSError as e:
+            raise coprhd_utils.CoprHdError(
+                coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
+                (_("Export group (%(name)s) update"
+                   " failed:\n%(err)s") %
+                 {'name': foundgroupdetails['name'],
+                  'err': six.text_type(e.msg)}))
+        LOG.debug(
+            "adding the volume to the exportgroup : %s",
+            volumename)
+        self.exportgroup_obj.exportgroup_add_volumes(
+            True,
+            foundgroupdetails['name'],
+            self.configuration.coprhd_tenant,
+            None, None, None,
+            self.configuration.coprhd_project,
+            [volumename], None, None)
+
+        return
+
+    def _found_host_with_same_initiators(self, foundhostdetails, volumename):
+        """Creates export group for found Host
+
+        :param foundhostdetails: Details of the found host
+        :param volumename: Name of the volume
+        """
+        # Found host having exactly the same initiators,
+        # hence go ahead and create export group for it.
+        # No tags should be set in this case.
+
+        LOG.debug(
+            "creating exportgroup for host: %s",
+            foundhostdetails['name'])
+        newexpgroupname = foundhostdetails['name'] + 'SG'
+        newexpgroupname = newexpgroupname + '-' + ''.join(
+            random.choice(string.ascii_uppercase +
+                          string.digits)
+            for x in range(6))
+
+        self.exportgroup_obj.exportgroup_create(
+            newexpgroupname,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            'Host',
+            foundhostdetails['name'])
+
+        LOG.debug(
+            "adding the volume to the exportgroup : %s",
+            volumename)
+        self.exportgroup_obj.exportgroup_add_volumes(
+            True, newexpgroupname,
+            self.configuration.coprhd_tenant,
+            None, None, None,
+            self.configuration.coprhd_project,
+            [volumename], None, None)
+
+        return
+
+    def _found_host_with_more_initiators(
+            self,
+            foundhostdetails,
+            initiator_ports,
+            connector,
+            volumename):
+        """Creates export group for found Host with more initiators
+
+        :param foundhostdetails: Details of the found host
+        :param initiator_ports: Set of initiator ports
+        :param volumename: Name of the volume
+        """
+        # Found a host having more than the requested
+        # initiators. Now we go ahead and create an export
+        # group of Initiator type and add only the
+        # requested initiator ports to it.
+        # No tags should be set in this case.
+        initiators = self.host_obj.list_initiators(
+            foundhostdetails['id'])
+        init_ports_uri_list = self.get_init_ports_uri_list(
+            initiators, initiator_ports)
+        exp_group_name = connector['host'] + 'SG'
+        exp_group_name = exp_group_name + '-' + ''.join(
+            random.choice(string.ascii_uppercase +
+                          string.digits)
+            for x in range(6))
+        # First create an empty export group of type
+        # Initiator
+        self.exportgroup_obj.exportgroup_create(
+            exp_group_name,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray, 'Initiator',
+            None)
+        # Update the above export group with requested
+        # Initiators
+        self.exportgroup_obj.update(
+            exp_group_name,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            "initiator_changes", "add",
+            init_ports_uri_list)
+        LOG.debug(
+            "adding the volume to the exportgroup : %s",
+            volumename)
+        self.exportgroup_obj.exportgroup_add_volumes(
+            True, exp_group_name,
+            self.configuration.coprhd_tenant, None, None,
+            None, self.configuration.coprhd_project,
+            [volumename], None, None)
+
+        return
+
+    def _found_host_with_less_initiators(self, connector, foundhostdetails,
+                                         protocol, volumename):
+        """Updates host initiators having less initiators
+
+        :param foundhostdetails: Details of the found host
+        :param initiator_ports: Set of initiator ports
+        :param volumename: Name of the volume
+        """
+        # Found a host having less than the requested
+        # initiators. Update the host with the requested
+        # initiator ports
+        virt_inits_pair_wise = (
+            self._get_formatted_virt_inits(
+                connector['phy_to_virt_initiators']))
+        # Add initiator pairs to host and set tags for them
+        self.add_initiator_pairs_to_host(
+            virt_inits_pair_wise, foundhostdetails['name'],
+            protocol)
+        # Now we create an export group of type Host and
+        # add this updated host to it, the host initiators
+        # will automatically be fetched.
+        newexpgroupname = foundhostdetails['name'] + 'SG'
+        newexpgroupname = newexpgroupname + '-' + ''.join(
+            random.choice(string.ascii_uppercase +
+                          string.digits)
+            for x in range(6))
+        self.exportgroup_obj.exportgroup_create(
+            newexpgroupname,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            'Host',
+            foundhostdetails['name'])
+        LOG.debug(
+            "adding the volume to the exportgroup : %s",
+            volumename)
+        self.exportgroup_obj.exportgroup_add_volumes(
+            True, newexpgroupname,
+            self.configuration.coprhd_tenant, None,
+            None, None, self.configuration.coprhd_project,
+            [volumename], None, None)
+
+        return
+
+    def _found_host_with_some_initiators(
+            self,
+            connector,
+            foundhostdetails,
+            protocol,
+            initiator_ports,
+            volumename):
+        """Updates host with requested initiators
+
+        :param connector: details of connector
+        :param foundhostdetails: Details of the found host
+        :param protocol: details of the protocol being used
+        :param initiator_ports: Set of initiator ports
+        :param volumename: Name of the volume
+        """
+        # Found host having some of its initiators same as
+        # the requested initiators. Add all the requested
+        # initiators to this host and create an Initiator
+        # type export group with the requested initiators.
+        virt_inits_pair_wise = (
+            self._get_formatted_virt_inits(
+                connector['phy_to_virt_initiators']))
+        self.add_initiator_pairs_to_host(
+            virt_inits_pair_wise, foundhostdetails['name'],
+            protocol)
+        initiators = self.host_obj.list_initiators(
+            foundhostdetails['id'])
+        init_ports_uri_list = self.get_init_ports_uri_list(
+            initiators, initiator_ports)
+        exp_group_name = connector['host'] + 'SG'
+        exp_group_name = exp_group_name + '-' + ''.join(
+            random.choice(string.ascii_uppercase +
+                          string.digits)
+            for x in range(6))
+        # First create an empty export group of type
+        # Initiator
+        self.exportgroup_obj.exportgroup_create(
+            exp_group_name,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            'Initiator', None)
+        # Update the above export group with requested
+        # Initiators
+        self.exportgroup_obj.update(
+            exp_group_name,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            "initiator_changes", "add",
+            init_ports_uri_list)
+        LOG.debug(
+            "adding the volume to the exportgroup : %s",
+            volumename)
+        self.exportgroup_obj.exportgroup_add_volumes(
+            True, exp_group_name,
+            self.configuration.coprhd_tenant, None,
+            None, None, self.configuration.coprhd_project,
+            [volumename], None, None)
+
+        return
+
+    def _create_host_and_eg(self, connector, protocol,
+                            initiator_ports,
+                            volumename):
+        """Creates a host and export group.
+
+        :param connector: details of connector
+        :param protocol: details of the protocol being used
+        :param initiator_ports: Set of initiator ports
+        :param volumename: Name of the volume
+        """
+        # No host containing any of the requested initiator was
+        # found. Therefore create a new host and add the requested
+        # initiators to it
+        LOG.debug(
+            "No export group or host found. Creating new host and export group")
+        try:
+            self.host_obj.create(
+                connector['host'],
+                'AIX',
+                connector['host'],
+                self.configuration.coprhd_tenant,
+                usessl=True,
+                osversion=None,
+                autodiscovery=False,
+                bootvolume=None,
+                project=None,
+                testconnection=None,
+                isVirtual=True
+            )
+            LOG.info(_("Created host %s") % connector['host'])
+            # Set Openstack tags for the newly create host
+
+            self.set_host_tags(connector)
+
+        except coprhd_utils.CoprHdError:
+            # Host with the given host name already exists
+            pass
+        # Just add the requested initiators to it
+        virt_inits_pair_wise = self._get_formatted_virt_inits(
+            connector['phy_to_virt_initiators'])
+        self.add_initiator_pairs_to_host(
+            virt_inits_pair_wise, connector['host'], protocol)
+
+        host_id = self.host_obj.query_by_name(
+            connector['host'])
+        initiators = self.host_obj.list_initiators(
+            host_id)
+
+        # Now we create an export group of type Host and add this
+        # host to it, the host initiators will automatically be
+        # fetched create an export group for this host
+        newexpgroupname = connector['host'] + 'SG'
+        newexpgroupname = newexpgroupname + '-' + ''.join(
+            random.choice(string.ascii_uppercase +
+                          string.digits)
+            for x in range(6))
+        self.exportgroup_obj.exportgroup_create(
+            newexpgroupname,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            'Host',
+            connector['host'])
+        # Update export group with host
+        host_list = []
+        id_of_host_created = self.host_obj.query_by_name(
+            connector['host'])
+        host_list.append(id_of_host_created)
+        self.exportgroup_obj.update(
+            newexpgroupname,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            "host_changes", "add",
+            host_list)
+        init_ports_uri_list = self.get_init_ports_uri_list(
+            initiators, initiator_ports)
+        self.exportgroup_obj.update(
+            newexpgroupname,
+            self.configuration.coprhd_project,
+            self.configuration.coprhd_tenant,
+            self.configuration.coprhd_varray,
+            "initiator_changes", "add",
+            init_ports_uri_list)
+        LOG.debug(
+            "adding the volume to the exportgroup : %s",
+            volumename)
+        self.exportgroup_obj.exportgroup_add_volumes(
+            True, newexpgroupname,
+            self.configuration.coprhd_tenant,
+            None, None, None, self.configuration.coprhd_project,
+            [volumename], None, None)
+
+        return

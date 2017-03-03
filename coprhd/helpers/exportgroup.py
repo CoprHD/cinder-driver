@@ -25,6 +25,7 @@ from cinder.volume.drivers.coprhd.helpers import volume
 
 LOG = logging.getLogger(__name__)
 
+
 class ExportGroup(common.CoprHDResource):
 
     URI_EXPORT_GROUP = "/block/exports"
@@ -340,8 +341,6 @@ class ExportGroup(common.CoprHDResource):
             params['initiator_changes'] = add_or_remove_dict
         elif resourcetype == "host_changes":
             params['host_changes'] = add_or_remove_dict
-            
+
         o = self.send_json_request(exportgroup_uri, params)
         return self.check_for_sync(o, sync, synctimeout)
-
-

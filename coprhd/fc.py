@@ -123,14 +123,14 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver,
     @fczm_utils.AddFCZone
     def initialize_connection(self, volume, connector):
         """Initializes the connection and returns connection info."""
-        
+
         properties = {}
         properties['volume_id'] = volume['id']
         properties['target_discovered'] = False
         properties['target_wwn'] = []
 
         init_ports, init_nodes = self._build_initport_initnode_list(connector)
-                     
+
         itls = self.common.initialize_connection(volume,
                                                  'FC',
                                                  init_ports,
@@ -230,6 +230,11 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver,
         return self.common.retype(ctxt, volume, new_type, diff, host)
 
     def _build_initport_initnode_list(self, connector):
+        """Creates a list of initiator port and nodes.
+
+        :param connector: details of connector
+        :returns: Initiator ports and Initiator nodes
+        """
         initPorts = []
         initNodes = []
         for i in xrange(len(connector['wwpns'])):
