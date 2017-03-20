@@ -324,19 +324,20 @@ class ExportGroup(common.CoprHDResource):
             varrayObject = virtualarray.VirtualArray(
                 self.ipaddr, self.port)
             varrayuri = varrayObject.varray_query(varray)
+        if tenantname is None:
+            tenantname = ""    
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname,
                                                  tenantname,
                                                  varrayuri)
-        # get volume uri
-        if tenantname is None:
-            tenantname = ""
+        
         params = {}
         add_or_remove_dict = {}
         if resource_operation == "add":
             add_or_remove_dict['add'] = resource_list
         elif resource_operation == "remove":
             add_or_remove_dict['remove'] = resource_list
+            
         if resourcetype == "initiator_changes":
             params['initiator_changes'] = add_or_remove_dict
         elif resourcetype == "host_changes":
