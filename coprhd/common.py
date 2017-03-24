@@ -612,6 +612,7 @@ class EMCCoprHDDriverCommon(object):
                     # don't put the status in, it's always the status before
                     # the current transaction
                     if ((not prop.startswith("status") and not
+                         prop.startswith("changed_fields") and not
                          prop.startswith("obj_status") and
                          prop != "obj_volume") and value):
                         add_tags.append(
