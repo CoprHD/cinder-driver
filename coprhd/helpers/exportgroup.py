@@ -182,7 +182,7 @@ class ExportGroup(common.CoprHDResource):
                                                      body)
 
                 o = common.json_decode(s)
-                return self.check_for_sync(o, True, 0)
+                return self.check_for_sync(o, True)
             else:
                 raise
 

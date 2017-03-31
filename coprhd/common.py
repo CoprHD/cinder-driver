@@ -2083,11 +2083,6 @@ class EMCCoprHDDriverCommon(object):
         self._create_export_group(newexpgroupname,
                                   'Host',
                                   connector['host'])
-        # Update export group with host
-        host_list = []
-        id_of_host_created = self.host_obj.query_by_name(
-            connector['host'])
-        host_list.append(id_of_host_created)
         
         init_ports_uri_list = self.get_init_ports_uri_list(
             initiators, initiator_ports)
