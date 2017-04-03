@@ -146,8 +146,6 @@ class Host(common.CoprHDResource):
             request['virtual_machine'] = isVirtual
 
         host_create_uri = Host.URI_COMPUTE_HOST
-        if(testconnection):
-            host_create_uri = host_create_uri + "?validate_connection=true"
 
         body = json.dumps(request)
         (s, h) = common.service_json_request(

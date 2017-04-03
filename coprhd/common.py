@@ -1415,6 +1415,7 @@ class EMCCoprHDDriverCommon(object):
         grouplist = self.exportgroup_obj.exportgroup_list(
             self.configuration.coprhd_project,
             self.configuration.coprhd_tenant)
+        export_group = None
         found_eg_with_same_initiators = None
         found_eg_with_less_initiators = None
         found_eg_with_more_initiators = None
@@ -1436,29 +1437,28 @@ class EMCCoprHDDriverCommon(object):
 
                     if initiators_in_eg == set(initiator_ports):
                         # Check the associated varray
-                        found_eg_with_same_initiators = self._check_associated_varray(groupdetails) 
+                        found_eg_with_same_initiators = self._check_associated_varray(groupdetails)
+                        if found_eg_with_same_initiators:
+                            LOG.debug("Found exportgroup %s", found_eg_with_same_initiators['name'])
+                            export_group = found_eg_with_same_initiators
+                             
                     elif initiators_in_eg > set(initiator_ports):
                         # Check the associated varray
                         found_eg_with_more_initiators = self._check_associated_varray(groupdetails)
+                        if found_eg_with_more_initiators:
+                            LOG.debug("Found exportgroup having more than required initiators"
+                      " ports %s", found_eg_with_more_initiators['name'])
+                            export_group = found_eg_with_more_initiators
+                                                        
                     elif initiators_in_eg < set(initiator_ports):
                         # Check the associated varray
                         found_eg_with_less_initiators = self._check_associated_varray(groupdetails)
-                    else:
-                        continue
-
-        if found_eg_with_same_initiators:
-            LOG.debug("Found exportgroup %s", found_eg_with_same_initiators['name'])
-            return found_eg_with_same_initiators
-        elif found_eg_with_more_initiators:
-            LOG.debug("Found exportgroup having more than required initiators"
-                      " ports %s", found_eg_with_more_initiators['name'])
-            return found_eg_with_more_initiators
-        elif found_eg_with_less_initiators:
-            LOG.debug("Found exportgroup having less than required"
+                        if found_eg_with_less_initiators:
+                            LOG.debug("Found exportgroup having less than required"
                       " initiators ports %s", found_eg_with_less_initiators['name'])
-            return found_eg_with_less_initiators
-        else:
-            return None
+                            export_group = found_eg_with_less_initiators                            
+
+        return export_group
 
     @retry_wrapper
     def _find_host(self, initiator_ports):
