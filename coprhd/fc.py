@@ -55,6 +55,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver,
         """Creates a Volume."""
         self.common.create_volume(volume, self)
         self.common.set_volume_tags(volume, ['_obj_volume_type'])
+        self.common.set_restricted_metadata(volume)
 
     def create_cloned_volume(self, volume, src_vref):
         """Creates a cloned Volume."""
