@@ -26,6 +26,7 @@ import oslo_serialization
 from oslo_utils import timeutils
 from oslo_utils import units
 import requests
+requests.packages.urllib3.disable_warnings()
 from requests import exceptions
 import six
 
