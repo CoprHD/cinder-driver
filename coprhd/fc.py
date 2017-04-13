@@ -23,6 +23,7 @@ from oslo_log import log as logging
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
 from cinder.zonemanager import utils as fczm_utils
+from cinder.volume import utils as volume_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     def create_volume(self, volume):
         """Creates a Volume."""
         self.common.create_volume(volume, self)
-        self.common.set_volume_tags(volume, ['_obj_volume_type'])
+        self.common.set_volume_tags(volume, ['_obj_volume_type', '_obj_consistencygroup', '_obj_group'])
 
     def create_cloned_volume(self, volume, src_vref):
         """Creates a cloned Volume."""
@@ -87,7 +88,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         pass
 
     def remove_export(self, context, volume):
-        """Driver exntry point to remove an export for a volume."""
+        """Driver entry point to remove an export for a volume."""
         pass
 
     def create_consistencygroup(self, context, group):
@@ -111,6 +112,55 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
         return self.common.delete_cgsnapshot(cgsnapshot, snapshots)
+
+    def create_group(self, context, group):
+        """Creates a group."""
+        if volume_utils.is_group_a_cg_snapshot_type(group):
+            return self.common.create_consistencygroup(context, group)
+
+        # If it wasn't a consistency group request ignore it and we'll rely on
+        # the generic group implementation.
+        raise NotImplementedError()
+
+    def update_group(self, context, group, add_volumes=None,
+                                remove_volumes=None):
+        """Updates volumes in group."""
+        if volume_utils.is_group_a_cg_snapshot_type(group):
+            return self.common.update_consistencygroup(group, add_volumes,
+                                                       remove_volumes)
+
+        # If it wasn't a consistency group request ignore it and we'll rely on
+        # the generic group implementation.
+        raise NotImplementedError()
+
+    def delete_group(self, context, group, volumes):
+        """Deletes a group."""
+        if volume_utils.is_group_a_cg_snapshot_type(group):
+            return self.common.delete_consistencygroup(context, group, volumes)
+
+        # If it wasn't a consistency group request ignore it and we'll rely on
+        # the generic group implementation.
+        raise NotImplementedError()
+
+    def create_group_snapshot(self, context, group_snapshot, snapshots):
+        """Creates a group snapshot."""
+        if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
+            LOG.debug("creating a group snapshot")
+            return self.common.create_cgsnapshot(group_snapshot, snapshots)
+
+        # If it wasn't a consistency group request ignore it and we'll rely on
+        # the generic group implementation.
+        raise NotImplementedError()
+
+    def delete_group_snapshot(self, context, group_snapshot, snapshots):
+        """Deletes a group snapshot."""
+        if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
+            return self.common.delete_cgsnapshot(group_snapshot, snapshots)
+
+        # If it wasn't a consistency group request ignore it and we'll rely on
+        # the generic group implementation.
+        raise NotImplementedError()
+
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
