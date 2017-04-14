@@ -245,11 +245,11 @@ class EMCCoprHDDriverCommon(object):
                         LOG.info("coprhd_cgid")
                         LOG.info(coprhd_cgid)
                 elif vol['consistencygroup_id']:
-                    group_dtls = volume_utils.group_get_by_id(vol['consistencygroup_id'])
+                    group_dtls = volume_utils.group_get_by_id(
+                                                    vol['consistencygroup_id'])
                     if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
                         coprhd_cgid = self._get_coprhd_cgid(
                                         vol['consistencygroup_id'])
-                    
             except KeyError:
                 coprhd_cgid = None
 
@@ -262,6 +262,7 @@ class EMCCoprHDDriverCommon(object):
                                    sync=True,
                                    # no longer specified in volume creation
                                    consistencygroup=coprhd_cgid)
+
         except coprhd_utils.CoprHdError as e:
             coprhd_err_msg = (_("Volume %(name)s: create failed\n%(err)s") %
                               {'name': name, 'err': six.text_type(e.msg)})
@@ -401,9 +402,10 @@ class EMCCoprHDDriverCommon(object):
         if cgsnapshot['group_id']:
             cg_id = cgsnapshot['group_id']
             cg_group = cgsnapshot.get('group')
-        else:
-        cg_id = cgsnapshot['consistencygroup_id']
-        cg_group = cgsnapshot.get('consistencygroup')
+        elif cgsnapshot['consistencygroup_id']:
+            cg_id = cgsnapshot['consistencygroup_id']
+            cg_group = cgsnapshot.get('consistencygroup')
+
         cg_name = None
         coprhd_cgid = None
 
@@ -517,9 +519,9 @@ class EMCCoprHDDriverCommon(object):
         if cgsnapshot['group_id']:
             cg_id = cgsnapshot['group_id']
             cg_group = cgsnapshot.get('group')
-        else:
-        cg_id = cgsnapshot['consistencygroup_id']
-        cg_group = cgsnapshot.get('consistencygroup')
+        elif cgsnapshot['consistencygroup_id']:
+            cg_id = cgsnapshot['consistencygroup_id']
+            cg_group = cgsnapshot.get('consistencygroup')
 
         coprhd_cgid = self._get_coprhd_cgid(cg_id)
         cg_name = self._get_consistencygroup_name(cg_group)

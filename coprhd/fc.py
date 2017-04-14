@@ -22,8 +22,9 @@ from oslo_log import log as logging
 
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
-from cinder.zonemanager import utils as fczm_utils
 from cinder.volume import utils as volume_utils
+
+from cinder.zonemanager import utils as fczm_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -51,7 +52,9 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     def create_volume(self, volume):
         """Creates a Volume."""
         self.common.create_volume(volume, self)
-        self.common.set_volume_tags(volume, ['_obj_volume_type', '_obj_consistencygroup', '_obj_group'])
+        self.common.set_volume_tags(volume, ['_obj_volume_type',
+                                             '_obj_consistencygroup',
+                                             '_obj_group'])
 
     def create_cloned_volume(self, volume, src_vref):
         """Creates a cloned Volume."""
@@ -118,8 +121,8 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         if volume_utils.is_group_a_cg_snapshot_type(group):
             return self.common.create_consistencygroup(context, group)
 
-        # If it wasn't a consistency group request ignore it and we'll rely on
-        # the generic group implementation.
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
         raise NotImplementedError()
 
     def update_group(self, context, group, add_volumes=None,
@@ -129,8 +132,8 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
             return self.common.update_consistencygroup(group, add_volumes,
                                                        remove_volumes)
 
-        # If it wasn't a consistency group request ignore it and we'll rely on
-        # the generic group implementation.
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
         raise NotImplementedError()
 
     def delete_group(self, context, group, volumes):
@@ -138,8 +141,8 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         if volume_utils.is_group_a_cg_snapshot_type(group):
             return self.common.delete_consistencygroup(context, group, volumes)
 
-        # If it wasn't a consistency group request ignore it and we'll rely on
-        # the generic group implementation.
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
         raise NotImplementedError()
 
     def create_group_snapshot(self, context, group_snapshot, snapshots):
@@ -148,8 +151,8 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
             LOG.debug("creating a group snapshot")
             return self.common.create_cgsnapshot(group_snapshot, snapshots)
 
-        # If it wasn't a consistency group request ignore it and we'll rely on
-        # the generic group implementation.
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
         raise NotImplementedError()
 
     def delete_group_snapshot(self, context, group_snapshot, snapshots):
@@ -157,16 +160,15 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
             return self.common.delete_cgsnapshot(group_snapshot, snapshots)
 
-        # If it wasn't a consistency group request ignore it and we'll rely on
-        # the generic group implementation.
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
         raise NotImplementedError()
-
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
         pass
 
-    @fczm_utils.AddFCZone
+    @fczm_utils.add_fc_zone
     def initialize_connection(self, volume, connector):
         """Initializes the connection and returns connection info."""
 
@@ -176,9 +178,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         properties['target_wwn'] = []
 
         init_ports = self._build_initport_list(connector)
-        itls = self.common.initialize_connection(volume,
-                                                 'FC',
-                                                 init_ports,
+        itls = self.common.initialize_connection(volume, 'FC', init_ports,
                                                  connector['host'])
 
         target_wwns = None
@@ -205,14 +205,12 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
             'data': properties,
         }
 
-    @fczm_utils.RemoveFCZone
+    @fczm_utils.remove_fc_zone
     def terminate_connection(self, volume, connector, **kwargs):
         """Driver entry point to detach a volume from an instance."""
 
         init_ports = self._build_initport_list(connector)
-        itls = self.common.terminate_connection(volume,
-                                                'FC',
-                                                init_ports,
+        itls = self.common.terminate_connection(volume, 'FC', init_ports,
                                                 connector['host'])
 
         volumes_count = self.common.get_exports_count_by_initiators(init_ports)
