@@ -27,7 +27,7 @@ from cinder.i18n import _
 from cinder.i18n import _LI
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
-
+from cinder.volume import utils as volume_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -160,6 +160,57 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
         """Deletes a cgsnapshot."""
         return self.common.delete_cgsnapshot(cgsnapshot, snapshots, True)
+
+    def create_group(self, context, group):
+        """Creates a group."""
+        if volume_utils.is_group_a_cg_snapshot_type(group):
+            return self.common.create_consistencygroup(context, group, True)
+
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
+        raise NotImplementedError()
+
+    def update_group(self, context, group, add_volumes=None,
+                     remove_volumes=None):
+        """Updates volumes in group."""
+        if volume_utils.is_group_a_cg_snapshot_type(group):
+            return self.common.update_consistencygroup(group, add_volumes,
+                                                       remove_volumes)
+
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
+        raise NotImplementedError()
+
+    def delete_group(self, context, group, volumes):
+        """Deletes a group."""
+        if volume_utils.is_group_a_cg_snapshot_type(group):
+            return self.common.delete_consistencygroup(context, group,
+                                                       volumes, True)
+
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
+        raise NotImplementedError()
+
+    def create_group_snapshot(self, context, group_snapshot, snapshots):
+        """Creates a group snapshot."""
+        if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
+            LOG.debug("creating a group snapshot")
+            return self.common.create_cgsnapshot(group_snapshot, snapshots,
+                                                 True)
+
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
+        raise NotImplementedError()
+
+    def delete_group_snapshot(self, context, group_snapshot, snapshots):
+        """Deletes a group snapshot."""
+        if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
+            return self.common.delete_cgsnapshot(group_snapshot, snapshots,
+                                                 True)
+
+        # If the group is not consistency group snapshot enabled, then
+        # we shall rely on generic volume group implementation
+        raise NotImplementedError()
 
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
