@@ -148,7 +148,6 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     def create_group_snapshot(self, context, group_snapshot, snapshots):
         """Creates a group snapshot."""
         if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
-            LOG.debug("creating a group snapshot")
             return self.common.create_cgsnapshot(group_snapshot, snapshots)
 
         # If the group is not consistency group snapshot enabled, then
