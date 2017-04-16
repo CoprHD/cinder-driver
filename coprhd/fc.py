@@ -126,7 +126,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         raise NotImplementedError()
 
     def update_group(self, context, group, add_volumes=None,
-                                remove_volumes=None):
+                     remove_volumes=None):
         """Updates volumes in group."""
         if volume_utils.is_group_a_cg_snapshot_type(group):
             return self.common.update_consistencygroup(group, add_volumes,

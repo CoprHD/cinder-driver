@@ -29,6 +29,7 @@ from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
 from cinder.volume import utils as volume_utils
 
+
 LOG = logging.getLogger(__name__)
 
 scaleio_opts = [

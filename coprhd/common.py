@@ -46,9 +46,8 @@ from cinder.volume.drivers.coprhd.helpers import tag as coprhd_tag
 from cinder.volume.drivers.coprhd.helpers import (
     virtualarray as coprhd_varray)
 from cinder.volume.drivers.coprhd.helpers import volume as coprhd_vol
-from cinder.volume import volume_types
-from cinder.volume import group_types
 from cinder.volume import utils as volume_utils
+from cinder.volume import volume_types
 
 LOG = logging.getLogger(__name__)
 
@@ -238,23 +237,19 @@ class EMCCoprHDDriverCommon(object):
             try:
                 if vol['group_id']:
                     group_dtls = volume_utils.group_get_by_id(vol['group_id'])
-                    LOG.info("group details")
-                    LOG.info(group_dtls)
                     if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
                         coprhd_cgid = self._get_coprhd_cgid(vol['group_id'])
-                        LOG.info("coprhd_cgid")
-                        LOG.info(coprhd_cgid)
                 elif vol['consistencygroup_id']:
-                    group_dtls = volume_utils.group_get_by_id(
-                                                    vol['consistencygroup_id'])
+                    cg_id = vol['consistencygroup_id']
+                    group_dtls = volume_utils.group_get_by_id(cg_id)
                     if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
-                        coprhd_cgid = self._get_coprhd_cgid(
-                                        vol['consistencygroup_id'])
+                        coprhd_cgid = self._get_coprhd_cgid(cg_id)
             except KeyError:
                 coprhd_cgid = None
 
             full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
-                                            self.configuration.coprhd_project))
+                                            self.configuration.coprhd_project)
+                                 )
             self.volume_obj.create(full_project_name, name, size,
                                    self.configuration.coprhd_varray,
                                    self.vpool,
@@ -399,10 +394,10 @@ class EMCCoprHDDriverCommon(object):
 
         snapshots_model_update = []
         cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
-        if cgsnapshot['group_id']:
+        try:
             cg_id = cgsnapshot['group_id']
             cg_group = cgsnapshot.get('group')
-        elif cgsnapshot['consistencygroup_id']:
+        except KeyError:
             cg_id = cgsnapshot['consistencygroup_id']
             cg_group = cgsnapshot.get('consistencygroup')
 
@@ -516,10 +511,10 @@ class EMCCoprHDDriverCommon(object):
         cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
 
         snapshots_model_update = []
-        if cgsnapshot['group_id']:
+        try:
             cg_id = cgsnapshot['group_id']
             cg_group = cgsnapshot.get('group')
-        elif cgsnapshot['consistencygroup_id']:
+        except KeyError:
             cg_id = cgsnapshot['consistencygroup_id']
             cg_group = cgsnapshot.get('consistencygroup')
 
@@ -624,6 +619,7 @@ class EMCCoprHDDriverCommon(object):
 
         try:
             for prop, value in vars(resource).items():
+
                 try:
                     if prop in exempt_tags:
                         continue

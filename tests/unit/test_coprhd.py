@@ -23,6 +23,7 @@ from cinder.volume.drivers.coprhd import common as coprhd_common
 from cinder.volume.drivers.coprhd import fc as coprhd_fc
 from cinder.volume.drivers.coprhd import iscsi as coprhd_iscsi
 from cinder.volume.drivers.coprhd import scaleio as coprhd_scaleio
+from cinder.volume import group_types
 from cinder.volume import volume_types
 
 """
@@ -270,6 +271,30 @@ def get_test_CG_snap_data(volume_type_id):
     return test_CG_snapshot
 
 
+def get_test_group_data(volume_type_id, group_type_id):
+    test_CG = {'name': 'group_name',
+               'id': '12345abcde',
+               'volume_type_id': volume_type_id,
+               'group_type_id': group_type_id,
+               'status': fields.GroupStatus.AVAILABLE
+               }
+    return test_CG
+
+
+def get_test_group_snap_data(volume_type_id, group_type_id):
+    test_CG_snapshot = {'name': 'cg_snap_name',
+                        'id': '12345abcde',
+                        'group_id': '123456789',
+                        'status': fields.GroupStatus.AVAILABLE,
+                        'snapshots': [],
+                        'group': get_test_group_data(volume_type_id,
+                                                     group_type_id),
+                        'group_type_id': group_type_id,
+                        'cgsnapshot_id': '1',
+                        }
+    return test_CG_snapshot
+
+
 class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
 
     def __init__(self, protocol, default_backend_name,
@@ -400,6 +425,7 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.configuration.coprhd_emulate_snapshot = False
 
         self.volume_type_id = self.create_coprhd_volume_type()
+        self.group_type_id = self.create_group_type()
 
         self.mock_object(coprhd_iscsi.EMCCoprHDISCSIDriver,
                          '_get_common_driver',
@@ -422,6 +448,15 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
                                                 'vpool_coprhd'})
         volume_id = vipr_volume_type['id']
         return volume_id
+
+    def create_group_type(self):
+        ctx = context.get_admin_context()
+        group_type = group_types.create(ctx,
+                                        "group_type",
+                                        {'consistent_group_snapshot_enabled':
+                                         '<is> True'})
+        group_type_id = group_type['id']
+        return group_type_id
 
     def _get_mocked_common_driver(self):
         return MockedEMCCoprHDDriverCommon(
@@ -546,6 +581,53 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.assertEqual({}, model_update, 'Unexpected return data')
         self.assertEqual([], snapshots_model_update, 'Unexpected return data')
 
+    def test_create_delete_empty_group(self):
+        group_data = get_test_group_data(self.volume_type_id,
+                                         self.group_type_id)
+        ctx = context.get_admin_context()
+        self.driver.create_group(ctx, group_data)
+        model_update, volumes_model_update = (
+            self.driver.delete_group(ctx, group_data, []))
+        self.assertEqual([], volumes_model_update, 'Unexpected return data')
+
+    def test_create_update_delete_group(self):
+        group_data = get_test_group_data(self.volume_type_id,
+                                         self.group_type_id)
+        ctx = context.get_admin_context()
+        self.driver.create_group(ctx, group_data)
+
+        volume = get_test_volume_data(self.volume_type_id)
+        self.driver.create_volume(volume)
+
+        model_update, ret1, ret2 = (
+            self.driver.update_group(ctx, group_data, [volume], []))
+
+        self.assertEqual({'status': fields.GroupStatus.AVAILABLE},
+                         model_update)
+
+        model_update, volumes_model_update = (
+            self.driver.delete_group(ctx, group_data, [volume]))
+        self.assertEqual({'status': fields.GroupStatus.AVAILABLE},
+                         model_update)
+        self.assertEqual([{'status': 'deleted', 'id': '1'}],
+                         volumes_model_update)
+
+    def test_create_delete_group_snap(self):
+        group_snap_data = get_test_group_snap_data(self.volume_type_id,
+                                                   self.group_type_id)
+        ctx = context.get_admin_context()
+
+        model_update, snapshots_model_update = (
+            self.driver.create_group_snapshot(ctx, group_snap_data, []))
+        self.assertEqual({'status': fields.GroupStatus.AVAILABLE},
+                         model_update)
+        self.assertEqual([], snapshots_model_update, 'Unexpected return data')
+
+        model_update, snapshots_model_update = (
+            self.driver.delete_group_snapshot(ctx, group_snap_data, []))
+        self.assertEqual({}, model_update, 'Unexpected return data')
+        self.assertEqual([], snapshots_model_update, 'Unexpected return data')
+
 
 class EMCCoprHDFCDriverTest(test.TestCase):
 
@@ -567,6 +649,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.configuration.coprhd_emulate_snapshot = False
 
         self.volume_type_id = self.create_coprhd_volume_type()
+        self.group_type_id = self.create_group_type()
 
         self.mock_object(coprhd_fc.EMCCoprHDFCDriver,
                          '_get_common_driver',
@@ -588,6 +671,15 @@ class EMCCoprHDFCDriverTest(test.TestCase):
                                                {'CoprHD:VPOOL': 'vpool_vipr'})
         volume_id = vipr_volume_type['id']
         return volume_id
+
+    def create_group_type(self):
+        ctx = context.get_admin_context()
+        group_type = group_types.create(ctx,
+                                        "group_type",
+                                        {'consistent_group_snapshot_enabled':
+                                         '<is> True'})
+        group_type_id = group_type['id']
+        return group_type_id
 
     def _get_mocked_common_driver(self):
         return MockedEMCCoprHDDriverCommon(
@@ -748,6 +840,53 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.assertEqual({}, model_update, 'Unexpected return data')
         self.assertEqual([], snapshots_model_update, 'Unexpected return data')
 
+    def test_create_delete_empty_group(self):
+        group_data = get_test_group_data(self.volume_type_id,
+                                         self.group_type_id)
+        ctx = context.get_admin_context()
+        self.driver.create_group(ctx, group_data)
+        model_update, volumes_model_update = (
+            self.driver.delete_group(ctx, group_data, []))
+        self.assertEqual([], volumes_model_update, 'Unexpected return data')
+
+    def test_create_update_delete_group(self):
+        group_data = get_test_group_data(self.volume_type_id,
+                                         self.group_type_id)
+        ctx = context.get_admin_context()
+        self.driver.create_group(ctx, group_data)
+
+        volume = get_test_volume_data(self.volume_type_id)
+        self.driver.create_volume(volume)
+
+        model_update, ret1, ret2 = (
+            self.driver.update_group(ctx, group_data, [volume], []))
+
+        self.assertEqual({'status': fields.GroupStatus.AVAILABLE},
+                         model_update)
+
+        model_update, volumes_model_update = (
+            self.driver.delete_group(ctx, group_data, [volume]))
+        self.assertEqual({'status': fields.GroupStatus.AVAILABLE},
+                         model_update)
+        self.assertEqual([{'status': 'deleted', 'id': '1'}],
+                         volumes_model_update)
+
+    def test_create_delete_group_snap(self):
+        group_snap_data = get_test_group_snap_data(self.volume_type_id,
+                                                   self.group_type_id)
+        ctx = context.get_admin_context()
+
+        model_update, snapshots_model_update = (
+            self.driver.create_group_snapshot(ctx, group_snap_data, []))
+        self.assertEqual({'status': fields.GroupStatus.AVAILABLE},
+                         model_update)
+        self.assertEqual([], snapshots_model_update, 'Unexpected return data')
+
+        model_update, snapshots_model_update = (
+            self.driver.delete_group_snapshot(ctx, group_snap_data, []))
+        self.assertEqual({}, model_update, 'Unexpected return data')
+        self.assertEqual([], snapshots_model_update, 'Unexpected return data')
+
 
 class EMCCoprHDScaleIODriverTest(test.TestCase):
 
@@ -777,6 +916,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
             "/etc/scaleio/certs")
 
         self.volume_type_id = self.create_coprhd_volume_type()
+        self.group_type_id = self.create_group_type()
 
         self.mock_object(coprhd_scaleio.EMCCoprHDScaleIODriver,
                          '_get_common_driver',
@@ -801,6 +941,15 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
                                                {'CoprHD:VPOOL': 'vpool_vipr'})
         volume_id = vipr_volume_type['id']
         return volume_id
+
+    def create_group_type(self):
+        ctx = context.get_admin_context()
+        group_type = group_types.create(ctx,
+                                        "group_type",
+                                        {'consistent_group_snapshot_enabled':
+                                         '<is> True'})
+        group_type_id = group_type['id']
+        return group_type_id
 
     def _get_mocked_common_driver(self):
         return MockedEMCCoprHDDriverCommon(
@@ -933,5 +1082,52 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
 
         model_update, snapshots_model_update = (
             self.driver.delete_cgsnapshot(ctx, cg_snap_data, []))
+        self.assertEqual({}, model_update, 'Unexpected return data')
+        self.assertEqual([], snapshots_model_update, 'Unexpected return data')
+
+    def test_create_delete_empty_group(self):
+        group_data = get_test_group_data(self.volume_type_id,
+                                         self.group_type_id)
+        ctx = context.get_admin_context()
+        self.driver.create_group(ctx, group_data)
+        model_update, volumes_model_update = (
+            self.driver.delete_group(ctx, group_data, []))
+        self.assertEqual([], volumes_model_update, 'Unexpected return data')
+
+    def test_create_update_delete_group(self):
+        group_data = get_test_group_data(self.volume_type_id,
+                                         self.group_type_id)
+        ctx = context.get_admin_context()
+        self.driver.create_group(ctx, group_data)
+
+        volume = get_test_volume_data(self.volume_type_id)
+        self.driver.create_volume(volume)
+
+        model_update, ret1, ret2 = (
+            self.driver.update_group(ctx, group_data, [volume], []))
+
+        self.assertEqual({'status': fields.GroupStatus.AVAILABLE},
+                         model_update)
+
+        model_update, volumes_model_update = (
+            self.driver.delete_group(ctx, group_data, [volume]))
+        self.assertEqual({'status': fields.GroupStatus.AVAILABLE},
+                         model_update)
+        self.assertEqual([{'status': 'deleted', 'id': '1'}],
+                         volumes_model_update)
+
+    def test_create_delete_group_snap(self):
+        group_snap_data = get_test_group_snap_data(self.volume_type_id,
+                                                   self.group_type_id)
+        ctx = context.get_admin_context()
+
+        model_update, snapshots_model_update = (
+            self.driver.create_group_snapshot(ctx, group_snap_data, []))
+        self.assertEqual({'status': fields.GroupStatus.AVAILABLE},
+                         model_update)
+        self.assertEqual([], snapshots_model_update, 'Unexpected return data')
+
+        model_update, snapshots_model_update = (
+            self.driver.delete_group_snapshot(ctx, group_snap_data, []))
         self.assertEqual({}, model_update, 'Unexpected return data')
         self.assertEqual([], snapshots_model_update, 'Unexpected return data')
