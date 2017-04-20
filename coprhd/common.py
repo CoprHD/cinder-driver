@@ -89,6 +89,9 @@ CONF.register_opts(volume_opts)
 URI_VPOOL_VARRAY_CAPACITY = '/block/vpools/{0}/varrays/{1}/capacity'
 URI_BLOCK_EXPORTS_FOR_INITIATORS = '/block/exports?initiators={0}'
 EXPORT_RETRY_COUNT = 5
+MAX_DEFAULT_NAME_LENGTH = 128
+MAX_SNAPSHOT_NAME_LENGTH = 63
+MAX_CONSISTENCY_GROUP_NAME_LENGTH = 64
 
 
 def retry_wrapper(func):
@@ -226,7 +229,8 @@ class EMCCoprHDDriverCommon(object):
 
     def create_volume(self, vol, driver, truncate_name=False):
         self.authenticate_user()
-        name = self._get_resource_name(vol, truncate_name)
+        name = self._get_resource_name(vol, MAX_DEFAULT_NAME_LENGTH,
+                                       truncate_name)
         size = int(vol['size']) * units.Gi
 
         vpool = self._get_vpool(vol)
@@ -272,7 +276,9 @@ class EMCCoprHDDriverCommon(object):
     @retry_wrapper
     def create_consistencygroup(self, context, group, truncate_name=False):
         self.authenticate_user()
-        name = self._get_resource_name(group, truncate_name)
+        name = self._get_resource_name(group,
+                                       MAX_CONSISTENCY_GROUP_NAME_LENGTH,
+                                       truncate_name)
 
         try:
             self.consistencygroup_obj.create(
@@ -341,7 +347,9 @@ class EMCCoprHDDriverCommon(object):
     def delete_consistencygroup(self, context, group, volumes,
                                 truncate_name=False):
         self.authenticate_user()
-        name = self._get_resource_name(group, truncate_name)
+        name = self._get_resource_name(group,
+                                       MAX_CONSISTENCY_GROUP_NAME_LENGTH,
+                                       truncate_name)
         volumes_model_update = []
 
         try:
@@ -396,7 +404,9 @@ class EMCCoprHDDriverCommon(object):
         self.authenticate_user()
 
         snapshots_model_update = []
-        cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
+        cgsnapshot_name = self._get_resource_name(cgsnapshot,
+                                                  MAX_SNAPSHOT_NAME_LENGTH,
+                                                  truncate_name)
         try:
             cg_id = cgsnapshot['group_id']
             cg_group = cgsnapshot.get('group')
@@ -511,7 +521,9 @@ class EMCCoprHDDriverCommon(object):
     def delete_cgsnapshot(self, cgsnapshot, snapshots, truncate_name=False):
         self.authenticate_user()
         cgsnapshot_id = cgsnapshot['id']
-        cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
+        cgsnapshot_name = self._get_resource_name(cgsnapshot,
+                                                  MAX_SNAPSHOT_NAME_LENGTH,
+                                                  truncate_name)
 
         snapshots_model_update = []
         try:
@@ -578,7 +590,9 @@ class EMCCoprHDDriverCommon(object):
             exempt_tags = []
 
         self.authenticate_user()
-        name = self._get_resource_name(vol, truncate_name)
+        name = self._get_resource_name(vol,
+                                       MAX_DEFAULT_NAME_LENGTH,
+                                       truncate_name)
         full_project_name = ("%s/%s" % (
             self.configuration.coprhd_tenant,
             self.configuration.coprhd_project))
@@ -634,10 +648,10 @@ class EMCCoprHDDriverCommon(object):
                     if ((not prop.startswith("status") and not
                          prop.startswith("obj_status") and
                          prop != "obj_volume") and value):
-                        tags = ("%s:%s:%s" % (self.OPENSTACK_TAG, prop,
+                        tag = ("%s:%s:%s" % (self.OPENSTACK_TAG, prop,
                                 six.text_type(value)))
-                        if len(tags) < 128:
-                            add_tags.append(tags)
+                        if len(tag) < 128:
+                            add_tags.append(tag)
                 except TypeError:
                     LOG.error(
                         _LE("Error tagging the resource property %s"), prop)
@@ -661,7 +675,9 @@ class EMCCoprHDDriverCommon(object):
     def create_cloned_volume(self, vol, src_vref, truncate_name=False):
         """Creates a clone of the specified volume."""
         self.authenticate_user()
-        name = self._get_resource_name(vol, truncate_name)
+        name = self._get_resource_name(vol,
+                                       MAX_DEFAULT_NAME_LENGTH,
+                                       truncate_name)
         srcname = self._get_coprhd_volume_name(src_vref)
 
         try:
@@ -779,7 +795,9 @@ class EMCCoprHDDriverCommon(object):
 
         src_snapshot_name = None
         src_vol_ref = snapshot['volume']
-        new_volume_name = self._get_resource_name(volume, truncate_name)
+        new_volume_name = self._get_resource_name(volume,
+                                                  MAX_DEFAULT_NAME_LENGTH,
+                                                  truncate_name)
 
         try:
             coprhd_vol_info = self._get_coprhd_volume_name(
@@ -881,7 +899,9 @@ class EMCCoprHDDriverCommon(object):
             return
 
         try:
-            snapshotname = self._get_resource_name(snapshot, truncate_name)
+            snapshotname = self._get_resource_name(snapshot,
+                                                   MAX_SNAPSHOT_NAME_LENGTH,
+                                                   truncate_name)
             vol = snapshot['volume']
 
             volumename = self._get_coprhd_volume_name(vol)
@@ -1254,16 +1274,32 @@ class EMCCoprHDDriverCommon(object):
                 coprhd_utils.CoprHdError.NOT_FOUND_ERR,
                 (_("Volume %s not found") % vol['display_name']))
 
-    def _get_resource_name(self, resource, truncate_name=False):
+    def _get_resource_name(self, resource,
+                           max_name_cap=MAX_DEFAULT_NAME_LENGTH,
+                           truncate_name=False):
+        permitted_name_length = max_name_cap - (36 + 1)
         name = resource.get('display_name', None)
 
         if not name:
             name = resource['name']
 
-        if truncate_name and len(name) > 31:
+        '''
+        for scaleio, truncate_name will be true. We make sure the
+        total name is less than or equal to 31 characters.
+        _id_to_base64 will return a 24 character name, which we prepend
+        with the first 6 characters of the resource name'''
+        if truncate_name:
             name = self._id_to_base64(resource.id)
-
+            name = name[0:6] + "-" + name
         return name
+
+        elif len(name) > permitted_name_length:
+            '''
+            The maximum length of resource name in CoprHD is 128. Hence we use
+            only first 91 characters of the resource name'''
+            return name[0:permitted_name_length] + "-" + resource['id']
+        else:
+            return name + "-" + resource['id']
 
     def _get_vpool(self, volume):
         vpool = {}
