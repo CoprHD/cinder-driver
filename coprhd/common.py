@@ -239,14 +239,17 @@ class EMCCoprHDDriverCommon(object):
                     group_dtls = volume_utils.group_get_by_id(vol['group_id'])
                     if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
                         coprhd_cgid = self._get_coprhd_cgid(vol['group_id'])
-                elif vol['consistencygroup_id']:
-                    cg_id = vol['consistencygroup_id']
-                    group_dtls = volume_utils.group_get_by_id(cg_id)
-                    if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
-                        coprhd_cgid = self._get_coprhd_cgid(cg_id)
             except KeyError:
-                coprhd_cgid = None
-
+                try:
+                    if vol['consistencygroup_id']:
+                        group_dtls = volume_utils.group_get_by_id(
+                                        vol['consistencygroup_id'])
+                        if volume_utils.is_group_a_cg_snapshot_type(
+                                        group_dtls):
+                            coprhd_cgid = self._get_coprhd_cgid(
+                                            vol['consistencygroup_id'])
+                except KeyError:
+                    coprhd_cgid = None
             full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
                                             self.configuration.coprhd_project)
                                  )
@@ -619,7 +622,6 @@ class EMCCoprHDDriverCommon(object):
 
         try:
             for prop, value in vars(resource).items():
-
                 try:
                     if prop in exempt_tags:
                         continue
@@ -630,12 +632,12 @@ class EMCCoprHDDriverCommon(object):
                     # don't put the status in, it's always the status before
                     # the current transaction
                     if ((not prop.startswith("status") and not
-                         prop.startswith("changed_fields") and not
                          prop.startswith("obj_status") and
                          prop != "obj_volume") and value):
-                        add_tags.append(
-                            "%s:%s:%s" % (self.OPENSTACK_TAG, prop,
-                                          six.text_type(value)))
+                        tags = ("%s:%s:%s" % (self.OPENSTACK_TAG, prop,
+                                six.text_type(value)))
+                        if len(tags) < 128:
+                            add_tags.append(tags)
                 except TypeError:
                     LOG.error(
                         _LE("Error tagging the resource property %s"), prop)
