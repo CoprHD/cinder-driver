@@ -48,11 +48,6 @@ from cinder.volume.drivers.coprhd.helpers import (
 from cinder.volume.drivers.coprhd.helpers import volume as coprhd_vol
 from cinder.volume import utils as volume_utils
 from cinder.volume import volume_types
-<<<<<<< HEAD
-=======
-from cinder.volume import group_types
-from cinder.volume import utils as volume_utils
->>>>>>> master
 
 LOG = logging.getLogger(__name__)
 
@@ -242,23 +237,8 @@ class EMCCoprHDDriverCommon(object):
             try:
                 if vol['group_id']:
                     group_dtls = volume_utils.group_get_by_id(vol['group_id'])
-<<<<<<< HEAD
                     if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
                         coprhd_cgid = self._get_coprhd_cgid(vol['group_id'])
-=======
-                    LOG.info("group details")
-                    LOG.info(group_dtls)
-                    if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
-                        coprhd_cgid = self._get_coprhd_cgid(vol['group_id'])
-                        LOG.info("coprhd_cgid")
-                        LOG.info(coprhd_cgid)
-                elif vol['consistencygroup_id']:
-                    group_dtls = volume_utils.group_get_by_id(vol['consistencygroup_id'])
-                    if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
-                        coprhd_cgid = self._get_coprhd_cgid(
-                                        vol['consistencygroup_id'])
-                    
->>>>>>> master
             except KeyError:
                 try:
                     if vol['consistencygroup_id']:
@@ -417,7 +397,6 @@ class EMCCoprHDDriverCommon(object):
 
         snapshots_model_update = []
         cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
-<<<<<<< HEAD
         try:
             cg_id = cgsnapshot['group_id']
             cg_group = cgsnapshot.get('group')
@@ -425,14 +404,6 @@ class EMCCoprHDDriverCommon(object):
             cg_id = cgsnapshot['consistencygroup_id']
             cg_group = cgsnapshot.get('consistencygroup')
 
-=======
-        if cgsnapshot['group_id']:
-            cg_id = cgsnapshot['group_id']
-            cg_group = cgsnapshot.get('group')
-        else:
-            cg_id = cgsnapshot['consistencygroup_id']
-            cg_group = cgsnapshot.get('consistencygroup')
->>>>>>> master
         cg_name = None
         coprhd_cgid = None
 
@@ -543,17 +514,10 @@ class EMCCoprHDDriverCommon(object):
         cgsnapshot_name = self._get_resource_name(cgsnapshot, truncate_name)
 
         snapshots_model_update = []
-<<<<<<< HEAD
         try:
             cg_id = cgsnapshot['group_id']
             cg_group = cgsnapshot.get('group')
         except KeyError:
-=======
-        if cgsnapshot['group_id']:
-            cg_id = cgsnapshot['group_id']
-            cg_group = cgsnapshot.get('group')
-        else:
->>>>>>> master
             cg_id = cgsnapshot['consistencygroup_id']
             cg_group = cgsnapshot.get('consistencygroup')
 

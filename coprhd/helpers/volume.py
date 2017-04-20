@@ -332,7 +332,6 @@ class Volume(common.CoprHDResource):
                 'replicaState'] == 'SYNCHRONIZED'
         except TypeError:
             return False
-        return False
 
     def volume_clone_detach(self, resource_uri, full_project_name,
                             name, sync, synctimeout=0):
@@ -489,7 +488,7 @@ class Volume(common.CoprHDResource):
         """
         namelist = []
 
-        if type(name) is list:
+        if isinstance(name, list):
             namelist = name
         else:
             namelist.append(name)
