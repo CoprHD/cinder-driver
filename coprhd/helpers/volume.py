@@ -327,12 +327,10 @@ class Volume(common.CoprHDResource):
         # Filtering based on "replicaState" attribute value of Cloned volume.
         # If "replicaState" value is "SYNCHRONIZED" then only Cloned volume
         # would be in detachable state.
-        if(vol and 'protection' in vol and
-                'full_copies' in vol['protection'] and
-                'replicaState' in vol['protection']['full_copies']):
-            if(vol['protection']['full_copies']['replicaState'] ==
-                    'SYNCHRONIZED'):
-                return True
+        try:
+            return vol['protection']['full_copies'][
+                'replicaState'] == 'SYNCHRONIZED'
+        except TypeError:
             return False
         return False
 

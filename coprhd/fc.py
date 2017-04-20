@@ -25,6 +25,7 @@ from cinder.volume.drivers.coprhd import common as coprhd_common
 from cinder.volume import utils as volume_utils
 
 from cinder.zonemanager import utils as fczm_utils
+from cinder.volume import utils as volume_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     def create_volume(self, volume):
         """Creates a Volume."""
         self.common.create_volume(volume, self)
-        self.common.set_volume_tags(volume, ['_obj_volume_type'])
+        self.common.set_volume_tags(volume, ['_obj_volume_type', '_obj_consistencygroup', '_obj_group'])
 
     def create_cloned_volume(self, volume, src_vref):
         """Creates a cloned Volume."""
@@ -118,13 +119,14 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Creates a group."""
         if volume_utils.is_group_a_cg_snapshot_type(group):
             return self.common.create_consistencygroup(context, group)
-
+ 
         # If the group is not consistency group snapshot enabled, then
         # we shall rely on generic volume group implementation
         raise NotImplementedError()
 
     def update_group(self, context, group, add_volumes=None,
                      remove_volumes=None):
+        
         """Updates volumes in group."""
         if volume_utils.is_group_a_cg_snapshot_type(group):
             return self.common.update_consistencygroup(group, add_volumes,
