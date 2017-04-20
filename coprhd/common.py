@@ -2234,8 +2234,7 @@ class EMCCoprHDDriverCommon(object):
         # Get a list of all formatted Physical initiators.
         physical_initiators = []
         for physical_initiator in connector['phy_to_virt_initiators'].keys():
-            initiator = ':'.join(re.findall(
-                '..', physical_initiator)).upper()
+            initiator = self._format_initiator(physical_initiator)
             physical_initiators.append(initiator)
 
         # Search for these physical initiators in all networks
@@ -2254,20 +2253,27 @@ class EMCCoprHDDriverCommon(object):
 
                 formatted_virtual_initiators = []
                 for virtual_initiator in virtual_initiators:
-                    initiator = ':'.join(re.findall(
-                        '..', virtual_initiator)).upper()
+                    initiator = self._format_initiator(virtual_initiator)
                     formatted_virtual_initiators.append(initiator)
 
                 for virtual_initiator in formatted_virtual_initiators:
                     self.network_obj.add_endpoint(network_uri,
                                                   virtual_initiator)
-        return
+            else:
+                raise coprhd_utils.CoprHdError(
+                    coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
+                    _("The physical %(initiator)s: wasn't found in any,"
+                      "network discovered in CoprHD\n") %
+                     {'initiator': initiator})        
+        return            
+        
 
     def _find_associated_network(self, wwpn):
         """Finds the network associated to an initiator.
 
         :param wwpn: initiator port
-        :returns URI of the network associated to the initiator"""
+        :returns URI of the network associated to the initiator
+        """
 
         network_uri = self.network_obj.query_by_initiator(wwpn)
 
@@ -2305,3 +2311,15 @@ class EMCCoprHDDriverCommon(object):
             volume_restricted_metadata_update_or_create(ctxt, volume['id'],
                                                         metadata)
         return
+    
+    def _format_initiator(self, wwn):
+        """Adds colons to the given initiator as needed for CoprHD.
+        
+        :param wwn : The wwn of the initiator.
+        :returns The formatted initiator.
+        """
+        
+        initiator = ':'.join(re.findall(
+                        '..', wwn)).upper()
+                        
+        return initiator                
