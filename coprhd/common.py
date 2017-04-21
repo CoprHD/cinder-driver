@@ -1277,6 +1277,7 @@ class EMCCoprHDDriverCommon(object):
     def _get_resource_name(self, resource,
                            max_name_cap=MAX_DEFAULT_NAME_LENGTH,
                            truncate_name=False):
+        ''' 36 refers to the length of UUID and +1 for '-' '''
         permitted_name_length = max_name_cap - (36 + 1)
         name = resource.get('display_name', None)
 
@@ -1291,13 +1292,14 @@ class EMCCoprHDDriverCommon(object):
         if truncate_name:
             name = self._id_to_base64(resource.id)
             name = name[0:6] + "-" + name
-        return name
+            return name
 
         elif len(name) > permitted_name_length:
             '''
             The maximum length of resource name in CoprHD is 128. Hence we use
             only first 91 characters of the resource name'''
             return name[0:permitted_name_length] + "-" + resource['id']
+
         else:
             return name + "-" + resource['id']
 
