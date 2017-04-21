@@ -247,11 +247,11 @@ class EMCCoprHDDriverCommon(object):
                 try:
                     if vol['consistencygroup_id']:
                         group_dtls = volume_utils.group_get_by_id(
-                                        vol['consistencygroup_id'])
+                            vol['consistencygroup_id'])
                         if volume_utils.is_group_a_cg_snapshot_type(
-                                        group_dtls):
+                                group_dtls):
                             coprhd_cgid = self._get_coprhd_cgid(
-                                            vol['consistencygroup_id'])
+                                vol['consistencygroup_id'])
                 except KeyError:
                     coprhd_cgid = None
             full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
@@ -1277,7 +1277,7 @@ class EMCCoprHDDriverCommon(object):
     def _get_resource_name(self, resource,
                            max_name_cap=MAX_DEFAULT_NAME_LENGTH,
                            truncate_name=False):
-        ''' 36 refers to the length of UUID and +1 for '-' '''
+        '''36 refers to the length of UUID and +1 for '-' '''
         permitted_name_length = max_name_cap - (36 + 1)
         name = resource.get('display_name', None)
 
@@ -1290,7 +1290,7 @@ class EMCCoprHDDriverCommon(object):
         _id_to_base64 will return a 24 character name, which we prepend
         with the first 6 characters of the resource name'''
         if truncate_name:
-            name = self._id_to_base64(resource.id)
+            name = self._id_to_base64(resource['id'])
             name = name[0:6] + "-" + name
             return name
 

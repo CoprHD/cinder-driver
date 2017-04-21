@@ -1023,10 +1023,11 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         self.driver.create_volume(volume_data)
         res_initiatlize = self.driver.initialize_connection(
             volume_data, connector_data)
+        exp_name = res_initiatlize['data']['scaleIO_volname']
         expected_initialize = {'data': {'bandwidthLimit': None,
                                         'hostIP': '10.0.0.2',
                                         'iopsLimit': None,
-                                        'scaleIO_volname': 'test-vol1',
+                                        'scaleIO_volname': exp_name,
                                         'scaleIO_volume_id': '1',
                                         'serverIP': '10.10.10.11',
                                         'serverPassword': 'scaleio_password',
