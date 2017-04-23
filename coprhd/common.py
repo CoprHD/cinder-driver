@@ -1800,16 +1800,13 @@ class EMCCoprHDDriverCommon(object):
                     initiator_ports, storage_wwpns, target_LUNs)
                 volume['itl_list'] = []
                 volume['itl_list'].append(itl)
-            else:
-                volume['support'] = {'status': 'supported'}
-            try:
-                if volume['mapped_wwpns']:
-                    if filter_set and (
+                if filter_set and (
                         filter_set & set(
                             volume['mapped_wwpns'])):
                         filtered_list.append(volume)
-            except KeyError:
-                pass
+            else:
+                volume['support'] = {'status': 'supported'}
+
         if filter_set is not None:
             return filtered_list
         else:
@@ -2246,10 +2243,13 @@ class EMCCoprHDDriverCommon(object):
             # to the network.
             if network_uri:
                 virtual_initiators = []
-                for physical_initiator in connector['phy_to_virt_initiators']:
-                    initiators = connector['phy_to_virt_initiators'][physical_initiator]
-                    for initiator in initiators:
-                        virtual_initiators.append(initiator)
+                try:
+                    initiators = connector['phy_to_virt_initiators'][initiator.replace(':','').lower()]                    
+                except KeyError:
+                    initiators = connector['phy_to_virt_initiators'][initiator.replace(':','')]
+                                            
+                for initiator in initiators:
+                    virtual_initiators.append(initiator)
 
                 formatted_virtual_initiators = []
                 for virtual_initiator in virtual_initiators:
@@ -2275,9 +2275,7 @@ class EMCCoprHDDriverCommon(object):
         :returns URI of the network associated to the initiator
         """
 
-        network_uri = self.network_obj.query_by_initiator(wwpn)
-
-        return network_uri
+        return self.network_obj.query_by_initiator(wwpn)
 
     def set_restricted_metadata(self, volume):
         """Sets the PowerVC restricted metadata properties.
