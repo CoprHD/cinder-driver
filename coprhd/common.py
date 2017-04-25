@@ -696,9 +696,10 @@ class EMCCoprHDDriverCommon(object):
                     if ((not prop.startswith("status") and not
                          prop.startswith("obj_status") and
                          prop != "obj_volume") and value):
-                        add_tags.append(
-                            "%s:%s:%s" % (self.OPENSTACK_TAG, prop,
-                                          six.text_type(value)))
+                        tag = ("%s:%s:%s" % (self.OPENSTACK_TAG, prop,
+                                six.text_type(value)))
+                        if len(tag) < 128:
+                            add_tags.append(tag)
                 except TypeError:
                     LOG.error(
                         _LE("Error tagging the resource property %s"), prop)
@@ -1545,7 +1546,6 @@ class EMCCoprHDDriverCommon(object):
         itls = export_itl_maps['itl']
         return itls.__len__()
 
-    @retry_wrapper
     def update_volume_stats(self):
         """Retrieve stats info."""
         LOG.debug("Updating volume stats")
@@ -1682,41 +1682,70 @@ class EMCCoprHDDriverCommon(object):
             else:
                 first_init_node = virt_inits_pair_wise[i]
                 second_init_node = virt_inits_pair_wise[i + 1]
-            try:
-                self.host_obj.create_paired_initiators_for_host(
-                    host_name,
-                    protocol,
-                    first_init_node,
-                    virt_inits_pair_wise[i],
-                    second_init_node,
-                    virt_inits_pair_wise[i + 1])
-                LOG.info(_(
-                    "Initiator v1=%(v1)s and Initiator v2=%(v2)s"
-                    " added to host  v3=%(v3)s") %
-                    {'v1': virt_inits_pair_wise[i],
-                     'v2': virt_inits_pair_wise[i + 1],
-                     'v3': host_name})
-                # Set tags for the first newly added initiator
-                # to the host
-                first_initiator_resource_id = (
-                    self.host_obj.query_initiator_by_name(
-                        virt_inits_pair_wise[i],
-                        host_name))
+                
+                # Before we add paired Initiators to Host,
+                # we check if the same initiators are already
+                # registered on the Host. We add only those 
+                # initiators which aren't registered on the Host.
+                
+                host_initiators = self.host_obj.list_initiators(host_name)
+                
+                if first_init_node and second_init_node not in host_initiators:
+                    
+                    try:
+                        self.host_obj.create_paired_initiators_for_host(
+                            host_name,
+                            protocol,
+                            first_init_node,
+                            virt_inits_pair_wise[i],
+                            second_init_node,
+                            virt_inits_pair_wise[i + 1])
+                        
+                        LOG.info(_("Initiator v1=%(v1)s and Initiator v2=%(v2)s"
+                                   " added to host  v3=%(v3)s") %
+                                 {'v1': virt_inits_pair_wise[i],
+                                  'v2': virt_inits_pair_wise[i + 1],
+                                  'v3': host_name})                                            
+                        
+                        # Set tags for the first newly added initiator
+                        # to the host
+                        
+                        first_initiator_resource_id = (
+                            self.host_obj.query_initiator_by_name(
+                            virt_inits_pair_wise[i],
+                            host_name))
+                        
+                        self.set_initiator_tags(host_name, first_initiator_resource_id)
+            
+                        # Set tags for the second newly added initiator
+                        # to the host
+                        
+                        second_initiator_resource_id = (
+                            self.host_obj.query_initiator_by_name(
+                            virt_inits_pair_wise[i + 1],
+                            host_name))
 
-                self.set_initiator_tags(host_name, first_initiator_resource_id)
+                        self.set_initiator_tags(
+                            host_name, second_initiator_resource_id)
 
-                '''Set tags for the second newly added initiator
-                 to the host'''
-                second_initiator_resource_id = (
-                    self.host_obj.query_initiator_by_name(
-                        virt_inits_pair_wise[i + 1],
-                        host_name))
+                    except coprhd_utils.CoprHdError as e:
+                        coprhd_err_msg = (_("Addition of initiator %(v1)s and initiator"
+                                            " %(v2)s to Host %(v3)s failed\n%(err)s") %
+                                          {'v1': virt_inits_pair_wise[i],
+                                           'v2': virt_inits_pair_wise[i + 1],
+                                           'v3': host_name,
+                                           'err': six.text_type(e.msg)})
 
-                self.set_initiator_tags(
-                    host_name, second_initiator_resource_id)
-
-            except coprhd_utils.CoprHdError as e:
-                pass
+                        log_err_msg = (_("Addition of initiator %(v1)s and initiator"
+                                            " %(v2)s to Host %(v3)s failed\n%(err)s") %
+                                          {'v1': virt_inits_pair_wise[i],
+                                           'v2': virt_inits_pair_wise[i + 1],
+                                           'v3': host_name,
+                                           'err': six.text_type(e.msg)})
+                        
+                        self._raise_or_log_exception(e.err_code, coprhd_err_msg,
+                                         log_err_msg)
+    
         return
 
     def _fetch_volume_info(self):
@@ -1797,7 +1826,7 @@ class EMCCoprHDDriverCommon(object):
                 connection_info['target_LUN'] = target_LUN
                 volume['connection_info'] = connection_info
                 itl = discovery_driver.ITLObject(
-                    initiator_ports, storage_wwpns, target_LUNs)
+                    volume['mapped_wwpns'], target_wwn, target_LUNs)
                 volume['itl_list'] = []
                 volume['itl_list'].append(itl)
                 if filter_set and (
