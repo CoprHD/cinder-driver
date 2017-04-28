@@ -29,8 +29,6 @@ import six
 from cinder import context
 from cinder import exception
 from cinder.i18n import _
-from cinder.i18n import _LE
-from cinder.i18n import _LI
 from cinder.objects import fields
 from cinder.volume.drivers.coprhd.helpers import (
     authentication as coprhd_auth)
