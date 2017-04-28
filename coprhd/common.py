@@ -420,7 +420,7 @@ class EMCCoprHDDriverCommon(object):
             cg_name = self._get_consistencygroup_name(cg_group)
 
         LOG.info(_('Start to create cgsnapshot for consistency group'
-                     ': %(group_name)s'),
+                   ': %(group_name)s'),
                  {'group_name': cg_name})
 
         try:
@@ -509,7 +509,7 @@ class EMCCoprHDDriverCommon(object):
                                'err': six.text_type(e.msg)})
 
             log_err_msg = (_("Snapshot %(name)s for Consistency"
-                               " Group: %(cg_name)s creation failed") %
+                             " Group: %(cg_name)s creation failed") %
                            {'cg_name': cg_name,
                             'name': cgsnapshot_name})
             self._raise_or_log_exception(e.err_code, coprhd_err_msg,
@@ -536,8 +536,8 @@ class EMCCoprHDDriverCommon(object):
 
         model_update = {}
         LOG.info(_('Delete cgsnapshot %(snap_name)s for consistency group: '
-                     '%(group_name)s'), {'snap_name': cgsnapshot['name'],
-                                         'group_name': cg_name})
+                   '%(group_name)s'), {'snap_name': cgsnapshot['name'],
+                                       'group_name': cg_name})
 
         try:
             uri = None
@@ -576,7 +576,7 @@ class EMCCoprHDDriverCommon(object):
                                'err': six.text_type(e.msg)})
 
             log_err_msg = (_("Snapshot %(name)s for Consistency"
-                               " Group: %(cg_name)s deletion failed") %
+                             " Group: %(cg_name)s deletion failed") %
                            {'cg_name': cg_name,
                             'name': cgsnapshot_name})
             self._raise_or_log_exception(e.err_code, coprhd_err_msg,
