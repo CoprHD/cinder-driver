@@ -316,7 +316,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         request = ("https://%s:%s/api/types/Sdc/instances/getByIp::%s/" %
                    (server_ip, six.text_type(server_port), ip_double_encoded))
 
-        LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
+        LOG.info(_("ScaleIO get client id by ip request: %s"), request)
 
         if self.configuration.scaleio_verify_server_certificate:
             verify_cert = self.configuration.scaleio_server_certificate_path
@@ -342,7 +342,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                                                    'message']})
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
-        LOG.info(_LI("ScaleIO sdc id is %s"), sdc_id)
+        LOG.info(_("ScaleIO sdc id is %s"), sdc_id)
         return sdc_id
 
     def _check_response(self, response, request,
@@ -350,7 +350,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                         server_username, server_password):
         if response.status_code == 401 or response.status_code == 403:
             LOG.info(
-                _LI("Token is invalid, going to re-login and get a new one"))
+                _("Token is invalid, going to re-login and get a new one"))
 
             login_request = ("https://%s:%s/api/login" %
                              (server_ip, six.text_type(server_port)))
@@ -367,7 +367,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             token = r.json()
             self.server_token = token
             # repeat request with valid token
-            LOG.info(_LI("Going to perform request again %s with valid token"),
+            LOG.info(_("Going to perform request again %s with valid token"),
                      request)
             res = requests.get(
                 request, auth=(server_username, self.server_token),
