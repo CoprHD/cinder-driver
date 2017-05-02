@@ -16,7 +16,6 @@
 from mock import Mock
 
 from cinder import context
-from cinder import exception
 from cinder.objects import fields
 from cinder import test
 from cinder.volume.drivers.coprhd import common as coprhd_common
@@ -536,7 +535,7 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
 
         self.driver.terminate_connection(volume_data, connector_data)
         self.driver.delete_volume(volume_data)
-    
+
     def test_create_delete_empty_group(self):
         group_data = get_test_group_data(self.volume_type_id,
                                          self.group_type_id)
