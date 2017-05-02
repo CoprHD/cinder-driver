@@ -138,29 +138,6 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         """Driver exntry point to remove an export for a volume."""
         pass
 
-    def create_consistencygroup(self, context, group):
-        """Creates a consistencygroup."""
-        return self.common.create_consistencygroup(context, group, True)
-
-    def update_consistencygroup(self, context, group,
-                                add_volumes=None, remove_volumes=None):
-        """Updates volumes in consistency group."""
-        return self.common.update_consistencygroup(group, add_volumes,
-                                                   remove_volumes)
-
-    def delete_consistencygroup(self, context, group, volumes):
-        """Deletes a consistency group."""
-        return self.common.delete_consistencygroup(context, group,
-                                                   volumes, True)
-
-    def create_cgsnapshot(self, context, cgsnapshot, snapshots):
-        """Creates a cgsnapshot."""
-        return self.common.create_cgsnapshot(cgsnapshot, snapshots, True)
-
-    def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
-        """Deletes a cgsnapshot."""
-        return self.common.delete_cgsnapshot(cgsnapshot, snapshots, True)
-
     def create_group(self, context, group):
         """Creates a group."""
         if volume_utils.is_group_a_cg_snapshot_type(group):
@@ -315,7 +292,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         request = ("https://%s:%s/api/types/Sdc/instances/getByIp::%s/" %
                    (server_ip, six.text_type(server_port), ip_double_encoded))
 
-        LOG.info(_("ScaleIO get client id by ip request: %s"), request)
+        LOG.info("ScaleIO get client id by ip request: %s", request)
 
         if self.configuration.scaleio_verify_server_certificate:
             verify_cert = self.configuration.scaleio_server_certificate_path
@@ -341,7 +318,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                                                    'message']})
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
-        LOG.info(_("ScaleIO sdc id is %s"), sdc_id)
+        LOG.info("ScaleIO sdc id is %s", sdc_id)
         return sdc_id
 
     def _check_response(self, response, request,
@@ -349,7 +326,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                         server_username, server_password):
         if response.status_code == 401 or response.status_code == 403:
             LOG.info(
-                _("Token is invalid, going to re-login and get a new one"))
+                "Token is invalid, going to re-login and get a new one")
 
             login_request = ("https://%s:%s/api/login" %
                              (server_ip, six.text_type(server_port)))
@@ -366,7 +343,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             token = r.json()
             self.server_token = token
             # repeat request with valid token
-            LOG.info(_("Going to perform request again %s with valid token"),
+            LOG.info("Going to perform request again %s with valid token",
                      request)
             res = requests.get(
                 request, auth=(server_username, self.server_token),

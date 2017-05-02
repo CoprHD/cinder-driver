@@ -89,28 +89,6 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         """Driver entry point to remove an export for a volume."""
         pass
 
-    def create_consistencygroup(self, context, group):
-        """Creates a consistencygroup."""
-        return self.common.create_consistencygroup(context, group)
-
-    def delete_consistencygroup(self, context, group, volumes):
-        """Deletes a consistency group."""
-        return self.common.delete_consistencygroup(context, group, volumes)
-
-    def update_consistencygroup(self, context, group,
-                                add_volumes=None, remove_volumes=None):
-        """Updates volumes in consistency group."""
-        return self.common.update_consistencygroup(group, add_volumes,
-                                                   remove_volumes)
-
-    def create_cgsnapshot(self, context, cgsnapshot, snapshots):
-        """Creates a cgsnapshot."""
-        return self.common.create_cgsnapshot(cgsnapshot, snapshots)
-
-    def delete_cgsnapshot(self, context, cgsnapshot, snapshots):
-        """Deletes a cgsnapshot."""
-        return self.common.delete_cgsnapshot(cgsnapshot, snapshots)
-
     def create_group(self, context, group):
         """Creates a group."""
         if volume_utils.is_group_a_cg_snapshot_type(group):
