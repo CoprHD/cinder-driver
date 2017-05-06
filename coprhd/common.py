@@ -405,13 +405,10 @@ class EMCCoprHDDriverCommon(object):
         cgsnapshot_name = self._get_resource_name(cgsnapshot,
                                                   MAX_SNAPSHOT_NAME_LENGTH,
                                                   truncate_name)
-        try:
-            cg_id = cgsnapshot['group_id']
-            cg_group = cgsnapshot.get('group')
-        except KeyError:
-            cg_id = cgsnapshot['consistencygroup_id']
-            cg_group = cgsnapshot.get('consistencygroup')
 
+        cg_id = cgsnapshot.get('group_id', cgsnapshot.get('consistencygroup_id'))
+        cg_group = cgsnapshot.get('group', cgsnapshot.get('consistencygroup'))
+        
         cg_name = None
         coprhd_cgid = None
 
@@ -524,12 +521,9 @@ class EMCCoprHDDriverCommon(object):
                                                   truncate_name)
 
         snapshots_model_update = []
-        try:
-            cg_id = cgsnapshot['group_id']
-            cg_group = cgsnapshot.get('group')
-        except KeyError:
-            cg_id = cgsnapshot['consistencygroup_id']
-            cg_group = cgsnapshot.get('consistencygroup')
+        
+        cg_id = cgsnapshot.get('group_id', cgsnapshot.get('consistencygroup_id'))
+        cg_group = cgsnapshot.get('group', cgsnapshot.get('consistencygroup'))
 
         coprhd_cgid = self._get_coprhd_cgid(cg_id)
         cg_name = self._get_consistencygroup_name(cg_group)
@@ -1426,8 +1420,8 @@ class EMCCoprHDDriverCommon(object):
         self.authenticate_user()
 
         try:
-            self.stats['consistencygroup_support'] = 'True'
-            self.stats['consistent_group_snapshot_enabled'] = 'True'
+            self.stats['consistencygroup_support'] = True
+            self.stats['consistent_group_snapshot_enabled'] = True
             vols = self.volume_obj.list_volumes(
                 self.configuration.coprhd_tenant +
                 "/" +
