@@ -44,7 +44,7 @@ AUTH_TOKEN = None
 global VERIFY_CERT
 VERIFY_CERT = False
 
-TASK_TIMEOUT = 300
+TASK_TIMEOUT = 1800
 
 URI_TASKS_BY_OPID = '/vdc/tasks/{0}'
 
