@@ -698,8 +698,9 @@ class EMCCoprHDDriverCommon(object):
                          prop != "obj_volume") and value):
                         tag = ("%s:%s:%s" % (self.OPENSTACK_TAG, prop,
                                 six.text_type(value)))
-                        if len(tag) < 128:
-                            add_tags.append(tag)
+                        if len(tag) > 128:
+                            tag = tag[0:128]
+                        add_tags.append(tag)
                 except TypeError:
                     LOG.error(
                         _LE("Error tagging the resource property %s"), prop)
@@ -1545,7 +1546,8 @@ class EMCCoprHDDriverCommon(object):
 
         itls = export_itl_maps['itl']
         return itls.__len__()
-
+    
+    @retry_wrapper
     def update_volume_stats(self):
         """Retrieve stats info."""
         LOG.debug("Updating volume stats")
@@ -1689,8 +1691,12 @@ class EMCCoprHDDriverCommon(object):
                 # initiators which aren't registered on the Host.
                 
                 host_initiators = self.host_obj.list_initiators(host_name)
+                host_initiator_names = []
+                for initiator in host_initiators:
+                    host_initiator_name = initiator['name']
+                    host_initiator_names.append(host_initiator_name)
                 
-                if first_init_node and second_init_node not in host_initiators:
+                if first_init_node and second_init_node not in host_initiator_names:
                     
                     try:
                         self.host_obj.create_paired_initiators_for_host(
@@ -1729,19 +1735,18 @@ class EMCCoprHDDriverCommon(object):
                             host_name, second_initiator_resource_id)
 
                     except coprhd_utils.CoprHdError as e:
-                        coprhd_err_msg = (_("Addition of initiator %(v1)s and initiator"
-                                            " %(v2)s to Host %(v3)s failed\n%(err)s") %
+                        coprhd_err_msg = (_("Initiator %(v1)s and Initiator"
+                                            " %(v2)s add to Host %(v3)s failed\n%(err)s") %
                                           {'v1': virt_inits_pair_wise[i],
                                            'v2': virt_inits_pair_wise[i + 1],
                                            'v3': host_name,
                                            'err': six.text_type(e.msg)})
 
-                        log_err_msg = (_("Addition of initiator %(v1)s and initiator"
-                                            " %(v2)s to Host %(v3)s failed\n%(err)s") %
+                        log_err_msg = (_("Initiator %(v1)s and Initiator"
+                                        " %(v2)s addition to Host %(v3)s failed\n") %
                                           {'v1': virt_inits_pair_wise[i],
                                            'v2': virt_inits_pair_wise[i + 1],
-                                           'v3': host_name,
-                                           'err': six.text_type(e.msg)})
+                                           'v3': host_name})
                         
                         self._raise_or_log_exception(e.err_code, coprhd_err_msg,
                                          log_err_msg)
