@@ -696,9 +696,11 @@ class EMCCoprHDDriverCommon(object):
                     if ((not prop.startswith("status") and not
                          prop.startswith("obj_status") and
                          prop != "obj_volume") and value):
-                        add_tags.append(
-                            "%s:%s:%s" % (self.OPENSTACK_TAG, prop,
+                        tag = ("%s:%s:%s" % (self.OPENSTACK_TAG, prop,
                                           six.text_type(value)))
+                        if len(tag) > 128:
+                            tag = tag[0:128]
+                        add_tags.append(tag)
                 except TypeError:
                     LOG.error(
                         _LE("Error tagging the resource property %s"), prop)
