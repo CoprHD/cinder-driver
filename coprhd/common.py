@@ -90,6 +90,7 @@ EXPORT_RETRY_COUNT = 5
 MAX_DEFAULT_NAME_LENGTH = 128
 MAX_SNAPSHOT_NAME_LENGTH = 63
 MAX_CONSISTENCY_GROUP_NAME_LENGTH = 64
+MAX_SIO_LEN = 31
 
 
 def retry_wrapper(func):
@@ -237,21 +238,13 @@ class EMCCoprHDDriverCommon(object):
         try:
             coprhd_cgid = None
             try:
-                if vol['group_id']:
-                    group_dtls = volume_utils.group_get_by_id(vol['group_id'])
+                if vol.group_id:
+                    group_dtls = volume_utils.group_get_by_id(vol.group_id)
                     if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
-                        coprhd_cgid = self._get_coprhd_cgid(vol['group_id'])
+                        coprhd_cgid = self._get_coprhd_cgid(vol.group_id)
             except KeyError:
-                try:
-                    if vol['consistencygroup_id']:
-                        group_dtls = volume_utils.group_get_by_id(
-                            vol['consistencygroup_id'])
-                        if volume_utils.is_group_a_cg_snapshot_type(
-                                group_dtls):
-                            coprhd_cgid = self._get_coprhd_cgid(
-                                vol['consistencygroup_id'])
-                except KeyError:
                     coprhd_cgid = None
+
             full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
                                             self.configuration.coprhd_project)
                                  )
@@ -406,9 +399,9 @@ class EMCCoprHDDriverCommon(object):
                                                   MAX_SNAPSHOT_NAME_LENGTH,
                                                   truncate_name)
 
-        cg_id = cgsnapshot.get('group_id', cgsnapshot.get('consistencygroup_id'))
-        cg_group = cgsnapshot.get('group', cgsnapshot.get('consistencygroup'))
-        
+        cg_id = cgsnapshot.get('group_id')
+        cg_group = cgsnapshot.get('group')
+
         cg_name = None
         coprhd_cgid = None
 
@@ -521,9 +514,9 @@ class EMCCoprHDDriverCommon(object):
                                                   truncate_name)
 
         snapshots_model_update = []
-        
-        cg_id = cgsnapshot.get('group_id', cgsnapshot.get('consistencygroup_id'))
-        cg_group = cgsnapshot.get('group', cgsnapshot.get('consistencygroup'))
+
+        cg_id = cgsnapshot.get('group_id')
+        cg_group = cgsnapshot.get('group')
 
         coprhd_cgid = self._get_coprhd_cgid(cg_id)
         cg_name = self._get_consistencygroup_name(cg_group)
@@ -1280,11 +1273,9 @@ class EMCCoprHDDriverCommon(object):
         '''
         for scaleio, truncate_name will be true. We make sure the
         total name is less than or equal to 31 characters.
-        _id_to_base64 will return a 24 character name, which we prepend
-        with the first 6 characters of the resource name'''
+        _id_to_base64 will return a 24 character name'''
         if truncate_name:
             name = self._id_to_base64(resource['id'])
-            name = name[0:6] + "-" + name
             return name
 
         elif len(name) > permitted_name_length:

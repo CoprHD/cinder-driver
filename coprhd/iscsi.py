@@ -18,10 +18,11 @@
 
 from oslo_log import log as logging
 
+from cinder import exception
+from cinder.i18n import _
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
 from cinder.volume import utils as volume_utils
-
 
 LOG = logging.getLogger(__name__)
 
@@ -97,6 +98,16 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
         # If the group is not consistency group snapshot enabled, then
         # we shall rely on generic volume group implementation
         raise NotImplementedError()
+
+    def create_group_from_src(self, ctxt, group, volumes,
+                              group_snapshot=None, snapshots=None,
+                              source_group=None, source_vols=None):
+        """Creates a group from source."""
+        if volume_utils.is_group_a_cg_snapshot_type(group):
+            message = _("create group from source is not supported for CoprHD")
+            raise exception.VolumeBackendAPIException(data=message)
+        else:
+            raise NotImplementedError()
 
     def update_group(self, context, group, add_volumes=None,
                      remove_volumes=None):

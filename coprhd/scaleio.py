@@ -158,6 +158,16 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         # we shall rely on generic volume group implementation
         raise NotImplementedError()
 
+    def create_group_from_src(self, ctxt, group, volumes,
+                              group_snapshot=None, snapshots=None,
+                              source_group=None, source_vols=None):
+        """Creates a group from source."""
+        if volume_utils.is_group_a_cg_snapshot_type(group):
+            message = _("create group from source is not supported for CoprHD")
+            raise exception.VolumeBackendAPIException(data=message)
+        else:
+            raise NotImplementedError()
+
     def delete_group(self, context, group, volumes):
         """Deletes a group."""
         if volume_utils.is_group_a_cg_snapshot_type(group):
@@ -196,7 +206,9 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     def initialize_connection(self, volume, connector):
         """Initializes the connection and returns connection info."""
 
-        volname = self.common._get_resource_name(volume, True)
+        volname = self.common._get_resource_name(volume,
+                                                 coprhd_common.MAX_SIO_LEN,
+                                                 True)
 
         properties = {}
         properties['scaleIO_volname'] = volname
