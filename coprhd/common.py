@@ -608,7 +608,7 @@ class EMCCoprHDDriverCommon(object):
         self.authenticate_user()
 
         host_resource_id = self.host_obj.query_by_name(
-            connector['host'])
+            connector['host'], self.configuration.coprhd_tenant)
         add_tags = []
         tagname = self.OPENSTACK_TAG + connector['host']
         add_tags.append(tagname)
@@ -1117,7 +1117,8 @@ class EMCCoprHDDriverCommon(object):
                     # Check if this host has same, less or more than requested
                     # initiators
                     initiators = self.host_obj.list_initiators(
-                        foundhostdetails['id'])
+                        foundhostdetails['id'],
+                        self.configuration.coprhd_tenant)
                     if len(initiators) > 0:
                         existing_initiators_host = set()
                         for initiator in initiators:
@@ -1184,8 +1185,8 @@ class EMCCoprHDDriverCommon(object):
                 self.exportgroup_obj.exportgroup_remove_volumes_by_uri(
                     exportgroup,
                     volid,
+                    self.configuration.coprhd_tenant,
                     True,
-                    None,
                     None,
                     None,
                     None)
@@ -1499,7 +1500,8 @@ class EMCCoprHDDriverCommon(object):
         found_host_with_some_initiators = None
 
         for host in hosts:
-            initiators = self.host_obj.list_initiators(host['id'])
+            initiators = self.host_obj.list_initiators(host['id'],
+                                                       self.configuration.coprhd_tenant)
 
             if len(initiators) > 0:
                 initiators_in_eg = set()
@@ -1691,7 +1693,8 @@ class EMCCoprHDDriverCommon(object):
                     first_init_node,
                     virt_inits_pair_wise[i],
                     second_init_node,
-                    virt_inits_pair_wise[i + 1])
+                    virt_inits_pair_wise[i + 1],
+                    self.configuration.coprhd_tenant)
                 LOG.info(_(
                     "Initiator v1=%(v1)s and Initiator v2=%(v2)s"
                     " added to host  v3=%(v3)s") %
@@ -1703,7 +1706,8 @@ class EMCCoprHDDriverCommon(object):
                 first_initiator_resource_id = (
                     self.host_obj.query_initiator_by_name(
                         virt_inits_pair_wise[i],
-                        host_name))
+                        host_name,
+                        self.configuration.coprhd_tenant))
 
                 self.set_initiator_tags(host_name, first_initiator_resource_id)
 
@@ -1712,7 +1716,8 @@ class EMCCoprHDDriverCommon(object):
                 second_initiator_resource_id = (
                     self.host_obj.query_initiator_by_name(
                         virt_inits_pair_wise[i + 1],
-                        host_name))
+                        host_name,
+                        self.configuration.coprhd_tenant))
 
                 self.set_initiator_tags(
                     host_name, second_initiator_resource_id)
@@ -1903,7 +1908,8 @@ class EMCCoprHDDriverCommon(object):
             virt_inits_pair_wise,
             export_group_host_name, protocol)
         initiators = self.host_obj.list_initiators(
-            export_group_host_name)
+            export_group_host_name,
+            self.configuration.coprhd_tenant)
 
         init_ports_uri_list = self.get_init_ports_uri_list(
             initiators, initiator_ports)
@@ -1967,7 +1973,8 @@ class EMCCoprHDDriverCommon(object):
         # requested initiator ports to it.
         # No tags should be set in this case.
         initiators = self.host_obj.list_initiators(
-            foundhostdetails['id'])
+            foundhostdetails['id'],
+            self.configuration.coprhd_tenant)
         init_ports_uri_list = self.get_init_ports_uri_list(
             initiators, initiator_ports)
         exp_group_name = self._get_unique_exportgroup_name(connector)
@@ -2047,7 +2054,8 @@ class EMCCoprHDDriverCommon(object):
             virt_inits_pair_wise, foundhostdetails['name'],
             protocol)
         initiators = self.host_obj.list_initiators(
-            foundhostdetails['id'])
+            foundhostdetails['id'],
+            self.configuration.coprhd_tenant)
         init_ports_uri_list = self.get_init_ports_uri_list(
             initiators, initiator_ports)
 
@@ -2111,10 +2119,11 @@ class EMCCoprHDDriverCommon(object):
         self.add_initiator_pairs_to_host(
             virt_inits_pair_wise, connector['host'], protocol)
 
-        host_id = self.host_obj.query_by_name(
-            connector['host'])
+        host_id = self.host_obj.query_by_name(connector['host'], 
+                                              self.configuration.coprhd_tenant)
         initiators = self.host_obj.list_initiators(
-            host_id)
+            host_id,
+            self.configuration.coprhd_tenant)
 
         # Now we create an export group of type Host and add this
         # host to it, the host initiators will automatically be

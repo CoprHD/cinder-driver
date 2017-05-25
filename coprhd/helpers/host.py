@@ -34,10 +34,8 @@ class Host(common.CoprHDResource):
     URI_HOST_TAGS = "/compute/hosts/{0}/tags"
     URI_INITIATOR_TAGS = "/compute/initiators/{0}/tags"
 
-    def query_by_name(self, host_name, tenant_name=None):
+    def query_by_name(self, host_name, tenant_name):
         """Search host matching host_name and tenant if tenant_name provided.
-
-        tenant_name is optional
         """
         hostList = self.list_all(tenant_name)
         for host in hostList:
@@ -50,13 +48,13 @@ class Host(common.CoprHDResource):
         raise common.CoprHdError(common.CoprHdError.NOT_FOUND_ERR, (_(
                                  "Host with name: %s not found") % host_name))
 
-    def list_initiators(self, host_name):
+    def list_initiators(self, host_name, tenant):
         """Lists all initiators for the given host.
 
         :param host_name: The name of the host
         """
         if not common.is_uri(host_name):
-            hostUri = self.query_by_name(host_name, None)
+            hostUri = self.query_by_name(host_name, tenant)
         else:
             hostUri = host_name
 
@@ -177,7 +175,8 @@ class Host(common.CoprHDResource):
                                           first_initiator_node,
                                           first_initiator_port,
                                           second_initiator_node,
-                                          second_initiator_port):
+                                          second_initiator_port,
+                                          tenant):
         """Add initiator pairs to host
 
         :param host_name: Host name
@@ -188,7 +187,7 @@ class Host(common.CoprHDResource):
         :param second_initiator_port: Second initiator port in the pair
         """
         if not common.is_uri(host_name):
-            hostUri = self.query_by_name(host_name, None)
+            hostUri = self.query_by_name(host_name, tenant)
         else:
             hostUri = host_name
 
@@ -213,7 +212,7 @@ class Host(common.CoprHDResource):
         o = common.json_decode(s)
         return o
 
-    def query_initiator_by_name(self, initiatorName, hostName):
+    def query_initiator_by_name(self, initiatorName, hostName, tenant):
         """Returns the initiator URI for matching the name of the initiator
 
         :param initiatorName: Name of the Initiator
@@ -221,8 +220,8 @@ class Host(common.CoprHDResource):
         :returns: Matching initiator's uri
         """
 
-        hostUri = self.query_by_name(hostName)
-        initiatorList = self.list_initiators(hostUri)
+        hostUri = self.query_by_name(hostName, tenant)
+        initiatorList = self.list_initiators(hostUri, tenant)
         # Match the name and return uri
         for initiator in initiatorList:
             if(initiator['name'] == initiatorName):

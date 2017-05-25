@@ -35,9 +35,10 @@ class ExportGroup(common.CoprHDResource):
     URI_EG_TAGS = '/block/exports/{0}/tags'
 
     def exportgroup_remove_volumes_by_uri(self, exportgroup_uri,
-                                          volume_id_list, sync=False,
-                                          tenantname=None, projectname=None,
-                                          cg=None, synctimeout=0):
+                                          volume_id_list, tenantname, 
+                                          sync=False, projectname=None,
+                                          cg=None, synctimeout=0 
+                                          ):
         """Remove volumes from the exportgroup, given the uris of volume."""
 
         volume_list = volume_id_list
@@ -172,7 +173,7 @@ class ExportGroup(common.CoprHDResource):
 
                 if exportgrouptype and export_destination:
                     host_obj = host.Host(self.ipaddr, self.port)
-                    host_uri = host_obj.query_by_name(export_destination)
+                    host_uri = host_obj.query_by_name(export_destination, tenant)
                     parms['hosts'] = [host_uri]
 
                 body = oslo_serialization.jsonutils.dumps(parms)
