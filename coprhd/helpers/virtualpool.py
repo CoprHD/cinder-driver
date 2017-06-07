@@ -22,6 +22,7 @@ class VirtualPool(common.CoprHDResource):
     URI_VPOOL = "/{0}/vpools"
     URI_VPOOL_SHOW = URI_VPOOL + "/{1}"
     URI_VPOOL_SEARCH = URI_VPOOL + "/search?name={1}"
+    URI_VPOOL_LIST = "/block/vpools?tenant-id={0}"
 
     def vpool_show_uri(self, vpooltype, uri):
         """Makes REST API call and retrieves vpool details based on UUID.
@@ -75,3 +76,19 @@ class VirtualPool(common.CoprHDResource):
                                   {'name': name,
                                    'vpooltype': vpooltype
                                    }))
+        
+    def vpool_list(self, tenant_id):
+        """Makes REST API call to query the vpool given the tenant-id.
+        
+        :param tenant-id : Name of the ViPR-tenant.
+        :returns List of vpools under the specified tenant.
+        """
+        
+        (s, h) = common.service_json_request(
+            self.ipaddr, self.port,
+            "GET",
+            self.URI_VPOOL_LIST.format(tenant_id), None)
+
+        o = common.json_decode(s)
+
+        return o    

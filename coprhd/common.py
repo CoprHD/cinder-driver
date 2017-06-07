@@ -42,12 +42,15 @@ from cinder.volume.drivers.coprhd.helpers import (
 from cinder.volume.drivers.coprhd.helpers import exportgroup as coprhd_eg
 from cinder.volume.drivers.coprhd.helpers import host as coprhd_host
 from cinder.volume.drivers.coprhd.helpers import snapshot as coprhd_snap
+from cinder.volume.drivers.coprhd.helpers import storagepool as coprhd_storagepool
 from cinder.volume.drivers.coprhd.helpers import tag as coprhd_tag
+from cinder.volume.drivers.coprhd.helpers import tenant as coprhd_tenant
 from cinder.volume.drivers.coprhd.helpers import network as coprhd_network
 
 from cinder.volume.drivers.coprhd.helpers import (
     virtualarray as coprhd_varray)
 from cinder.volume.drivers.coprhd.helpers import volume as coprhd_vol
+from cinder.volume.drivers.coprhd.helpers import virtualpool as coprhd_vpool
 from cinder.volume import volume_types
 
 from powervc_cinder.db import api as powervc_db_api
@@ -92,7 +95,10 @@ volume_opts = [
                 'verification is not performed'),
     cfg.StrOpt('server_certificate_path',
                default=None,
-               help='Server certificate path')
+               help='Server certificate path'),
+    cfg.StrOpt('coprhd_vpool',
+               default=None,
+               help='Virtual Pool to utilize within the CoprHD Instance')
 ]
 
 CONF = cfg.CONF
@@ -149,7 +155,7 @@ class EMCCoprHDDriverCommon(object):
 
         self.init_coprhd_api_components()
         self.verify_certificate()
-
+        
         self.stats = {'driver_version': '3.0.0.0',
                       'free_capacity_gb': 'unknown',
                       'reserved_percentage': '0',
@@ -195,7 +201,20 @@ class EMCCoprHDDriverCommon(object):
         self.network_obj = coprhd_network.Network(
             self.configuration.coprhd_hostname,
             self.configuration.coprhd_port)
-
+        
+        self.vpool_obj = coprhd_vpool.VirtualPool(
+            self.configuration.coprhd_hostname,
+            self.configuration.coprhd_port)
+        
+        self.storagepool_obj = coprhd_storagepool.StoragePool(
+            self.configuration.coprhd_hostname,
+            self.configuration.coprhd_port)
+        
+        self.tenant_obj = coprhd_tenant.Tenant(
+            self.configuration.coprhd_hostname,
+            self.configuration.coprhd_port)
+        
+        
     def check_for_setup_error(self):
         # validate all of the coprhd_* configuration values
         if self.configuration.coprhd_hostname is None:
@@ -1686,44 +1705,78 @@ class EMCCoprHDDriverCommon(object):
             else:
                 first_init_node = virt_inits_pair_wise[i]
                 second_init_node = virt_inits_pair_wise[i + 1]
-            try:
-                self.host_obj.create_paired_initiators_for_host(
-                    host_name,
-                    protocol,
-                    first_init_node,
-                    virt_inits_pair_wise[i],
-                    second_init_node,
-                    virt_inits_pair_wise[i + 1],
-                    self.configuration.coprhd_tenant)
-                LOG.info(_(
-                    "Initiator v1=%(v1)s and Initiator v2=%(v2)s"
-                    " added to host  v3=%(v3)s") %
-                    {'v1': virt_inits_pair_wise[i],
-                     'v2': virt_inits_pair_wise[i + 1],
-                     'v3': host_name})
-                # Set tags for the first newly added initiator
-                # to the host
-                first_initiator_resource_id = (
-                    self.host_obj.query_initiator_by_name(
-                        virt_inits_pair_wise[i],
-                        host_name,
-                        self.configuration.coprhd_tenant))
+                
+                # Before we add paired Initiators to Host,
+                # we check if the same initiators are already
+                # registered on the Host. We add only those 
+                # initiators which aren't registered on the Host.
+                
+                host_initiators = self.host_obj.list_initiators(host_name,
+                                                                self.configuration.coprhd_tenant)
+                
+                host_initiator_names = []
+                for initiator in host_initiators:
+                    host_initiator_name = initiator['name']
+                    host_initiator_names.append(host_initiator_name)
+                            
+                if first_init_node and second_init_node not in host_initiator_names:
+                    
+                    try:
+                        self.host_obj.create_paired_initiators_for_host(
+                            host_name,
+                            protocol,
+                            first_init_node,
+                            virt_inits_pair_wise[i],
+                            second_init_node,
+                            virt_inits_pair_wise[i + 1],
+                            self.configuration.coprhd_tenant)
+                        
+                        LOG.info(_("Initiator v1=%(v1)s and Initiator v2=%(v2)s"
+                                   " added to host  v3=%(v3)s") %
+                                 {'v1': virt_inits_pair_wise[i],
+                                  'v2': virt_inits_pair_wise[i + 1],
+                                  'v3': host_name})                                            
+                        
+                        # Set tags for the first newly added initiator
+                        # to the host
+                        
+                        first_initiator_resource_id = (
+                            self.host_obj.query_initiator_by_name(
+                            virt_inits_pair_wise[i],
+                            host_name,
+                            self.configuration.coprhd_tenant))
+                        
+                        self.set_initiator_tags(host_name, first_initiator_resource_id)
+            
+                        # Set tags for the second newly added initiator
+                        # to the host
+                        
+                        second_initiator_resource_id = (
+                            self.host_obj.query_initiator_by_name(
+                            virt_inits_pair_wise[i + 1],
+                            host_name,
+                            self.configuration.coprhd_tenant))
 
-                self.set_initiator_tags(host_name, first_initiator_resource_id)
+                        self.set_initiator_tags(
+                            host_name, second_initiator_resource_id)
 
-                '''Set tags for the second newly added initiator
-                 to the host'''
-                second_initiator_resource_id = (
-                    self.host_obj.query_initiator_by_name(
-                        virt_inits_pair_wise[i + 1],
-                        host_name,
-                        self.configuration.coprhd_tenant))
+                    except coprhd_utils.CoprHdError as e:
+                        coprhd_err_msg = (_("Initiator %(v1)s and Initiator"
+                                            " %(v2)s add to Host %(v3)s failed\n%(err)s") %
+                                          {'v1': virt_inits_pair_wise[i],
+                                           'v2': virt_inits_pair_wise[i + 1],
+                                           'v3': host_name,
+                                           'err': six.text_type(e.msg)})
 
-                self.set_initiator_tags(
-                    host_name, second_initiator_resource_id)
-
-            except coprhd_utils.CoprHdError as e:
-                pass
+                        log_err_msg = (_("Initiator %(v1)s and Initiator"
+                                        " %(v2)s addition to Host %(v3)s failed\n") %
+                                          {'v1': virt_inits_pair_wise[i],
+                                           'v2': virt_inits_pair_wise[i + 1],
+                                           'v3': host_name})
+                        
+                        self._raise_or_log_exception(e.err_code, coprhd_err_msg,
+                                         log_err_msg)
+    
         return
 
     def _fetch_volume_info(self):
@@ -1804,7 +1857,7 @@ class EMCCoprHDDriverCommon(object):
                 connection_info['target_LUN'] = target_LUN
                 volume['connection_info'] = connection_info
                 itl = discovery_driver.ITLObject(
-                    initiator_ports, storage_wwpns, target_LUNs)
+                    volume['mapped_wwpns'], target_wwn, target_LUNs)
                 volume['itl_list'] = []
                 volume['itl_list'].append(itl)
                 if filter_set and (
@@ -2331,4 +2384,78 @@ class EMCCoprHDDriverCommon(object):
         initiator = ':'.join(re.findall(
                         '..', wwn)).upper()
                         
-        return initiator                
+        return initiator
+    
+    def check_for_deleted_volumes(self, volumes):
+        """Checks if any PowerVC volumes got deleted out-of-band in CoprHD.
+        
+        :param volumes : The volumes passed in from PowerVC.
+        :returns The volumes which aren't found on CoprHD.
+        """
+        
+        self.authenticate_user()
+        
+        project = self.configuration.coprhd_project
+        lun_list = self.volume_obj.list_volumes(project)
+        
+        if lun_list is None:
+            lun_list = []
+        LOG.info("CoprHD volumes list returns %d vols." % len(lun_list))
+        # Create a list of lun names.
+        lun_names = [lun['name'] for lun in lun_list]
+        # Find volumes that don't exist using 'name' as correlation.
+        delvols = []
+        for vol in volumes:
+            volname = self._get_coprhd_volume_name(vol)
+            if volname not in lun_names:
+                delvols.append(vol)
+                        
+        LOG.debug("Returning %d volumes not found." % len(delvols))
+        
+        return delvols
+    
+    def build_default_opts(self):
+        """Method which returns the default extra specs used by CoprHD Driver.
+        
+        :returns CoprHD vpool to be used in extra-specs.
+        """
+        self.authenticate_user()
+        
+        if self.configuration.coprhd_vpool is not None:
+            default_opts = {
+                'CoprHD:VPOOL': self.configuration.coprhd_vpool }
+        else:
+            tenant_name = self.configuration.coprhd_tenant
+            tenant_id = self.tenant_obj.get_tenant_by_name(tenant_name)
+            
+            default_vpool_list = self.vpool_obj.vpool_list(tenant_id)
+            
+            default_opts = {
+                'CoprHD:VPOOL': default_vpool_list['virtualpool'][0]['name'] }
+        
+        return default_opts
+    
+    def get_storage_metadata(self):
+        """Returns the storage meta-data required by PowerVC UI.
+        
+        :returns Meta-data required by PowerVC UI.
+        """
+        self.authenticate_user()
+
+        varray_id = self.varray_obj.varray_query(self.configuration.coprhd_varray)
+        pools = self.varray_obj.varray_storage_pools(varray_id)
+
+        volume_pools = []
+        compression = False
+        
+        for pool in pools['storage_pool']:
+            storage_pool = self.storagepool_obj.storagepool_list_by_uri(pool['id'])
+            volume_pool = {'name': storage_pool['name'], 'free_capacity':
+                          str(int(storage_pool['free_gb'])) + " GB",
+                          'capacity':
+                          str(int(storage_pool['usable_gb'])) + " GB"}
+            volume_pools.append(volume_pool)
+                    
+        return  {'volume_pools': volume_pools,
+                 'compression_supported': compression }
+            

@@ -253,3 +253,20 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver,
     def get_volume_info(self, volume_refs, filter_sets):
         """Retrieves list of volumes for PowerVC volume-onboarding."""
         return self.common.get_volume_info(volume_refs, filter_sets)
+
+    def check_for_deleted_volumes(self, context, volumes):
+        """Determines which of the volumes no longer exists on the Provider."""
+        return self.common.check_for_deleted_volumes(volumes)
+               
+    def get_vendor_str(self):
+        """Returns the vendor String."""
+        return 'CoprHD'
+    
+    def _build_default_opts(self):
+        """Builds the default extra specs used by CoprHD Driver."""
+        return self.common.build_default_opts()
+    
+    def get_storage_metadata(self):
+        """Meta-data required by PowerVC UI."""
+        return self.common.get_storage_metadata()
+        

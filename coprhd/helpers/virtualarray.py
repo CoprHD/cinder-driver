@@ -23,6 +23,7 @@ class VirtualArray(common.CoprHDResource):
     URI_VIRTUALARRAY = '/vdc/varrays'
     URI_VIRTUALARRAY_BY_VDC_ID = '/vdc/varrays?vdc-id={0}'
     URI_VIRTUALARRAY_URI = '/vdc/varrays/{0}'
+    URI_VIRTUALARRAY_STORAGE_POOL = '/vdc/varrays/{0}/storage-pools'
 
     def varray_query(self, name):
         """Returns the UID of the varray specified by the name."""
@@ -77,3 +78,21 @@ class VirtualArray(common.CoprHDResource):
             return None
         else:
             return o
+        
+    def varray_storage_pools(self, varray_id):
+        """Makes REST API call to retrieve the storage pools based on varray.
+        
+        :param varray_id: ID of the virtual array.
+        :returns The storage pool associated with the varray.
+        """
+        
+        (s, h) = common.service_json_request(
+            self.ipaddr, self.port, "GET",
+            VirtualArray.URI_VIRTUALARRAY_STORAGE_POOL.format(varray_id),
+            None)
+        
+        o = common.json_decode(s)
+        
+        return o
+        
+        
