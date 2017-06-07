@@ -1791,6 +1791,7 @@ class EMCCoprHDDriverCommon(object):
 
         list_result = [{'name': volume['name'],
                         'status': 'available',
+                        'id': volume['id'],
                         'size': int(float(volume['requested_capacity_gb'])),
                         'restricted_metadata':
                         {'vdisk_id': volume['native_id'],
@@ -1816,17 +1817,10 @@ class EMCCoprHDDriverCommon(object):
         self.authenticate_user()
 
         volume_list = self._fetch_volume_info()
-        full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
-                                        self.configuration.coprhd_project))
-
         filtered_list = []
 
         for volume in volume_list:
-            vol_uri = self.volume_obj.volume_query(
-                full_project_name, volume['name'])
-            exports = self.volume_obj.get_exports_by_uri(vol_uri)
-            storage_pool = self.volume_obj.get_volume_storage_pool(vol_uri)
-            volume['storage_pool'] = storage_pool['storage_pool']['name']
+            exports = self.volume_obj.get_exports_by_uri(volume['id'])
             volume['is_mapped'] = False  # default
             if exports['itl']:
                 volume['is_mapped'] = True
