@@ -189,7 +189,7 @@ def get_test_volume_data(volume_type_id):
                    'size': 1,
                    'volume_name': 'test-vol1',
                    'id': '1',
-                   'consistencygroup_id': None,
+                   'group_id': None,
                    'provider_auth': None,
                    'project_id': 'project',
                    'display_name': 'test-vol1',
@@ -205,7 +205,7 @@ def get_source_test_volume_data(volume_type_id):
                    'size': 1,
                    'volume_name': 'source_test-vol1',
                    'id': '1234',
-                   'consistencygroup_id': None,
+                   'group_id': None,
                    'provider_auth': None,
                    'project_id': 'project',
                    'display_name': 'source_test-vol1',
@@ -249,49 +249,28 @@ def get_connector_data():
     return connector
 
 
-def get_test_CG_data(volume_type_id):
-    test_CG = {'name': 'consistency_group_name',
+def get_test_group_data(volume_type_ids, group_type_id):
+    test_VG = {'name': 'group_name',
                'id': '12345abcde',
-               'volume_type_id': volume_type_id,
-               'status': fields.ConsistencyGroupStatus.AVAILABLE
-               }
-    return test_CG
-
-
-def get_test_CG_snap_data(volume_type_id):
-    test_CG_snapshot = {'name': 'cg_snap_name',
-                        'id': '12345abcde',
-                        'consistencygroup_id': '123456789',
-                        'status': fields.ConsistencyGroupStatus.AVAILABLE,
-                        'snapshots': [],
-                        'consistencygroup': get_test_CG_data(volume_type_id),
-                        'cgsnapshot_id': '1',
-                        }
-    return test_CG_snapshot
-
-
-def get_test_group_data(volume_type_id, group_type_id):
-    test_CG = {'name': 'group_name',
-               'id': '12345abcde',
-               'volume_type_id': volume_type_id,
+               'volume_type_ids': volume_type_ids,
+               'volume_types': volume_type_ids,
                'group_type_id': group_type_id,
                'status': fields.GroupStatus.AVAILABLE
                }
-    return test_CG
+    return test_VG
 
 
-def get_test_group_snap_data(volume_type_id, group_type_id):
-    test_CG_snapshot = {'name': 'cg_snap_name',
+def get_test_group_snap_data(volume_type_ids, group_type_id):
+    test_VG_snapshot = {'name': 'cg_snap_name',
                         'id': '12345abcde',
                         'group_id': '123456789',
                         'status': fields.GroupStatus.AVAILABLE,
                         'snapshots': [],
-                        'group': get_test_group_data(volume_type_id,
+                        'group': get_test_group_data(volume_type_ids,
                                                      group_type_id),
-                        'group_type_id': group_type_id,
-                        'cgsnapshot_id': '1',
+                        'group_type_id': group_type_id
                         }
-    return test_CG_snapshot
+    return test_VG_snapshot
 
 
 class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
@@ -328,7 +307,7 @@ class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
             'size': 1,
             'volume_name': 'source_test-vol1',
             'id': '1234',
-            'consistencygroup_id': '12345',
+            'group_id': '12345abcde',
             'provider_auth': None,
             'project_id': 'project',
             'display_name': 'source_test-vol1',
@@ -399,9 +378,9 @@ class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
         mocked_snap_obj.snapshot_query.return_value = "snapshot_uri"
 
         self.consistencygroup_obj = Mock()
-        mocked_cg_object = self.consistencygroup_obj.return_value
-        mocked_cg_object.create.return_value = "CG-Created"
-        mocked_cg_object.consistencygroup_query.return_value = "CG-uri"
+        mocked_group_object = self.consistencygroup_obj.return_value
+        mocked_group_object.create.return_value = "CG-Created"
+        mocked_group_object.consistencygroup_query.return_value = "CG-uri"
 
 
 class EMCCoprHDISCSIDriverTest(test.TestCase):
@@ -537,7 +516,7 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_create_delete_empty_group(self):
-        group_data = get_test_group_data(self.volume_type_id,
+        group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
@@ -546,7 +525,7 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.assertEqual([], volumes_model_update, 'Unexpected return data')
 
     def test_create_update_delete_group(self):
-        group_data = get_test_group_data(self.volume_type_id,
+        group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
@@ -568,7 +547,7 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
                          volumes_model_update)
 
     def test_create_delete_group_snap(self):
-        group_snap_data = get_test_group_snap_data(self.volume_type_id,
+        group_snap_data = get_test_group_snap_data([self.volume_type_id],
                                                    self.group_type_id)
         ctx = context.get_admin_context()
 
@@ -738,7 +717,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_create_delete_empty_group(self):
-        group_data = get_test_group_data(self.volume_type_id,
+        group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
@@ -747,7 +726,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.assertEqual([], volumes_model_update, 'Unexpected return data')
 
     def test_create_update_delete_group(self):
-        group_data = get_test_group_data(self.volume_type_id,
+        group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
@@ -769,7 +748,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
                          volumes_model_update)
 
     def test_create_delete_group_snap(self):
-        group_snap_data = get_test_group_snap_data(self.volume_type_id,
+        group_snap_data = get_test_group_snap_data([self.volume_type_id],
                                                    self.group_type_id)
         ctx = context.get_admin_context()
 
@@ -940,7 +919,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_create_delete_empty_group(self):
-        group_data = get_test_group_data(self.volume_type_id,
+        group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
@@ -949,7 +928,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         self.assertEqual([], volumes_model_update, 'Unexpected return data')
 
     def test_create_update_delete_group(self):
-        group_data = get_test_group_data(self.volume_type_id,
+        group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
@@ -971,7 +950,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
                          volumes_model_update)
 
     def test_create_delete_group_snap(self):
-        group_snap_data = get_test_group_snap_data(self.volume_type_id,
+        group_snap_data = get_test_group_snap_data([self.volume_type_id],
                                                    self.group_type_id)
         ctx = context.get_admin_context()
 

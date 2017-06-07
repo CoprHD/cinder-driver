@@ -244,6 +244,8 @@ class EMCCoprHDDriverCommon(object):
                         coprhd_cgid = self._get_coprhd_cgid(vol.group_id)
             except KeyError:
                     coprhd_cgid = None
+            except AttributeError:
+                    coprhd_cgid = None
 
             full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
                                             self.configuration.coprhd_project)
@@ -300,7 +302,7 @@ class EMCCoprHDDriverCommon(object):
     def update_consistencygroup(self, group, add_volumes,
                                 remove_volumes):
         self.authenticate_user()
-        model_update = {'status': fields.ConsistencyGroupStatus.AVAILABLE}
+        model_update = {'status': fields.GroupStatus.AVAILABLE}
         cg_uri = self._get_coprhd_cgid(group['id'])
         add_volnames = []
         remove_volnames = []
@@ -357,7 +359,7 @@ class EMCCoprHDDriverCommon(object):
 
                     update_item = {'id': vol['id'],
                                    'status':
-                                   fields.ConsistencyGroupStatus.DELETED}
+                                   fields.GroupStatus.DELETED}
                     volumes_model_update.append(update_item)
 
                 except exception.VolumeBackendAPIException:
@@ -636,8 +638,10 @@ class EMCCoprHDDriverCommon(object):
                         tag = ("%s:%s:%s" %
                                (self.OPENSTACK_TAG, prop,
                                 six.text_type(value)))
-                        if len(tag) < 128:
-                            add_tags.append(tag)
+
+                        if len(tag) > 128:
+                            tag = tag[0:128]
+                        add_tags.append(tag)
                 except TypeError:
                     LOG.error(
                         "Error tagging the resource property %s", prop)
@@ -667,7 +671,7 @@ class EMCCoprHDDriverCommon(object):
         srcname = self._get_coprhd_volume_name(src_vref)
 
         try:
-            if src_vref['consistencygroup_id']:
+            if src_vref['group_id']:
                 raise coprhd_utils.CoprHdError(
                     coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
                     _("Clone can't be taken individually on a volume"
@@ -773,7 +777,7 @@ class EMCCoprHDDriverCommon(object):
             self.create_cloned_volume(volume, snapshot, truncate_name)
             return
 
-        if snapshot.get('cgsnapshot_id'):
+        if snapshot.get('group_snapshot_id'):
             raise coprhd_utils.CoprHdError(
                 coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
                 _("Volume cannot be created individually from a snapshot "
@@ -870,7 +874,7 @@ class EMCCoprHDDriverCommon(object):
         volume = snapshot['volume']
 
         try:
-            if volume['consistencygroup_id']:
+            if volume['group_id']:
                 raise coprhd_utils.CoprHdError(
                     coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
                     _("Snapshot can't be taken individually on a volume"
@@ -937,7 +941,7 @@ class EMCCoprHDDriverCommon(object):
         vol = snapshot['volume']
 
         try:
-            if vol['consistencygroup_id']:
+            if vol['group_id']:
                 raise coprhd_utils.CoprHdError(
                     coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
                     _("Snapshot delete can't be done individually on a volume"

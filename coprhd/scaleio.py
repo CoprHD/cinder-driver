@@ -163,7 +163,9 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
                               source_group=None, source_vols=None):
         """Creates a group from source."""
         if volume_utils.is_group_a_cg_snapshot_type(group):
-            message = _("create group from source is not supported for CoprHD")
+            message = _("create group from source is not supported "
+                        "for CoprHD if the group type supports "
+                        "consistent group snapshot.")
             raise exception.VolumeBackendAPIException(data=message)
         else:
             raise NotImplementedError()
