@@ -424,6 +424,12 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
                                                "coprhd-volume-type",
                                                {'CoprHD:VPOOL':
                                                 'vpool_coprhd'})
+        
+        VOL_TYPE = {"is_public": True,
+                           "extra_specs": {},
+                           "name": "volume_type_1",
+                           "id": VOLUME_TYPE_ID}
+        
         volume_id = vipr_volume_type['id']
         return volume_id
 
