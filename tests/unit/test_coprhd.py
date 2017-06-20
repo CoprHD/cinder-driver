@@ -412,7 +412,8 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.configuration.coprhd_emulate_snapshot = False
 
         self.volume_type_id = self.create_coprhd_volume_type()
-        self.group_type_id = get_test_group_type_data(self.volume_type_id)
+        self.group_type = get_test_group_type_data(self.volume_type_id)
+        self.group_type_id = self.group_type['id']
 
         self.mock_object(coprhd_iscsi.EMCCoprHDISCSIDriver,
                          '_get_common_driver',
@@ -589,7 +590,8 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.configuration.coprhd_emulate_snapshot = False
 
         self.volume_type_id = self.create_coprhd_volume_type()
-        self.group_type_id = get_test_group_type_data(self.volume_type_id)
+        self.group_type = get_test_group_type_data(self.volume_type_id)
+        self.group_type_id = self.group_type['id']
 
         self.mock_object(coprhd_fc.EMCCoprHDFCDriver,
                          '_get_common_driver',
