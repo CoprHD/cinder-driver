@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from mock import Mock
+import mock
 
 from cinder import context
 from cinder.objects import fields
@@ -22,9 +22,8 @@ from cinder.volume.drivers.coprhd import common as coprhd_common
 from cinder.volume.drivers.coprhd import fc as coprhd_fc
 from cinder.volume.drivers.coprhd import iscsi as coprhd_iscsi
 from cinder.volume.drivers.coprhd import scaleio as coprhd_scaleio
-from cinder.volume import group_types
 from cinder.volume import volume_types
-
+from mock import Mock
 """
 Test Data required for mocking
 """
@@ -260,6 +259,16 @@ def get_test_group_data(volume_type_ids, group_type_id):
     return test_VG
 
 
+def get_test_group_type_data(volume_type_ids):
+    test_group_type = {'volume_type_ids': volume_type_ids,
+                       'name': 'group_name',
+                       'groupsnapshot_id': None,
+                       'id': '3470cc4c-63b3-4c7a-8120-8a0693b45838',
+                       'description': 'group'
+                       }
+    return test_group_type
+
+
 def get_test_group_snap_data(volume_type_ids, group_type_id):
     test_VG_snapshot = {'name': 'cg_snap_name',
                         'id': '12345abcde',
@@ -403,7 +412,7 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.configuration.coprhd_emulate_snapshot = False
 
         self.volume_type_id = self.create_coprhd_volume_type()
-        self.group_type_id = self.create_group_type()
+        self.group_type_id = get_test_group_type_data(self.volume_type_id)
 
         self.mock_object(coprhd_iscsi.EMCCoprHDISCSIDriver,
                          '_get_common_driver',
@@ -424,23 +433,8 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
                                                "coprhd-volume-type",
                                                {'CoprHD:VPOOL':
                                                 'vpool_coprhd'})
-        
-        VOL_TYPE = {"is_public": True,
-                           "extra_specs": {},
-                           "name": "volume_type_1",
-                           "id": VOLUME_TYPE_ID}
-        
         volume_id = vipr_volume_type['id']
         return volume_id
-
-    def create_group_type(self):
-        ctx = context.get_admin_context()
-        group_type = group_types.create(ctx,
-                                        "group_type",
-                                        {'consistent_group_snapshot_enabled':
-                                         '<is> True'})
-        group_type_id = group_type['id']
-        return group_type_id
 
     def _get_mocked_common_driver(self):
         return MockedEMCCoprHDDriverCommon(
@@ -521,7 +515,9 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.driver.terminate_connection(volume_data, connector_data)
         self.driver.delete_volume(volume_data)
 
-    def test_create_delete_empty_group(self):
+    @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
+    def test_create_delete_empty_group(self, cg_ss_enabled):
+        cg_ss_enabled.side_effect = [True, True]
         group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
@@ -530,7 +526,9 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
             self.driver.delete_group(ctx, group_data, []))
         self.assertEqual([], volumes_model_update, 'Unexpected return data')
 
-    def test_create_update_delete_group(self):
+    @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
+    def test_create_update_delete_group(self, cg_ss_enabled):
+        cg_ss_enabled.side_effect = [True, True, True, True]
         group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
@@ -552,7 +550,9 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.assertEqual([{'status': 'deleted', 'id': '1'}],
                          volumes_model_update)
 
-    def test_create_delete_group_snap(self):
+    @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
+    def test_create_delete_group_snap(self, cg_ss_enabled):
+        cg_ss_enabled.side_effect = [True, True]
         group_snap_data = get_test_group_snap_data([self.volume_type_id],
                                                    self.group_type_id)
         ctx = context.get_admin_context()
@@ -589,7 +589,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.configuration.coprhd_emulate_snapshot = False
 
         self.volume_type_id = self.create_coprhd_volume_type()
-        self.group_type_id = self.create_group_type()
+        self.group_type_id = get_test_group_type_data(self.volume_type_id)
 
         self.mock_object(coprhd_fc.EMCCoprHDFCDriver,
                          '_get_common_driver',
@@ -611,15 +611,6 @@ class EMCCoprHDFCDriverTest(test.TestCase):
                                                {'CoprHD:VPOOL': 'vpool_vipr'})
         volume_id = vipr_volume_type['id']
         return volume_id
-
-    def create_group_type(self):
-        ctx = context.get_admin_context()
-        group_type = group_types.create(ctx,
-                                        "group_type",
-                                        {'consistent_group_snapshot_enabled':
-                                         '<is> True'})
-        group_type_id = group_type['id']
-        return group_type_id
 
     def _get_mocked_common_driver(self):
         return MockedEMCCoprHDDriverCommon(
@@ -722,16 +713,20 @@ class EMCCoprHDFCDriverTest(test.TestCase):
 
         self.driver.delete_volume(volume_data)
 
-    def test_create_delete_empty_group(self):
+    @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
+    def test_create_delete_empty_group(self, cg_ss_enabled):
+        cg_ss_enabled.side_effect = [True, True]
         group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
-        ctx = context.get_admin_context()
+        ctx = context.get_admin_context() 
         self.driver.create_group(ctx, group_data)
         model_update, volumes_model_update = (
             self.driver.delete_group(ctx, group_data, []))
         self.assertEqual([], volumes_model_update, 'Unexpected return data')
 
-    def test_create_update_delete_group(self):
+    @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
+    def test_create_update_delete_group(self, cg_ss_enabled):
+        cg_ss_enabled.side_effect = [True, True, True]
         group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
@@ -753,7 +748,9 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.assertEqual([{'status': 'deleted', 'id': '1'}],
                          volumes_model_update)
 
-    def test_create_delete_group_snap(self):
+    @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
+    def test_create_delete_group_snap(self, cg_ss_enabled):
+        cg_ss_enabled.side_effect = [True, True]
         group_snap_data = get_test_group_snap_data([self.volume_type_id],
                                                    self.group_type_id)
         ctx = context.get_admin_context()
@@ -798,7 +795,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
             "/etc/scaleio/certs")
 
         self.volume_type_id = self.create_coprhd_volume_type()
-        self.group_type_id = self.create_group_type()
+        self.group_type_id = get_test_group_type_data(self.volume_type_id)
 
         self.mock_object(coprhd_scaleio.EMCCoprHDScaleIODriver,
                          '_get_common_driver',
@@ -823,15 +820,6 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
                                                {'CoprHD:VPOOL': 'vpool_vipr'})
         volume_id = vipr_volume_type['id']
         return volume_id
-
-    def create_group_type(self):
-        ctx = context.get_admin_context()
-        group_type = group_types.create(ctx,
-                                        "group_type",
-                                        {'consistent_group_snapshot_enabled':
-                                         '<is> True'})
-        group_type_id = group_type['id']
-        return group_type_id
 
     def _get_mocked_common_driver(self):
         return MockedEMCCoprHDDriverCommon(
@@ -924,7 +912,9 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
             volume_data, connector_data)
         self.driver.delete_volume(volume_data)
 
-    def test_create_delete_empty_group(self):
+    @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
+    def test_create_delete_empty_group(self, cg_ss_enabled):
+        cg_ss_enabled.side_effect = [True, True]
         group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
@@ -933,7 +923,9 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
             self.driver.delete_group(ctx, group_data, []))
         self.assertEqual([], volumes_model_update, 'Unexpected return data')
 
-    def test_create_update_delete_group(self):
+    @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
+    def test_create_update_delete_group(self, cg_ss_enabled):
+        cg_ss_enabled.side_effect = [True, True, True, True]
         group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
         ctx = context.get_admin_context()
@@ -955,7 +947,9 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         self.assertEqual([{'status': 'deleted', 'id': '1'}],
                          volumes_model_update)
 
-    def test_create_delete_group_snap(self):
+    @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
+    def test_create_delete_group_snap(self, cg_ss_enabled):
+        cg_ss_enabled.side_effect = [True, True]
         group_snap_data = get_test_group_snap_data([self.volume_type_id],
                                                    self.group_type_id)
         ctx = context.get_admin_context()
