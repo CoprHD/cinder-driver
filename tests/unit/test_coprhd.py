@@ -718,7 +718,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         cg_ss_enabled.side_effect = [True, True]
         group_data = get_test_group_data([self.volume_type_id],
                                          self.group_type_id)
-        ctx = context.get_admin_context() 
+        ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
         model_update, volumes_model_update = (
             self.driver.delete_group(ctx, group_data, []))
@@ -795,7 +795,8 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
             "/etc/scaleio/certs")
 
         self.volume_type_id = self.create_coprhd_volume_type()
-        self.group_type_id = get_test_group_type_data(self.volume_type_id)
+        self.group_type = get_test_group_type_data(self.volume_type_id)
+        self.group_type_id = self.group_type['id']
 
         self.mock_object(coprhd_scaleio.EMCCoprHDScaleIODriver,
                          '_get_common_driver',
