@@ -194,8 +194,7 @@ def get_test_volume_data(volume_type_id):
                    'display_name': 'test-vol1',
                    'display_description': 'test volume',
                    'volume_type_id': volume_type_id,
-                   'provider_id': '1',
-                   }
+                   'provider_id': '1'}
     return test_volume
 
 
@@ -254,8 +253,7 @@ def get_test_group_data(volume_type_ids, group_type_id):
                'volume_type_ids': volume_type_ids,
                'volume_types': volume_type_ids,
                'group_type_id': group_type_id,
-               'status': fields.GroupStatus.AVAILABLE
-               }
+               'status': fields.GroupStatus.AVAILABLE}
     return test_VG
 
 
@@ -264,8 +262,7 @@ def get_test_group_type_data(volume_type_ids):
                        'name': 'group_name',
                        'groupsnapshot_id': None,
                        'id': '3470cc4c-63b3-4c7a-8120-8a0693b45838',
-                       'description': 'group'
-                       }
+                       'description': 'group'}
     return test_group_type
 
 
@@ -277,8 +274,7 @@ def get_test_group_snap_data(volume_type_ids, group_type_id):
                         'snapshots': [],
                         'group': get_test_group_data(volume_type_ids,
                                                      group_type_id),
-                        'group_type_id': group_type_id
-                        }
+                        'group_type_id': group_type_id}
     return test_VG_snapshot
 
 

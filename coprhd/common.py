@@ -242,8 +242,10 @@ class EMCCoprHDDriverCommon(object):
                     group_dtls = volume_utils.group_get_by_id(vol.group_id)
                     if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
                         coprhd_cgid = self._get_coprhd_cgid(vol.group_id)
-            except KeyError, AttributeError:
-                    coprhd_cgid = None
+            except KeyError:
+                coprhd_cgid = None
+            except AttributeError:
+                coprhd_cgid = None
 
             full_project_name = ("%s/%s" % (self.configuration.coprhd_tenant,
                                             self.configuration.coprhd_project)
