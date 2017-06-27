@@ -183,59 +183,68 @@ scaleio_itl_list = {"itl": [{"hlu": -1,
                              "target": {}}]}
 
 
-def get_test_volume_data(volume_type_id):
-    test_volume = {'name': 'test-vol1',
-                   'size': 1,
-                   'volume_name': 'test-vol1',
-                   'id': '1',
-                   'group_id': None,
-                   'provider_auth': None,
-                   'project_id': 'project',
-                   'display_name': 'test-vol1',
-                   'display_description': 'test volume',
-                   'volume_type_id': volume_type_id,
-                   'provider_id': '1'}
-    return test_volume
+class test_volume_data(object):
+    name = 'test-vol1'
+    size = 1
+    volume_name = 'test-vol1'
+    id = '1'
+    group_id = None
+    provider_auth = None
+    project_id = 'project'
+    display_name = 'test-vol1'
+    display_description = 'test volume',
+    volume_type_id = None
+    provider_id = '1'
+
+    def __init__(self, volume_type_id):
+        self.volume_type_id = volume_type_id
 
 
-def get_source_test_volume_data(volume_type_id):
-    test_volume = {'name': 'source_test-vol1',
-                   'size': 1,
-                   'volume_name': 'source_test-vol1',
-                   'id': '1234',
-                   'group_id': None,
-                   'provider_auth': None,
-                   'project_id': 'project',
-                   'display_name': 'source_test-vol1',
-                   'display_description': 'test volume',
-                   'volume_type_id': volume_type_id}
-    return test_volume
+class source_test_volume_data(object):
+    name = 'source_test-vol1'
+    size = 1
+    volume_name = 'source_test-vol1'
+    id = '1234'
+    group_id = None
+    provider_auth = None
+    project_id = 'project'
+    display_name = 'source_test-vol1'
+    display_description = 'test volume'
+    volume_type_id = None
+
+    def __init__(self, volume_type_id):
+        self.volume_type_id = volume_type_id
 
 
-def get_clone_volume_data(volume_type_id):
-    clone_test_volume = {'name': 'clone-test-vol1',
-                         'size': 1,
-                         'volume_name': 'clone-test-vol1',
-                         'id': '2',
-                         'provider_auth': None,
-                         'project_id': 'project',
-                         'display_name': 'clone-test-vol1',
-                         'display_description': 'clone test volume',
-                         'volume_type_id': volume_type_id}
-    return clone_test_volume
+class test_clone_volume_data(object):
+    name = 'clone-test-vol1'
+    size = 1
+    volume_name = 'clone-test-vol1'
+    id = '2'
+    provider_auth = None
+    project_id = 'project'
+    display_name = 'clone-test-vol1'
+    display_description = 'clone test volume'
+    volume_type_id = None
+
+    def __init__(self, volume_type_id):
+        self.volume_type_id = volume_type_id
 
 
-def get_test_snapshot_data(src_volume):
-    test_snapshot = {'name': 'snapshot1',
-                     'display_name': 'snapshot1',
-                     'size': 1,
-                     'id': '1111',
-                     'volume_name': 'test-vol1',
-                     'volume_id': '1234',
-                     'volume': src_volume,
-                     'volume_size': 1,
-                     'project_id': 'project'}
-    return test_snapshot
+class test_snapshot_data(object):
+    name = 'snapshot1'
+    display_name = 'snapshot1'
+    size = 1
+    id = '1111'
+    volume_name = 'test-vol1'
+    volume_id = '1234'
+    volume = None
+    volume_size = 1
+    project_id = 'project'
+    status = fields.SnapshotStatus.AVAILABLE
+
+    def __init__(self, src_volume):
+        self.volume = src_volume
 
 
 def get_connector_data():
@@ -247,35 +256,42 @@ def get_connector_data():
     return connector
 
 
-def get_test_group_data(volume_type_ids, group_type_id):
-    test_VG = {'name': 'group_name',
-               'id': '12345abcde',
-               'volume_type_ids': volume_type_ids,
-               'volume_types': volume_type_ids,
-               'group_type_id': group_type_id,
-               'status': fields.GroupStatus.AVAILABLE}
-    return test_VG
+class test_group_data(object):
+    name = 'group_name'
+    id = '12345abcde'
+    volume_type_ids = None
+    volume_types = None
+    group_type_id = None
+    status = fields.GroupStatus.AVAILABLE
+
+    def __init__(self, volume_types, group_type_id):
+        self.group_type_id = group_type_id
+        self.volume_types = volume_types
 
 
-def get_test_group_type_data(volume_type_ids):
-    test_group_type = {'volume_type_ids': volume_type_ids,
-                       'name': 'group_name',
-                       'groupsnapshot_id': None,
-                       'id': '3470cc4c-63b3-4c7a-8120-8a0693b45838',
-                       'description': 'group'}
-    return test_group_type
+class test_group_type_data(object):
+    volume_type_ids = None
+    name = 'group_name'
+    groupsnapshot_id = None
+    id = '3470cc4c-63b3-4c7a-8120-8a0693b45838'
+    description = 'group'
+
+    def __init__(self, volume_type_ids):
+        self.volume_type_ids = volume_type_ids
 
 
-def get_test_group_snap_data(volume_type_ids, group_type_id):
-    test_VG_snapshot = {'name': 'cg_snap_name',
-                        'id': '12345abcde',
-                        'group_id': '123456789',
-                        'status': fields.GroupStatus.AVAILABLE,
-                        'snapshots': [],
-                        'group': get_test_group_data(volume_type_ids,
-                                                     group_type_id),
-                        'group_type_id': group_type_id}
-    return test_VG_snapshot
+class test_group_snap_data(object):
+    name = 'cg_snap_name'
+    id = '12345abcde'
+    group_id = '123456789'
+    status = fields.GroupStatus.AVAILABLE
+    snapshots = []
+    group = None
+    group_type_id = None
+
+    def __init__(self, volume_types, group_type_id):
+        self.group_type_id = group_type_id
+        self.group = test_group_data(volume_types, group_type_id)
 
 
 class MockedEMCCoprHDDriverCommon(coprhd_common.EMCCoprHDDriverCommon):
@@ -407,9 +423,10 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.configuration.coprhd_varray = "varray"
         self.configuration.coprhd_emulate_snapshot = False
 
-        self.volume_type_id = self.create_coprhd_volume_type()
-        self.group_type = get_test_group_type_data(self.volume_type_id)
-        self.group_type_id = self.group_type['id']
+        self.volume_type = self.create_coprhd_volume_type()
+        self.volume_type_id = self.volume_type.id
+        self.group_type = test_group_type_data(self.volume_type_id)
+        self.group_type_id = self.group_type.id
 
         self.mock_object(coprhd_iscsi.EMCCoprHDISCSIDriver,
                          '_get_common_driver',
@@ -430,8 +447,7 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
                                                "coprhd-volume-type",
                                                {'CoprHD:VPOOL':
                                                 'vpool_coprhd'})
-        volume_id = vipr_volume_type['id']
-        return volume_id
+        return vipr_volume_type
 
     def _get_mocked_common_driver(self):
         return MockedEMCCoprHDDriverCommon(
@@ -444,7 +460,7 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         volume_types.destroy(ctx, self.volume_type_id)
 
     def test_create_destroy(self):
-        volume = get_test_volume_data(self.volume_type_id)
+        volume = test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume)
         self.driver.delete_volume(volume)
@@ -454,17 +470,17 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.assertTrue(vol_stats['free_capacity_gb'], 'unknown')
 
     def test_create_volume_clone(self):
-        src_volume_data = get_test_volume_data(self.volume_type_id)
-        clone_volume_data = get_clone_volume_data(self.volume_type_id)
+        src_volume_data = test_volume_data(self.volume_type_id)
+        clone_volume_data = test_clone_volume_data(self.volume_type_id)
         self.driver.create_volume(src_volume_data)
         self.driver.create_cloned_volume(clone_volume_data, src_volume_data)
         self.driver.delete_volume(src_volume_data)
         self.driver.delete_volume(clone_volume_data)
 
     def test_create_destroy_snapshot(self):
-        volume_data = get_test_volume_data(self.volume_type_id)
-        snapshot_data = get_test_snapshot_data(
-            get_source_test_volume_data(self.volume_type_id))
+        volume_data = test_volume_data(self.volume_type_id)
+        snapshot_data = test_snapshot_data(
+            source_test_volume_data(self.volume_type_id))
 
         self.driver.create_volume(volume_data)
         self.driver.create_snapshot(snapshot_data)
@@ -473,11 +489,11 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
 
     def test_create_volume_from_snapshot(self):
 
-        src_vol_data = get_source_test_volume_data(self.volume_type_id)
+        src_vol_data = source_test_volume_data(self.volume_type_id)
         self.driver.create_volume(src_vol_data)
 
-        volume_data = get_test_volume_data(self.volume_type_id)
-        snapshot_data = get_test_snapshot_data(src_vol_data)
+        volume_data = test_volume_data(self.volume_type_id)
+        snapshot_data = test_snapshot_data(src_vol_data)
 
         self.driver.create_snapshot(snapshot_data)
         self.driver.create_volume_from_snapshot(volume_data, snapshot_data)
@@ -487,14 +503,14 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_extend_volume(self):
-        volume_data = get_test_volume_data(self.volume_type_id)
+        volume_data = test_volume_data(self.volume_type_id)
         self.driver.create_volume(volume_data)
         self.driver.extend_volume(volume_data, 2)
         self.driver.delete_volume(volume_data)
 
     def test_initialize_and_terminate_connection(self):
         connector_data = get_connector_data()
-        volume_data = get_test_volume_data(self.volume_type_id)
+        volume_data = test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume_data)
         res_initialize = self.driver.initialize_connection(
@@ -515,8 +531,8 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
     @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
     def test_create_delete_empty_group(self, cg_ss_enabled):
         cg_ss_enabled.side_effect = [True, True]
-        group_data = get_test_group_data([self.volume_type_id],
-                                         self.group_type_id)
+        group_data = test_group_data([self.volume_type],
+                                     self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
         model_update, volumes_model_update = (
@@ -526,12 +542,12 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
     @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
     def test_create_update_delete_group(self, cg_ss_enabled):
         cg_ss_enabled.side_effect = [True, True, True, True]
-        group_data = get_test_group_data([self.volume_type_id],
-                                         self.group_type_id)
+        group_data = test_group_data([self.volume_type],
+                                     self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
 
-        volume = get_test_volume_data(self.volume_type_id)
+        volume = test_volume_data(self.volume_type_id)
         self.driver.create_volume(volume)
 
         model_update, ret1, ret2 = (
@@ -550,8 +566,8 @@ class EMCCoprHDISCSIDriverTest(test.TestCase):
     @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
     def test_create_delete_group_snap(self, cg_ss_enabled):
         cg_ss_enabled.side_effect = [True, True]
-        group_snap_data = get_test_group_snap_data([self.volume_type_id],
-                                                   self.group_type_id)
+        group_snap_data = test_group_snap_data([self.volume_type],
+                                               self.group_type_id)
         ctx = context.get_admin_context()
 
         model_update, snapshots_model_update = (
@@ -585,9 +601,10 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.configuration.coprhd_varray = "varray"
         self.configuration.coprhd_emulate_snapshot = False
 
-        self.volume_type_id = self.create_coprhd_volume_type()
-        self.group_type = get_test_group_type_data(self.volume_type_id)
-        self.group_type_id = self.group_type['id']
+        self.volume_type = self.create_coprhd_volume_type()
+        self.volume_type_id = self.volume_type.id
+        self.group_type = test_group_type_data(self.volume_type_id)
+        self.group_type_id = self.group_type.id
 
         self.mock_object(coprhd_fc.EMCCoprHDFCDriver,
                          '_get_common_driver',
@@ -607,8 +624,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         vipr_volume_type = volume_types.create(ctx,
                                                "coprhd-volume-type",
                                                {'CoprHD:VPOOL': 'vpool_vipr'})
-        volume_id = vipr_volume_type['id']
-        return volume_id
+        return vipr_volume_type
 
     def _get_mocked_common_driver(self):
         return MockedEMCCoprHDDriverCommon(
@@ -621,7 +637,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         volume_types.destroy(ctx, self.volume_type_id)
 
     def test_create_destroy(self):
-        volume = get_test_volume_data(self.volume_type_id)
+        volume = test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume)
         self.driver.delete_volume(volume)
@@ -632,8 +648,8 @@ class EMCCoprHDFCDriverTest(test.TestCase):
 
     def test_create_volume_clone(self):
 
-        src_volume_data = get_test_volume_data(self.volume_type_id)
-        clone_volume_data = get_clone_volume_data(self.volume_type_id)
+        src_volume_data = test_volume_data(self.volume_type_id)
+        clone_volume_data = test_clone_volume_data(self.volume_type_id)
         self.driver.create_volume(src_volume_data)
         self.driver.create_cloned_volume(clone_volume_data, src_volume_data)
         self.driver.delete_volume(src_volume_data)
@@ -641,9 +657,9 @@ class EMCCoprHDFCDriverTest(test.TestCase):
 
     def test_create_destroy_snapshot(self):
 
-        volume_data = get_test_volume_data(self.volume_type_id)
-        snapshot_data = get_test_snapshot_data(
-            get_source_test_volume_data(self.volume_type_id))
+        volume_data = test_volume_data(self.volume_type_id)
+        snapshot_data = test_snapshot_data(
+            source_test_volume_data(self.volume_type_id))
 
         self.driver.create_volume(volume_data)
         self.driver.create_snapshot(snapshot_data)
@@ -651,11 +667,11 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_create_volume_from_snapshot(self):
-        src_vol_data = get_source_test_volume_data(self.volume_type_id)
+        src_vol_data = source_test_volume_data(self.volume_type_id)
         self.driver.create_volume(src_vol_data)
 
-        volume_data = get_test_volume_data(self.volume_type_id)
-        snapshot_data = get_test_snapshot_data(src_vol_data)
+        volume_data = test_volume_data(self.volume_type_id)
+        snapshot_data = test_snapshot_data(src_vol_data)
 
         self.driver.create_snapshot(snapshot_data)
         self.driver.create_volume_from_snapshot(volume_data, snapshot_data)
@@ -665,7 +681,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_extend_volume(self):
-        volume_data = get_test_volume_data(self.volume_type_id)
+        volume_data = test_volume_data(self.volume_type_id)
         self.driver.create_volume(volume_data)
         self.driver.extend_volume(volume_data, 2)
         self.driver.delete_volume(volume_data)
@@ -673,7 +689,7 @@ class EMCCoprHDFCDriverTest(test.TestCase):
     def test_initialize_and_terminate_connection(self):
 
         connector_data = get_connector_data()
-        volume_data = get_test_volume_data(self.volume_type_id)
+        volume_data = test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume_data)
         res_initiatlize = self.driver.initialize_connection(
@@ -714,8 +730,8 @@ class EMCCoprHDFCDriverTest(test.TestCase):
     @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
     def test_create_delete_empty_group(self, cg_ss_enabled):
         cg_ss_enabled.side_effect = [True, True]
-        group_data = get_test_group_data([self.volume_type_id],
-                                         self.group_type_id)
+        group_data = test_group_data([self.volume_type],
+                                     self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
         model_update, volumes_model_update = (
@@ -725,12 +741,12 @@ class EMCCoprHDFCDriverTest(test.TestCase):
     @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
     def test_create_update_delete_group(self, cg_ss_enabled):
         cg_ss_enabled.side_effect = [True, True, True]
-        group_data = get_test_group_data([self.volume_type_id],
-                                         self.group_type_id)
+        group_data = test_group_data([self.volume_type],
+                                     self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
 
-        volume = get_test_volume_data(self.volume_type_id)
+        volume = test_volume_data(self.volume_type_id)
         self.driver.create_volume(volume)
 
         model_update, ret1, ret2 = (
@@ -749,8 +765,8 @@ class EMCCoprHDFCDriverTest(test.TestCase):
     @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
     def test_create_delete_group_snap(self, cg_ss_enabled):
         cg_ss_enabled.side_effect = [True, True]
-        group_snap_data = get_test_group_snap_data([self.volume_type_id],
-                                                   self.group_type_id)
+        group_snap_data = test_group_snap_data([self.volume_type],
+                                               self.group_type_id)
         ctx = context.get_admin_context()
 
         model_update, snapshots_model_update = (
@@ -792,9 +808,10 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         self.configuration.scaleio_server_certificate_path = (
             "/etc/scaleio/certs")
 
-        self.volume_type_id = self.create_coprhd_volume_type()
-        self.group_type = get_test_group_type_data(self.volume_type_id)
-        self.group_type_id = self.group_type['id']
+        self.volume_type = self.create_coprhd_volume_type()
+        self.volume_type_id = self.volume_type.id
+        self.group_type = test_group_type_data(self.volume_type_id)
+        self.group_type_id = self.group_type.id
 
         self.mock_object(coprhd_scaleio.EMCCoprHDScaleIODriver,
                          '_get_common_driver',
@@ -817,8 +834,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         vipr_volume_type = volume_types.create(ctx,
                                                "coprhd-volume-type",
                                                {'CoprHD:VPOOL': 'vpool_vipr'})
-        volume_id = vipr_volume_type['id']
-        return volume_id
+        return vipr_volume_type
 
     def _get_mocked_common_driver(self):
         return MockedEMCCoprHDDriverCommon(
@@ -835,7 +851,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         volume_types.destroy(ctx, self.volume_type_id)
 
     def test_create_destroy(self):
-        volume = get_test_volume_data(self.volume_type_id)
+        volume = test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume)
         self.driver.delete_volume(volume)
@@ -846,8 +862,8 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
 
     def test_create_volume_clone(self):
 
-        src_volume_data = get_test_volume_data(self.volume_type_id)
-        clone_volume_data = get_clone_volume_data(self.volume_type_id)
+        src_volume_data = test_volume_data(self.volume_type_id)
+        clone_volume_data = test_clone_volume_data(self.volume_type_id)
         self.driver.create_volume(src_volume_data)
         self.driver.create_cloned_volume(clone_volume_data, src_volume_data)
         self.driver.delete_volume(src_volume_data)
@@ -855,9 +871,9 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
 
     def test_create_destroy_snapshot(self):
 
-        volume_data = get_test_volume_data(self.volume_type_id)
-        snapshot_data = get_test_snapshot_data(
-            get_source_test_volume_data(self.volume_type_id))
+        volume_data = test_volume_data(self.volume_type_id)
+        snapshot_data = test_snapshot_data(
+            source_test_volume_data(self.volume_type_id))
 
         self.driver.create_volume(volume_data)
         self.driver.create_snapshot(snapshot_data)
@@ -865,11 +881,11 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_create_volume_from_snapshot(self):
-        src_vol_data = get_source_test_volume_data(self.volume_type_id)
+        src_vol_data = source_test_volume_data(self.volume_type_id)
         self.driver.create_volume(src_vol_data)
 
-        volume_data = get_test_volume_data(self.volume_type_id)
-        snapshot_data = get_test_snapshot_data(src_vol_data)
+        volume_data = test_volume_data(self.volume_type_id)
+        snapshot_data = test_snapshot_data(src_vol_data)
 
         self.driver.create_snapshot(snapshot_data)
         self.driver.create_volume_from_snapshot(volume_data, snapshot_data)
@@ -879,7 +895,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
         self.driver.delete_volume(volume_data)
 
     def test_extend_volume(self):
-        volume_data = get_test_volume_data(self.volume_type_id)
+        volume_data = test_volume_data(self.volume_type_id)
         self.driver.create_volume(volume_data)
         self.driver.extend_volume(volume_data, 2)
         self.driver.delete_volume(volume_data)
@@ -887,7 +903,7 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
     def test_initialize_and_terminate_connection(self):
 
         connector_data = get_connector_data()
-        volume_data = get_test_volume_data(self.volume_type_id)
+        volume_data = test_volume_data(self.volume_type_id)
 
         self.driver.create_volume(volume_data)
         res_initiatlize = self.driver.initialize_connection(
@@ -914,8 +930,8 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
     @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
     def test_create_delete_empty_group(self, cg_ss_enabled):
         cg_ss_enabled.side_effect = [True, True]
-        group_data = get_test_group_data([self.volume_type_id],
-                                         self.group_type_id)
+        group_data = test_group_data([self.volume_type],
+                                     self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
         model_update, volumes_model_update = (
@@ -925,12 +941,12 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
     @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
     def test_create_update_delete_group(self, cg_ss_enabled):
         cg_ss_enabled.side_effect = [True, True, True, True]
-        group_data = get_test_group_data([self.volume_type_id],
-                                         self.group_type_id)
+        group_data = test_group_data([self.volume_type],
+                                     self.group_type_id)
         ctx = context.get_admin_context()
         self.driver.create_group(ctx, group_data)
 
-        volume = get_test_volume_data(self.volume_type_id)
+        volume = test_volume_data(self.volume_type_id)
         self.driver.create_volume(volume)
 
         model_update, ret1, ret2 = (
@@ -949,8 +965,8 @@ class EMCCoprHDScaleIODriverTest(test.TestCase):
     @mock.patch('cinder.volume.utils.is_group_a_cg_snapshot_type')
     def test_create_delete_group_snap(self, cg_ss_enabled):
         cg_ss_enabled.side_effect = [True, True]
-        group_snap_data = get_test_group_snap_data([self.volume_type_id],
-                                                   self.group_type_id)
+        group_snap_data = test_group_snap_data([self.volume_type],
+                                               self.group_type_id)
         ctx = context.get_admin_context()
 
         model_update, snapshots_model_update = (

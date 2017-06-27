@@ -230,7 +230,7 @@ class EMCCoprHDDriverCommon(object):
         self.authenticate_user()
         name = self._get_resource_name(vol, MAX_DEFAULT_NAME_LENGTH,
                                        truncate_name)
-        size = int(vol['size']) * units.Gi
+        size = int(vol.size) * units.Gi
 
         vpool = self._get_vpool(vol)
         self.vpool = vpool['CoprHD:VPOOL']
@@ -239,8 +239,7 @@ class EMCCoprHDDriverCommon(object):
             coprhd_cgid = None
             try:
                 if vol.group_id:
-                    group_dtls = volume_utils.group_get_by_id(vol.group_id)
-                    if volume_utils.is_group_a_cg_snapshot_type(group_dtls):
+                    if volume_utils.is_group_a_cg_snapshot_type(vol.group):
                         coprhd_cgid = self._get_coprhd_cgid(vol.group_id)
             except KeyError:
                 coprhd_cgid = None
@@ -303,7 +302,7 @@ class EMCCoprHDDriverCommon(object):
                                 remove_volumes):
         self.authenticate_user()
         model_update = {'status': fields.GroupStatus.AVAILABLE}
-        cg_uri = self._get_coprhd_cgid(group['id'])
+        cg_uri = self._get_coprhd_cgid(group.id)
         add_volnames = []
         remove_volnames = []
 
@@ -357,20 +356,20 @@ class EMCCoprHDDriverCommon(object):
                                            sync=True,
                                            force_delete=True)
 
-                    update_item = {'id': vol['id'],
+                    update_item = {'id': vol.id,
                                    'status':
                                    fields.GroupStatus.DELETED}
                     volumes_model_update.append(update_item)
 
                 except exception.VolumeBackendAPIException:
-                    update_item = {'id': vol['id'],
+                    update_item = {'id': vol.id,
                                    'status': fields.ConsistencyGroupStatus.
                                    ERROR_DELETING}
 
                     volumes_model_update.append(update_item)
 
                     LOG.exception("Failed to delete the volume %s of CG.",
-                                  vol['name'])
+                                  vol.name)
 
             self.consistencygroup_obj.delete(
                 name,
@@ -378,7 +377,7 @@ class EMCCoprHDDriverCommon(object):
                 self.configuration.coprhd_tenant)
 
             model_update = {}
-            model_update['status'] = group['status']
+            model_update['status'] = group.status
 
             return model_update, volumes_model_update
 
@@ -401,8 +400,14 @@ class EMCCoprHDDriverCommon(object):
                                                   MAX_SNAPSHOT_NAME_LENGTH,
                                                   truncate_name)
 
-        cg_id = cgsnapshot.get('group_id')
-        cg_group = cgsnapshot.get('group')
+        cg_id = None
+        cg_group = None
+
+        try:
+            cg_id = cgsnapshot.group_id
+            cg_group = cgsnapshot.group
+        except AttributeError:
+            pass
 
         cg_name = None
         coprhd_cgid = None
@@ -425,7 +430,7 @@ class EMCCoprHDDriverCommon(object):
                 True)
 
             for snapshot in snapshots:
-                vol_id_of_snap = snapshot['volume_id']
+                vol_id_of_snap = snapshot.volume_id
 
                 # Finding the volume in CoprHD for this volume id
                 tagname = "OpenStack:id:" + vol_id_of_snap
@@ -485,9 +490,9 @@ class EMCCoprHDDriverCommon(object):
                                 snapUri['id'],
                                 snapshot)
 
-                snapshot['status'] = fields.SnapshotStatus.AVAILABLE
+                snapshot.status = fields.SnapshotStatus.AVAILABLE
                 snapshots_model_update.append(
-                    {'id': snapshot['id'], 'status':
+                    {'id': snapshot.id, 'status':
                      fields.SnapshotStatus.AVAILABLE})
 
             model_update = {'status': fields.ConsistencyGroupStatus.AVAILABLE}
@@ -510,22 +515,28 @@ class EMCCoprHDDriverCommon(object):
     @retry_wrapper
     def delete_cgsnapshot(self, cgsnapshot, snapshots, truncate_name=False):
         self.authenticate_user()
-        cgsnapshot_id = cgsnapshot['id']
+        cgsnapshot_id = cgsnapshot.id
         cgsnapshot_name = self._get_resource_name(cgsnapshot,
                                                   MAX_SNAPSHOT_NAME_LENGTH,
                                                   truncate_name)
 
         snapshots_model_update = []
 
-        cg_id = cgsnapshot.get('group_id')
-        cg_group = cgsnapshot.get('group')
+        cg_id = None
+        cg_group = None
+
+        try:
+            cg_id = cgsnapshot.group_id
+            cg_group = cgsnapshot.group
+        except AttributeError:
+            pass
 
         coprhd_cgid = self._get_coprhd_cgid(cg_id)
         cg_name = self._get_consistencygroup_name(cg_group)
 
         model_update = {}
         LOG.info('Delete cgsnapshot %(snap_name)s for consistency group: '
-                 '%(group_name)s', {'snap_name': cgsnapshot['name'],
+                 '%(group_name)s', {'snap_name': cgsnapshot.name,
                                     'group_name': cg_name})
 
         try:
@@ -551,7 +562,7 @@ class EMCCoprHDDriverCommon(object):
 
             for snapshot in snapshots:
                 snapshots_model_update.append(
-                    {'id': snapshot['id'],
+                    {'id': snapshot.id,
                      'status': fields.SnapshotStatus.DELETED})
 
             return model_update, snapshots_model_update
@@ -671,12 +682,14 @@ class EMCCoprHDDriverCommon(object):
         srcname = self._get_coprhd_volume_name(src_vref)
 
         try:
-            if src_vref['group_id']:
+            if src_vref.group_id:
                 raise coprhd_utils.CoprHdError(
                     coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
                     _("Clone can't be taken individually on a volume"
                       " that is part of a Consistency Group"))
         except KeyError as e:
+            pass
+        except AttributeError:
             pass
         try:
             (storageres_type,
@@ -720,13 +733,21 @@ class EMCCoprHDDriverCommon(object):
             self._raise_or_log_exception(e.err_code, coprhd_err_msg,
                                          log_err_msg)
 
+        src_vol_size = 0
+        dest_vol_size = 0
+        
         try:
-            src_vol_size = src_vref['size']
-        except KeyError:
-            src_vol_size = src_vref['volume_size']
-
-        if vol['size'] > src_vol_size:
-            size_in_bytes = coprhd_utils.to_bytes("%sG" % vol['size'])
+            src_vol_size = src_vref.size
+        except AttributeError:
+            src_vol_size = src_vref.volume_size
+        
+        try:
+            dest_vol_size = vol.size
+        except AttributeError:
+            dest_vol_size = vol.volume_size
+            
+        if dest_vol_size > src_vol_size:
+            size_in_bytes = coprhd_utils.to_bytes("%sG" % dest_vol_size)
             try:
                 self.volume_obj.expand(
                     ("%s/%s" % (self.configuration.coprhd_tenant,
@@ -777,14 +798,17 @@ class EMCCoprHDDriverCommon(object):
             self.create_cloned_volume(volume, snapshot, truncate_name)
             return
 
-        if snapshot.get('group_snapshot_id'):
-            raise coprhd_utils.CoprHdError(
-                coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
-                _("Volume cannot be created individually from a snapshot "
-                  "that is part of a Consistency Group"))
+        try:
+            if snapshot.group_snapshot_id:
+                raise coprhd_utils.CoprHdError(
+                    coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
+                    _("Volume cannot be created individually from a snapshot "
+                      "that is part of a Consistency Group"))
+        except AttributeError:
+            pass
 
         src_snapshot_name = None
-        src_vol_ref = snapshot['volume']
+        src_vol_ref = snapshot.volume
         new_volume_name = self._get_resource_name(volume,
                                                   MAX_DEFAULT_NAME_LENGTH,
                                                   truncate_name)
@@ -823,8 +847,8 @@ class EMCCoprHDDriverCommon(object):
             self._raise_or_log_exception(e.err_code, coprhd_err_msg,
                                          log_err_msg)
 
-        if volume['size'] > snapshot['volume_size']:
-            size_in_bytes = coprhd_utils.to_bytes("%sG" % volume['size'])
+        if volume.size > snapshot.volume_size:
+            size_in_bytes = coprhd_utils.to_bytes("%sG" % volume.size)
 
             try:
                 self.volume_obj.expand(
@@ -871,10 +895,10 @@ class EMCCoprHDDriverCommon(object):
     def create_snapshot(self, snapshot, truncate_name=False):
         self.authenticate_user()
 
-        volume = snapshot['volume']
+        volume = snapshot.volume
 
         try:
-            if volume['group_id']:
+            if volume.group_id:
                 raise coprhd_utils.CoprHdError(
                     coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
                     _("Snapshot can't be taken individually on a volume"
@@ -892,7 +916,7 @@ class EMCCoprHDDriverCommon(object):
             snapshotname = self._get_resource_name(snapshot,
                                                    MAX_SNAPSHOT_NAME_LENGTH,
                                                    truncate_name)
-            vol = snapshot['volume']
+            vol = snapshot.volume
 
             volumename = self._get_coprhd_volume_name(vol)
             projectname = self.configuration.coprhd_project
@@ -938,10 +962,10 @@ class EMCCoprHDDriverCommon(object):
     def delete_snapshot(self, snapshot):
         self.authenticate_user()
 
-        vol = snapshot['volume']
+        vol = snapshot.volume
 
         try:
-            if vol['group_id']:
+            if vol.group_id:
                 raise coprhd_utils.CoprHdError(
                     coprhd_utils.CoprHdError.SOS_FAILURE_ERR,
                     _("Snapshot delete can't be done individually on a volume"
@@ -1206,7 +1230,7 @@ class EMCCoprHDDriverCommon(object):
                 (_("Consistency Group %s not found") % cgid))
 
     def _get_consistencygroup_name(self, consisgrp):
-        return consisgrp['name']
+        return consisgrp.name
 
     def _get_coprhd_snapshot_name(self, snapshot, resUri):
         tagname = self.OPENSTACK_TAG + ":id:" + snapshot['id']
@@ -1236,7 +1260,7 @@ class EMCCoprHDDriverCommon(object):
             return rslt_snap['name']
 
     def _get_coprhd_volume_name(self, vol, verbose=False):
-        tagname = self.OPENSTACK_TAG + ":id:" + vol['id']
+        tagname = self.OPENSTACK_TAG + ":id:" + vol.id
         rslt = coprhd_utils.search_by_tag(
             coprhd_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
             self.configuration.coprhd_hostname,
@@ -1246,7 +1270,7 @@ class EMCCoprHDDriverCommon(object):
         # as "OpenStack:obj_id"
         # as snapshots will be having the obj_id instead of just id.
         if len(rslt) == 0:
-            tagname = self.OPENSTACK_TAG + ":obj_id:" + vol['id']
+            tagname = self.OPENSTACK_TAG + ":obj_id:" + vol.id
             rslt = coprhd_utils.search_by_tag(
                 coprhd_vol.Volume.URI_SEARCH_VOLUMES_BY_TAG.format(tagname),
                 self.configuration.coprhd_hostname,
@@ -1269,32 +1293,36 @@ class EMCCoprHDDriverCommon(object):
                            truncate_name=False):
         # 36 refers to the length of UUID and +1 for '-'
         permitted_name_length = max_name_cap - (36 + 1)
-        name = resource.get('display_name', None)
-
-        if not name:
-            name = resource['name']
+        name = None
+        try:
+            name = resource.display_name
+        except AttributeError:
+            try:
+                name = resource.name
+            except AttributeError:
+                pass
 
         '''
         for scaleio, truncate_name will be true. We make sure the
         total name is less than or equal to 31 characters.
         _id_to_base64 will return a 24 character name'''
         if truncate_name:
-            name = self._id_to_base64(resource['id'])
+            name = self._id_to_base64(resource.id)
             return name
 
         elif len(name) > permitted_name_length:
             '''
             The maximum length of resource name in CoprHD is 128. Hence we use
             only first 91 characters of the resource name'''
-            return name[0:permitted_name_length] + "-" + resource['id']
+            return name[0:permitted_name_length] + "-" + resource.id
 
         else:
-            return name + "-" + resource['id']
+            return name + "-" + resource.id
 
     def _get_vpool(self, volume):
         vpool = {}
         ctxt = context.get_admin_context()
-        type_id = volume['volume_type_id']
+        type_id = volume.volume_type_id
         if type_id is not None:
             volume_type = volume_types.get_volume_type(ctxt, type_id)
             specs = volume_type.get('extra_specs')

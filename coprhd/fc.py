@@ -163,7 +163,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Initializes the connection and returns connection info."""
 
         properties = {}
-        properties['volume_id'] = volume['id']
+        properties['volume_id'] = volume.id
         properties['target_discovered'] = False
         properties['target_wwn'] = []
 
@@ -182,7 +182,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         properties['target_wwn'] = target_wwns
         properties['initiator_target_map'] = initiator_target_map
 
-        auth = volume['provider_auth']
+        auth = volume.provider_auth
         if auth:
             (auth_method, auth_username, auth_secret) = auth.split()
             properties['auth_method'] = auth_method

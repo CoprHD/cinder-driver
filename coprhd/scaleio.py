@@ -89,7 +89,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         """Creates a Volume."""
         self.common.create_volume(volume, self, True)
         self.common.set_volume_tags(volume, ['_obj_volume_type'], True)
-        vol_size = self._update_volume_size(int(volume['size']))
+        vol_size = self._update_volume_size(int(volume.size))
         return {'size': vol_size}
 
     def _update_volume_size(self, vol_size):
@@ -214,7 +214,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
 
         properties = {}
         properties['scaleIO_volname'] = volname
-        properties['scaleIO_volume_id'] = volume['provider_id']
+        properties['scaleIO_volume_id'] = volume.provider_id
         properties['hostIP'] = connector['ip']
         properties[
             'serverIP'] = self.configuration.coprhd_scaleio_rest_gateway_host
@@ -254,10 +254,10 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     def terminate_connection(self, volume, connector, **kwargs):
         """Disallow connection from connector."""
 
-        volname = volume['display_name']
+        volname = volume.display_name
         properties = {}
         properties['scaleIO_volname'] = volname
-        properties['scaleIO_volume_id'] = volume['provider_id']
+        properties['scaleIO_volume_id'] = volume.provider_id
         properties['hostIP'] = connector['ip']
         properties[
             'serverIP'] = self.configuration.coprhd_scaleio_rest_gateway_host

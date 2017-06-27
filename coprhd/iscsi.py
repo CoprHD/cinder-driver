@@ -165,14 +165,14 @@ class EMCCoprHDISCSIDriver(driver.ISCSIDriver):
                                                  connector['host'])
         properties = {}
         properties['target_discovered'] = False
-        properties['volume_id'] = volume['id']
+        properties['volume_id'] = volume.id
         if itls:
             properties['target_iqn'] = itls[0]['target']['port']
             properties['target_portal'] = '%s:%s' % (
                 itls[0]['target']['ip_address'],
                 itls[0]['target']['tcp_port'])
             properties['target_lun'] = itls[0]['hlu']
-        auth = volume['provider_auth']
+        auth = volume.provider_auth
         if auth:
             (auth_method, auth_username, auth_secret) = auth.split()
             properties['auth_method'] = auth_method
