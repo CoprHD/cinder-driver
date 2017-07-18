@@ -2437,19 +2437,21 @@ class EMCCoprHDDriverCommon(object):
         self.authenticate_user()
 
         varray_id = self.varray_obj.varray_query(self.configuration.coprhd_varray)
-        pools = self.varray_obj.varray_storage_pools(varray_id)
-
+        vpools = self.varray_obj.varray_associated_vpools(varray_id)
+        
         volume_pools = []
         compression = False
         
-        for pool in pools['storage_pool']:
-            storage_pool = self.storagepool_obj.storagepool_list_by_uri(pool['id'])
-            volume_pool = {'name': storage_pool['name'], 'free_capacity':
-                          str(int(storage_pool['free_gb'])) + " GB",
+        for vpool in vpools['virtualpool']:
+            virtual_pool = self.vpool_obj.vpool_varray_capacity(vpool['id'],
+                                                                varray_id)
+            volume_pool = {'name': vpool['name'], 'free_capacity':
+                          str(int(virtual_pool['free_gb'])) + " GB",
                           'capacity':
-                          str(int(storage_pool['usable_gb'])) + " GB"}
+                            str(int(virtual_pool["free_gb"]) + 
+                            int(virtual_pool["used_gb"])) + " GB"}
             volume_pools.append(volume_pool)
-                    
+                                
         return  {'volume_pools': volume_pools,
                  'compression_supported': compression }
             

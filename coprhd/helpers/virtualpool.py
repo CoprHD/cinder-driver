@@ -23,6 +23,7 @@ class VirtualPool(common.CoprHDResource):
     URI_VPOOL_SHOW = URI_VPOOL + "/{1}"
     URI_VPOOL_SEARCH = URI_VPOOL + "/search?name={1}"
     URI_VPOOL_LIST = "/block/vpools?tenant-id={0}"
+    URI_VPOOL_VARRAY_CAPACITY = '/block/vpools/{0}/varrays/{1}/capacity'
 
     def vpool_show_uri(self, vpooltype, uri):
         """Makes REST API call and retrieves vpool details based on UUID.
@@ -91,4 +92,22 @@ class VirtualPool(common.CoprHDResource):
 
         o = common.json_decode(s)
 
-        return o    
+        return o
+    
+    def vpool_varray_capacity(self, vpool_id, varray_id):
+        """Makes REST API call to query the vpool-varray capacity.
+        
+        :param vpool_id: Unique identifier of the vpool.
+        :param varray_id: Unique identifier of the varray.
+        """
+        
+        (s, h) = common.service_json_request(
+            self.ipaddr, self.port,
+            "GET",
+            self.URI_VPOOL_VARRAY_CAPACITY.format(vpool_id,
+                                                  varray_id), None)
+
+        o = common.json_decode(s)
+
+        return o
+           
