@@ -20,14 +20,15 @@ from oslo_config import cfg
 from oslo_log import log as logging
 import requests
 import six
+from six.moves import http_client
 from six.moves import urllib
 
 from cinder import exception
 from cinder.i18n import _
-from cinder.i18n import _LI
+from cinder import interface
+from cinder.volume import configuration
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
-from cinder.volume import utils as volume_utils
 
 
 LOG = logging.getLogger(__name__)
@@ -55,9 +56,10 @@ scaleio_opts = [
 ]
 
 CONF = cfg.CONF
-CONF.register_opts(scaleio_opts)
+CONF.register_opts(scaleio_opts, group=configuration.SHARED_CONF_GROUP)
 
 
+@interface.volumedriver
 class EMCCoprHDScaleIODriver(driver.VolumeDriver):
     """CoprHD ScaleIO Driver."""
     VERSION = "3.0.0.0"
@@ -162,57 +164,6 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         """Deletes a cgsnapshot."""
         return self.common.delete_cgsnapshot(cgsnapshot, snapshots, True)
 
-    def create_group(self, context, group):
-        """Creates a group."""
-        if volume_utils.is_group_a_cg_snapshot_type(group):
-            return self.common.create_consistencygroup(context, group, True)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
-    def update_group(self, context, group, add_volumes=None,
-                     remove_volumes=None):
-        """Updates volumes in group."""
-        if volume_utils.is_group_a_cg_snapshot_type(group):
-            return self.common.update_consistencygroup(group, add_volumes,
-                                                       remove_volumes)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
-    def delete_group(self, context, group, volumes):
-        """Deletes a group."""
-        if volume_utils.is_group_a_cg_snapshot_type(group):
-            return self.common.delete_consistencygroup(context, group,
-                                                       volumes, True)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
-    def create_group_snapshot(self, context, group_snapshot, snapshots):
-        """Creates a group snapshot."""
-        if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
-            LOG.debug("creating a group snapshot")
-            return self.common.create_cgsnapshot(group_snapshot, snapshots,
-                                                 True)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
-    def delete_group_snapshot(self, context, group_snapshot, snapshots):
-        """Deletes a group snapshot."""
-        if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
-            return self.common.delete_cgsnapshot(group_snapshot, snapshots,
-                                                 True)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
         pass
@@ -316,7 +267,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
         request = ("https://%s:%s/api/types/Sdc/instances/getByIp::%s/" %
                    (server_ip, six.text_type(server_port), ip_double_encoded))
 
-        LOG.info(_LI("ScaleIO get client id by ip request: %s"), request)
+        LOG.info("ScaleIO get client id by ip request: %s", request)
 
         if self.configuration.scaleio_verify_server_certificate:
             verify_cert = self.configuration.scaleio_server_certificate_path
@@ -335,22 +286,23 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             msg = (_("Client with ip %s wasn't found ") % sdc_ip)
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
-        if r.status_code != 200 and "errorCode" in sdc_id:
+        if r.status_code != http_client.OK and "errorCode" in sdc_id:
             msg = (_("Error getting sdc id from ip %(sdc_ip)s:"
                      " %(sdc_id_message)s") % {'sdc_ip': sdc_ip,
                                                'sdc_id_message': sdc_id[
                                                    'message']})
             LOG.error(msg)
             raise exception.VolumeBackendAPIException(data=msg)
-        LOG.info(_LI("ScaleIO sdc id is %s"), sdc_id)
+        LOG.info("ScaleIO sdc id is %s", sdc_id)
         return sdc_id
 
     def _check_response(self, response, request,
                         server_ip, server_port,
                         server_username, server_password):
-        if response.status_code == 401 or response.status_code == 403:
+        if (response.status_code == http_client.UNAUTHORIZED) or (
+                response.status_code == http_client.FORBIDDEN):
             LOG.info(
-                _LI("Token is invalid, going to re-login and get a new one"))
+                "Token is invalid, going to re-login and get a new one")
 
             login_request = ("https://%s:%s/api/login" %
                              (server_ip, six.text_type(server_port)))
@@ -367,7 +319,7 @@ class EMCCoprHDScaleIODriver(driver.VolumeDriver):
             token = r.json()
             self.server_token = token
             # repeat request with valid token
-            LOG.info(_LI("Going to perform request again %s with valid token"),
+            LOG.info("Going to perform request again %s with valid token",
                      request)
             res = requests.get(
                 request, auth=(server_username, self.server_token),

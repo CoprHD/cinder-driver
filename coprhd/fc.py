@@ -20,15 +20,15 @@ import re
 
 from oslo_log import log as logging
 
+from cinder import interface
 from cinder.volume import driver
 from cinder.volume.drivers.coprhd import common as coprhd_common
-from cinder.volume import utils as volume_utils
-
 from cinder.zonemanager import utils as fczm_utils
 
 LOG = logging.getLogger(__name__)
 
 
+@interface.volumedriver
 class EMCCoprHDFCDriver(driver.FibreChannelDriver):
     """CoprHD FC Driver."""
     VERSION = "3.0.0.0"
@@ -89,7 +89,7 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         pass
 
     def remove_export(self, context, volume):
-        """Driver entry point to remove an export for a volume."""
+        """Driver exntry point to remove an export for a volume."""
         pass
 
     def create_consistencygroup(self, context, group):
@@ -114,53 +114,6 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Deletes a cgsnapshot."""
         return self.common.delete_cgsnapshot(cgsnapshot, snapshots)
 
-    def create_group(self, context, group):
-        """Creates a group."""
-        if volume_utils.is_group_a_cg_snapshot_type(group):
-            return self.common.create_consistencygroup(context, group)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
-    def update_group(self, context, group, add_volumes=None,
-                     remove_volumes=None):
-        """Updates volumes in group."""
-        if volume_utils.is_group_a_cg_snapshot_type(group):
-            return self.common.update_consistencygroup(group, add_volumes,
-                                                       remove_volumes)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
-    def delete_group(self, context, group, volumes):
-        """Deletes a group."""
-        if volume_utils.is_group_a_cg_snapshot_type(group):
-            return self.common.delete_consistencygroup(context, group, volumes)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
-    def create_group_snapshot(self, context, group_snapshot, snapshots):
-        """Creates a group snapshot."""
-        if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
-            return self.common.create_cgsnapshot(group_snapshot, snapshots)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
-    def delete_group_snapshot(self, context, group_snapshot, snapshots):
-        """Deletes a group snapshot."""
-        if volume_utils.is_group_a_cg_snapshot_type(group_snapshot):
-            return self.common.delete_cgsnapshot(group_snapshot, snapshots)
-
-        # If the group is not consistency group snapshot enabled, then
-        # we shall rely on generic volume group implementation
-        raise NotImplementedError()
-
     def check_for_export(self, context, volume_id):
         """Make sure volume is exported."""
         pass
@@ -175,7 +128,9 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         properties['target_wwn'] = []
 
         init_ports = self._build_initport_list(connector)
-        itls = self.common.initialize_connection(volume, 'FC', init_ports,
+        itls = self.common.initialize_connection(volume,
+                                                 'FC',
+                                                 init_ports,
                                                  connector['host'])
 
         target_wwns = None
@@ -207,7 +162,9 @@ class EMCCoprHDFCDriver(driver.FibreChannelDriver):
         """Driver entry point to detach a volume from an instance."""
 
         init_ports = self._build_initport_list(connector)
-        itls = self.common.terminate_connection(volume, 'FC', init_ports,
+        itls = self.common.terminate_connection(volume,
+                                                'FC',
+                                                init_ports,
                                                 connector['host'])
 
         volumes_count = self.common.get_exports_count_by_initiators(init_ports)
